@@ -1330,12 +1330,19 @@
 
             // ⑤ 앱 설정
             if(data.settings){
-                if(data.settings.channelUrl) {
-                    // 채널 URL 일괄 업데이트 가능
-                }
+                if(data.settings.channelUrl) {}
                 if(data.settings.hallOfFame){
                     window._sheetHallOfFame = data.settings.hallOfFame;
                 }
+                // PDF 링크 저장
+                ['pdf_url_1','pdf_url_2','pdf_url_3','pdf_url_4'].forEach(key=>{
+                    if(data.settings[key]) safeSetItem(key, data.settings[key]);
+                });
+            }
+
+            // ⑥ 시크릿 특별 콘텐츠 (날짜별)
+            if(data.secretContents){
+                window.SECRET_CONTENTS = data.secretContents;
             }
 
         } catch(e){
@@ -4115,7 +4122,7 @@ https://life2radio.github.io/affirmation/
         const result = document.getElementById('secret-code-result');
         if(input.length !== 4){ result.textContent = '4자리 코드를 입력해주세요'; return; }
 
-        const today  = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
+        const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
         const correct = SECRET_CODES[today];
         const usedKey = `secret_used_${today}`;
 
@@ -4127,36 +4134,97 @@ https://life2radio.github.io/affirmation/
         }
         if(input === correct){
             safeSetItem(usedKey, '1');
-            // 스페셜 배지 지급
+
+            // 누적 코드 카운트 증가
+            const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
+            safeSetItem('total_secret_codes', String(totalCodes));
+
+            // 배지 저장
             let earned = safeGetJSON('earned_badges',[]);
             const badgeId = `secret_${today}`;
-            if(!earned.includes(badgeId)){
-                earned.push(badgeId);
-                safeSetJSON('earned_badges', earned);
-            }
+            if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
+
             result.textContent = '';
             document.getElementById('secret-code-input').value = '';
-            // 폭죽 + 성공 모달
             launchConfetti();
-            showSecretSuccess();
+
+            // 오늘의 특별 콘텐츠 가져오기
+            const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
+            showSecretSuccess(totalCodes, todayContent);
         } else {
             result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
         }
     }
 
-    function showSecretSuccess(){
-        const box = document.createElement('div');
-        box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#FFFFFF;border-radius:20px;padding:32px 28px;text-align:center;z-index:9998;box-shadow:0 20px 60px rgba(0,0,0,0.2);max-width:320px;width:88%;';
-        box.innerHTML = `
-            <div style="font-size:48px;margin-bottom:12px;">🏅</div>
-            <div style="font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:8px;">코드 인증 성공!</div>
-            <div style="font-size:0.9em;color:#666;line-height:1.6;margin-bottom:20px;">
-                오늘의 시크릿 배지를 획득했어요!<br>
-                매일 Shorts 영상을 끝까지 보고<br>배지를 모아보세요 😊
-            </div>
-            <button onclick="this.parentElement.remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">확인</button>`;
-        document.body.appendChild(box);
-        setTimeout(()=>box.remove(), 5000);
+    // PDF 해금 정보 (구글 스프레드시트 앱설정에서 URL 관리)
+    const PDF_REWARDS = [
+        { threshold: 10, label: '1~3월 확언 PDF', months: '1월~3월 (90일)', urlKey: 'pdf_url_1' },
+        { threshold: 20, label: '4~6월 확언 PDF', months: '4월~6월 (91일)', urlKey: 'pdf_url_2' },
+        { threshold: 30, label: '7~9월 확언 PDF', months: '7월~9월 (92일)', urlKey: 'pdf_url_3' },
+        { threshold: 40, label: '10~12월 확언 PDF', months: '10월~12월 (92일)', urlKey: 'pdf_url_4' },
+    ];
+
+    function showSecretSuccess(totalCodes, content){
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;';
+
+        // PDF 해금 체크
+        const unlockedPdf = PDF_REWARDS.find(r =>
+            totalCodes === r.threshold &&
+            safeGetItem(`pdf_unlocked_${r.threshold}`, '') !== '1'
+        );
+        if(unlockedPdf) safeSetItem(`pdf_unlocked_${unlockedPdf.threshold}`, '1');
+
+        // 남은 코드 수 계산
+        const nextPdf = PDF_REWARDS.find(r => totalCodes < r.threshold);
+        const remaining = nextPdf ? nextPdf.threshold - totalCodes : 0;
+
+        let contentHtml = '';
+        if(content && content.text){
+            contentHtml = `
+                <div style="background:#F0F7F4;border-radius:12px;padding:14px 16px;margin:12px 0;text-align:left;">
+                    <div style="font-size:0.75em;font-weight:700;color:#1B4332;letter-spacing:0.5px;margin-bottom:6px;">🔓 오늘의 숨겨진 ${content.type||'이야기'}</div>
+                    <div style="font-size:0.92em;color:#333;line-height:1.7;font-weight:600;">${content.text}</div>
+                </div>`;
+        }
+
+        let pdfHtml = '';
+        if(unlockedPdf){
+            const pdfUrl = safeGetItem(unlockedPdf.urlKey, '') || '#';
+            pdfHtml = `
+                <div style="background:linear-gradient(135deg,#C9A84C,#E8C97A);border-radius:12px;padding:14px 16px;margin:12px 0;text-align:center;">
+                    <div style="font-size:0.82em;font-weight:700;color:#1B4332;margin-bottom:6px;">🎁 특별 선물이 해금됐어요!</div>
+                    <div style="font-size:0.95em;font-weight:700;color:#1B4332;margin-bottom:10px;">${unlockedPdf.label}</div>
+                    <a href="${pdfUrl}" target="_blank" style="display:block;background:#1B4332;color:#C9A84C;padding:10px;border-radius:10px;font-size:0.9em;font-weight:700;text-decoration:none;">📄 PDF 받기</a>
+                </div>`;
+        }
+
+        let progressHtml = '';
+        if(nextPdf && !unlockedPdf){
+            progressHtml = `<div style="font-size:0.8em;color:#888;margin-top:8px;">🎁 ${nextPdf.label}까지 ${remaining}개 남았어요!</div>`;
+        }
+
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:90%;max-width:360px;text-align:center;max-height:90vh;overflow-y:auto;">
+                <div style="font-size:48px;margin-bottom:8px;">🏅</div>
+                <div style="font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:4px;">코드 인증 성공!</div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">누적 ${totalCodes}개 달성</div>
+                ${contentHtml}
+                ${pdfHtml}
+                ${progressHtml}
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;margin-top:14px;">확인</button>
+            </div>`;
+        document.body.appendChild(modal);
+        setTimeout(()=>{ if(modal.parentNode) modal.remove(); }, 8000);
+    }
+
+    // 이미 해금된 PDF 다시 받기 (달력 탭 등에서 접근)
+    window.openUnlockedPdf = function(threshold){
+        const pdf = PDF_REWARDS.find(r => r.threshold === threshold);
+        if(!pdf) return;
+        const url = safeGetItem(pdf.urlKey, '');
+        if(url && url !== '#') window.open(url, '_blank');
+        else showToast('PDF 링크가 아직 설정되지 않았어요');
     }
     let sttRecognition = null;
 
@@ -4637,18 +4705,21 @@ https://life2radio.github.io/affirmation/
         const lastDate = safeGetItem('last_complete_date', '');
         const today    = getTodayStr();
         const yesterday= (()=>{ const d=new Date(todayObj); d.setDate(d.getDate()-1); return getFormatDate(d); })();
+        const daysDiff = lastDate ? Math.floor((new Date(today) - new Date(lastDate)) / 86400000) : 999;
 
         let msg = '';
         if(cd.length === 0){
             msg = `처음 오셨군요! 반가워요 😊`;
         } else if(lastDate === today){
             msg = `오늘도 오셨군요! 대단해요 🌿`;
-        } else if(lastDate === yesterday){
-            msg = `어제에 이어 오늘도 함께해요 💚`;
-        } else if(lastDate < yesterday){
-            msg = `오랜만에 오셨군요! 오늘부터 다시 함께해요 🌱`;
+        } else if(daysDiff === 1){
+            msg = `어제에 이어 오늘도! 연속 중이에요 💚`;
+        } else if(daysDiff <= 3){
+            msg = `며칠 만이에요! 잘 오셨어요 🌿`;
+        } else if(daysDiff <= 6){
+            msg = `일주일이 다 됐네요! 반가워요 😊`;
         } else {
-            msg = `오늘도 잘 오셨어요 😊`;
+            msg = `오랜만이에요! 오늘부터 다시 함께해요 🌱`;
         }
 
         document.getElementById('nickname-greeting-text').textContent =
