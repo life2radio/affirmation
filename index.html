@@ -429,6 +429,10 @@
                     <div style="font-size:18px;color:#555;" id="tmrw-text"></div>
                 </div>
                 <!-- ★ 가상 연대감 카운터 -->
+                <!-- ★ 닉네임 인사말 -->
+                <div id="nickname-greeting-box" style="display:none;text-align:center;padding:8px 0;margin-bottom:6px;">
+                    <div id="nickname-greeting-text" style="font-size:0.95em;font-weight:700;color:var(--primary-color);"></div>
+                </div>
                 <!-- ★ ① 오늘의 핵심 질문 티저 -->
                 <div id="key-question-box" style="display:none;background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-left:3px solid var(--accent-color);">
                     <div style="font-size:0.75em;font-weight:700;color:var(--accent-color);letter-spacing:0.8px;margin-bottom:8px;">오늘의 핵심 질문</div>
@@ -2737,6 +2741,8 @@
         } else {tp.style.display='none';}
         renderMood('before');renderMood('after');updateCompleteButton();renderStreakProtectHome();
         renderHomeYTRecommend();
+        renderNicknameGreeting();
+        check100DayNotify();
 
         // 핵심질문은 기분(후) 선택 시에만 표시 — 이미 선택된 경우 바로 표시
         const afterSaved = safeGetItem(`mood_after_${getFormatDate(selectedDateObj)}`, null);
@@ -4580,6 +4586,74 @@ https://life2radio.github.io/affirmation/
             document.body.appendChild(el);
             setTimeout(()=>el.remove(), 3000);
         }
+    }
+
+    /* ===== ★ 닉네임 인사말 ===== */
+    function renderNicknameGreeting(){
+        const nick = safeGetItem('my_nickname', '');
+        const box  = document.getElementById('nickname-greeting-box');
+        if(!box) return;
+        if(!nick){ box.style.display='none'; return; }
+
+        const cd       = safeGetJSON('completed_dates', []);
+        const streak   = calcCurrentStreak(cd);
+        const lastDate = safeGetItem('last_complete_date', '');
+        const today    = getTodayStr();
+        const yesterday= (()=>{ const d=new Date(todayObj); d.setDate(d.getDate()-1); return getFormatDate(d); })();
+
+        let msg = '';
+        if(cd.length === 0){
+            msg = `처음 오셨군요! 반가워요 😊`;
+        } else if(lastDate === today){
+            msg = `오늘도 오셨군요! 대단해요 🌿`;
+        } else if(lastDate === yesterday){
+            msg = `어제에 이어 오늘도 함께해요 💚`;
+        } else if(lastDate < yesterday){
+            msg = `오랜만에 오셨군요! 오늘부터 다시 함께해요 🌱`;
+        } else {
+            msg = `오늘도 잘 오셨어요 😊`;
+        }
+
+        document.getElementById('nickname-greeting-text').textContent =
+            `${nick}님, ${msg}`;
+        box.style.display = 'block';
+    }
+
+    /* ===== ★ 100일 달성 이메일 알림 ===== */
+    function check100DayNotify(){
+        const cd = safeGetJSON('completed_dates', []);
+        if(cd.length < 100) return;
+        if(safeGetItem('notified_100day', '') === '1') return; // 이미 알림 보냄
+
+        const nick = safeGetItem('my_nickname', '익명');
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:center;justify-content:center;';
+        g.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:28px 22px;width:90%;max-width:380px;text-align:center;">
+                <div style="font-size:52px;margin-bottom:10px;">🌟</div>
+                <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:8px;">100일 달성!</div>
+                <div style="font-size:0.9em;color:#555;line-height:1.7;margin-bottom:20px;">
+                    <b>${nick}</b>님, 100일을 해내셨어요!<br>
+                    인생2막라디오에 알려주시면<br>
+                    유튜브 영상에서 직접 이름을 불러드려요 🎙
+                </div>
+                <button onclick="send100DayEmail('${nick}', ${cd.length})" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">📧 인생2막라디오에 알리기</button>
+                <button onclick="this.closest('div[style*=fixed]').remove(); localStorage.setItem('notified_100day','1');" style="width:100%;min-height:44px;background:none;border:1px solid #E8E5E0;border-radius:12px;font-size:0.88em;color:#888;cursor:pointer;">나중에 할게요</button>
+            </div>`;
+        document.body.appendChild(g);
+    }
+
+    window.send100DayEmail = function(nick, days){
+        const subject = encodeURIComponent(`[100일 달성 인증] ${nick}님`);
+        const body    = encodeURIComponent(
+            `안녕하세요 인생2막라디오!\n\n닉네임: ${nick}\n달성일수: ${days}일\n달성날짜: ${getTodayStr()}\n\n100일을 달성했어요! 🌟`
+        );
+        window.location.href = `mailto:life2radio@gmail.com?subject=${subject}&body=${body}`;
+        safeSetItem('notified_100day', '1');
+        document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>{
+            if(el.innerHTML.includes('100일 달성')) el.remove();
+        });
+        showToast('📧 이메일 앱이 열렸어요! 전송해주세요 😊');
     }
 
     /* ===== ② 가상 연대감 카운터 ===== */
