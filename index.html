@@ -364,6 +364,36 @@
                     <div id="mood-reason-result" style="display:none;margin-top:14px;padding:14px;background:#F0F7F4;border-radius:10px;font-size:0.88em;color:var(--primary-color);line-height:1.7;font-weight:600;"></div>
                 </div>
                 <div id="affirmation-box-wrap" class="blur-overlay-container"></div>
+
+                <!-- ★ 오디오/읽기 버튼 — 확언 바로 아래 -->
+                <div class="action-buttons" style="margin-top:4px;">
+                    <div class="row-buttons">
+                        <button class="btn btn-sub" id="btn-listen" onclick="playTTS(false)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>들어보기</button>
+                        <button class="btn btn-sub" id="btn-loop" onclick="playTTS(true)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>반복 듣기</button>
+                        <button class="btn btn-sub" id="btn-stt" onclick="startSTT()" style="border:2px solid var(--primary-color);color:var(--primary-color);font-weight:700;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>따라 읽기</button>
+                    </div>
+                    <!-- ★ STT 인식창 — 버튼 바로 아래 -->
+                    <div id="stt-box" style="display:none;background:var(--primary-color);border-radius:14px;padding:16px 18px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div id="stt-status" style="font-size:0.9em;font-weight:700;color:#FFFFFF;">🎤 확언을 소리내어 읽어주세요...</div>
+                            <div style="display:flex;gap:8px;">
+                                <button onclick="sttManualSuccess()" style="background:var(--accent-color);border:none;color:#1B4332;border-radius:20px;padding:5px 16px;font-size:0.82em;font-weight:700;cursor:pointer;">✓ 완료</button>
+                                <button onclick="stopSTT()" style="background:rgba(255,255,255,0.2);border:none;color:#FFFFFF;border-radius:20px;padding:5px 12px;font-size:0.82em;font-weight:600;cursor:pointer;">취소</button>
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:8px;overflow:hidden;margin-bottom:6px;">
+                            <div id="stt-progress-bar" style="height:100%;background:var(--accent-color);border-radius:10px;width:0%;transition:width 0.3s ease;"></div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div id="stt-wave" style="display:flex;align-items:center;gap:3px;height:16px;">
+                                <div class="stt-bar" style="height:8px;"></div><div class="stt-bar" style="height:12px;"></div><div class="stt-bar" style="height:16px;"></div>
+                                <div class="stt-bar" style="height:12px;"></div><div class="stt-bar" style="height:8px;"></div>
+                            </div>
+                            <div id="stt-result-text" style="font-size:0.78em;color:rgba(255,255,255,0.8);"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-main" id="btn-complete" onclick="completeToday()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>오늘 완료 체크</button>
+                </div>
                 <div class="mood-box">
                     <div class="mood-title">확언을 읽고 난 지금 기분은?</div>
                     <div class="mood-emojis" id="mood-after-container"></div>
@@ -393,45 +423,9 @@
                     <div style="font-size:18px; color:var(--primary-color); font-weight:bold;" id="mood-rise-text"></div>
                 </div>
                 <a href="#" target="_blank" class="btn-episode" id="btn-episode"></a>
-                <div id="tomorrow-preview" style="display:none;background-color:#FFF8E7;padding:15px;border-radius:12px;margin-bottom:20px;text-align:center;border:1px dashed var(--accent-color);cursor:pointer;" onclick="alert('내일 오면 전체를 볼 수 있어요 😊')">
+                <div id="tomorrow-preview" style="display:none;background-color:#FFF8E7;padding:15px;border-radius:12px;margin-bottom:16px;text-align:center;border:1px dashed var(--accent-color);cursor:pointer;" onclick="alert('내일 오면 전체를 볼 수 있어요 😊')">
                     <div style="font-size:16px;color:var(--primary-color);font-weight:bold;margin-bottom:5px;">내일의 확언 주제: <span id="tmrw-theme"></span></div>
                     <div style="font-size:18px;color:#555;" id="tmrw-text"></div>
-                </div>
-
-                <!-- ★ 음성인식 결과 (인라인) -->
-                <div id="stt-box" style="display:none;background:var(--primary-color);border-radius:14px;padding:16px 18px;margin-bottom:14px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <div id="stt-status" style="font-size:0.9em;font-weight:700;color:#FFFFFF;">🎤 확언을 소리내어 읽어주세요...</div>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="sttManualSuccess()" style="background:var(--accent-color);border:none;color:#1B4332;border-radius:20px;padding:5px 16px;font-size:0.82em;font-weight:700;cursor:pointer;">✓ 완료</button>
-                            <button onclick="stopSTT()" style="background:rgba(255,255,255,0.2);border:none;color:#FFFFFF;border-radius:20px;padding:5px 12px;font-size:0.82em;font-weight:600;cursor:pointer;">취소</button>
-                        </div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:8px;overflow:hidden;margin-bottom:6px;">
-                        <div id="stt-progress-bar" style="height:100%;background:var(--accent-color);border-radius:10px;width:0%;transition:width 0.3s ease;"></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div id="stt-wave" style="display:flex;align-items:center;gap:3px;height:16px;">
-                            <div class="stt-bar" style="height:8px;"></div><div class="stt-bar" style="height:12px;"></div><div class="stt-bar" style="height:16px;"></div>
-                            <div class="stt-bar" style="height:12px;"></div><div class="stt-bar" style="height:8px;"></div>
-                        </div>
-                        <div id="stt-result-text" style="font-size:0.78em;color:rgba(255,255,255,0.8);"></div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <div class="row-buttons">
-                        <button class="btn btn-sub" id="btn-listen" onclick="playTTS(false)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>들어보기</button>
-                        <button class="btn btn-sub" id="btn-loop" onclick="playTTS(true)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>반복 듣기</button>
-                        <button class="btn btn-sub" id="btn-stt" onclick="startSTT()" style="border:2px solid var(--primary-color);color:var(--primary-color);font-weight:700;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>따라 읽기
-                        </button>
-                    </div>
-                    <button class="btn btn-main" id="btn-complete" onclick="completeToday()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>오늘 완료 체크</button>
-                </div>
-                            <div id="stt-result-text" style="font-size:0.78em;color:rgba(255,255,255,0.7);"></div>
-                        </div>
-                    </div>
                 </div>
                 <!-- ★ 가상 연대감 카운터 -->
                 <!-- ★ ① 오늘의 핵심 질문 티저 -->
