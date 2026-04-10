@@ -773,7 +773,7 @@
                             <button onclick="lockDiary()" style="background:none;border:1px solid var(--border-color);border-radius:20px;padding:6px 14px;font-size:0.8em;cursor:pointer;color:#888;font-weight:700;">잠금</button>
                         </div>
                     </div>
-                    <textarea id="diary-input" placeholder="오늘 하루 어떠셨나요? 자유롭게 기록해보세요. 이 일기는 PIN으로 보호됩니다." style="width:100%;min-height:200px;font-size:1em;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;border:1.5px solid var(--border-color);border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:var(--text-color);background:var(--card-bg);outline:none;"></textarea>
+                    <textarea id="diary-input" placeholder="오늘 하루 어떠셨나요? 자유롭게 기록해보세요. 이 일기는 비밀번호로 잠금됩니다." style="width:100%;min-height:200px;font-size:1em;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;border:1.5px solid var(--border-color);border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:var(--text-color);background:var(--card-bg);outline:none;"></textarea>
                     <div style="text-align:right;font-size:0.78em;color:#aaa;margin:6px 4px 14px;" id="diary-char-count">0자</div>
                     <button class="btn btn-main" onclick="saveDiary()" style="margin-bottom:10px;">저장</button>
                     <div style="display:flex;gap:10px;margin-bottom:24px;">
@@ -3602,55 +3602,56 @@
         }
     }
 
+    const APP_URL = 'https://life2radio.github.io/affirmation/';
+
     window.shareAppFile = function(){
-        // 현재 HTML 전체를 파일로 만들어 공유
-        const html = document.documentElement.outerHTML;
-        const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-        const file = new File([blob], '인생2막라디오_365일확언앱.html', {type:'text/html'});
-
-        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        if(navigator.share){
             navigator.share({
-                files: [file],
-                title: '인생2막라디오 365일 확언 앱',
-                text:  '매일 확언으로 마음을 채우는 앱이에요. 파일을 저장해서 바로 사용해보세요!'
-            }).catch(()=> fallbackDownload(blob));
+                title: '365일 오늘의 확언 | 인생2막라디오',
+                text:  '오늘 하루 나를 위한 한 문장 🌿 설치 없이 무료로 바로 열려요!',
+                url:   APP_URL
+            }).catch(()=>{ copyToClipboard(APP_URL); showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊'); });
         } else {
-            // 카톡으로 보내기 불가 시 다운로드로 대체
-            fallbackDownload(blob);
+            copyToClipboard(APP_URL);
+            showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊');
         }
-    }
-
-    function fallbackDownload(blob){
-        const url = URL.createObjectURL(blob);
-        const a   = document.createElement('a');
-        a.href = url;
-        a.download = '인생2막라디오_365일확언앱.html';
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('파일이 다운로드됐어요! 공유해보세요 😊');
+        document.getElementById('share-app-modal').style.display = 'none';
     }
 
     window.shareAppMessage = function(){
         const msg = `🌿 인생2막라디오 365일 확언 앱
 
-매일 아침 확언 하나로 하루를 시작해요.
-설치 없이 파일 하나로 바로 사용할 수 있어요.
+오늘 하루, 나를 위한 한 문장을 읽는 것부터 시작해보세요.
+설치 없이 링크 하나로 바로 열려요. 무료예요.
 
-✅ 매일 확언 + 기분 체크
-✅ 달력으로 기록 관리
-✅ 필사 & 일기장 (PIN 보호)
-✅ 확언 카드 만들기 & 공유
+이런 분들께 딱 맞아요 💚
+• 매일 나에게 좋은 말 한마디 해주고 싶은 분
+• 감정 기록을 남기고 싶은 분
+• 바쁜 아침에도 딱 1분이면 되는 루틴을 찾는 분
 
-인생2막라디오 유튜브 채널에서 파일을 받으실 수 있어요.
-👉 @SecondActRadio`;
+📱 주요 기능
+✅ 1월~12월 365개 확언 — 매일 자동으로 바뀌어요
+✅ 기분 체크 (전/후 비교) — 내 감정 변화가 보여요
+✅ 소리 듣기 & 따라 읽기 — 귀로도 마음으로도 새겨요
+✅ 달력 기록 — 내가 걸어온 날들이 한눈에
+✅ 일기장 (비밀번호 잠금) — 나만의 비밀 공간
+✅ 확언 카드 — 가족·친구에게 아침 인사로 보내요
+✅ 300일 달성하면 특별한 선물이 기다려요 🎁
+
+👉 지금 바로 열어보세요
+https://life2radio.github.io/affirmation/
+
+인생2막라디오 @SecondActRadio`;
 
         if(navigator.share){
             navigator.share({
-                title: '인생2막라디오 365일 확언 앱',
-                text:  msg
-            }).catch(()=> copyToClipboard(msg));
+                title: '365일 오늘의 확언 | 인생2막라디오',
+                text:  msg,
+                url:   'https://life2radio.github.io/affirmation/'
+            }).catch(()=>{ copyToClipboard(msg); showToast('소개 문구가 복사됐어요! 붙여넣기 해보세요 😊'); });
         } else {
             copyToClipboard(msg);
+            showToast('소개 문구가 복사됐어요! 붙여넣기 해보세요 😊');
         }
         document.getElementById('share-app-modal').style.display = 'none';
     }
@@ -4446,7 +4447,7 @@
                 const resultEl=document.getElementById('stt-result-text');
                 if(bar) bar.style.width=progress+'%';
                 if(resultEl) resultEl.textContent=progress+'%';
-                if(combined && calcSimilarity(combined,target)>0.72){
+                if(combined && calcSimilarity(combined,target)>0.60){
                     sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
                 }
             };
@@ -4501,20 +4502,29 @@
     }
 
     function calcSimilarity(spoken, target){
-        // 공백·구두점 제거 후 순수 글자만 비교
-        const clean = s => s.replace(/[\s.,!?~·。、]/g, '');
+        // 한글/숫자만 남기고 정리
+        const clean = s => s.replace(/[^가-힣a-z0-9]/gi, ' ').trim().toLowerCase();
         const sp = clean(spoken);
         const tg = clean(target);
         if(!tg.length) return 0;
 
-        // 슬라이딩 윈도우로 연속 매칭 글자 수 계산
+        // 어절(단어) 단위로 분리
+        const spWords = sp.split(/\s+/).filter(w => w.length >= 1);
+        const tgWords = tg.split(/\s+/).filter(w => w.length >= 1);
+        if(!tgWords.length) return 0;
+
+        // 목표 어절 중 몇 개가 인식됐는지 체크 (앞 2글자 이상 일치)
         let matched = 0;
-        let tgIdx   = 0;
-        for(let i = 0; i < sp.length && tgIdx < tg.length; i++){
-            if(sp[i] === tg[tgIdx]){ matched++; tgIdx++; }
+        const used = new Set();
+        for(const tw of tgWords){
+            const stem = tw.substring(0, Math.min(tw.length, 2));
+            for(let i=0; i<spWords.length; i++){
+                if(!used.has(i) && spWords[i].includes(stem)){
+                    matched++; used.add(i); break;
+                }
+            }
         }
-        // 목표 글자 중 몇 %를 순서대로 읽었는가
-        return matched / tg.length;
+        return matched / tgWords.length;
     }
 
     function sttSuccess(){
