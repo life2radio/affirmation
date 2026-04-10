@@ -1,0 +1,19 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1B4332"/>
+      <stop offset="100%" stop-color="#0D2B20"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1100" cy="100" r="280" fill="rgba(201,168,76,0.08)"/>
+  <circle cx="100" cy="550" r="220" fill="rgba(201,168,76,0.06)"/>
+  <line x1="80" y1="80" x2="1120" y2="80" stroke="#C9A84C" stroke-width="2"/>
+  <line x1="80" y1="550" x2="1120" y2="550" stroke="#C9A84C" stroke-width="2"/>
+  <text x="600" y="160" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#C9A84C" text-anchor="middle" letter-spacing="2">인생2막라디오</text>
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#FFFFFF" text-anchor="middle">365일 오늘의 확언</text>
+  <text x="600" y="360" font-family="Arial, sans-serif" font-size="34" fill="rgba(255,255,255,0.85)" text-anchor="middle">새로운 나를 만나는 365일의 여정</text>
+  <rect x="200" y="400" width="800" height="100" rx="12" fill="rgba(255,255,255,0.08)"/>
+  <text x="600" y="445" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">🌿 설치 없이 바로 사용 · 무료 · 매일 새 확언</text>
+  <text x="600" y="488" font-family="Arial, sans-serif" font-size="22" fill="#C9A84C" text-anchor="middle">@SecondActRadio</text>
+</svg>
