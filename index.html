@@ -3789,8 +3789,12 @@
         let html=`🔥 ${streak}일 연속 달성 중!`;
         if(!cd.includes(ts)&&!cd.includes(ys)&&ct>0&&streak===0)html=`🔥 스트릭이 끊길 위기! <button class="btn-sub" style="font-size:16px;padding:6px 12px;margin-left:10px;cursor:pointer;border:none;border-radius:8px;font-weight:bold;" onclick="useTicket()">보호권 사용(남음:${ct})</button>`;
         document.getElementById('streak-display-home').innerHTML=html;
+        // 완료 기록 없는 새 사용자 → 결석 카운터 강제 리셋
+        if(cd.length === 0){
+            safeSetItem('revival_absent_days','0');
+        }
         // 결석일 자동 계산: 한 번이라도 완료한 적 있고, 오늘+어제 모두 미완료 시 결석 누적
-        if(cd.length > 0 && !cd.includes(ts)&&!cd.includes(ys)){
+        else if(!cd.includes(ts)&&!cd.includes(ys)){
             var abKey='revival_absent_last_date', lastDate=safeGetItem(abKey,'');
             if(lastDate!==ts){
                 var ab=parseInt(safeGetItem('revival_absent_days','0'))||0;
