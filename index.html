@@ -93,7 +93,7 @@
 
         /* ===== 탭 ===== */
         .tabs { display:flex; margin-bottom:22px; border-bottom:1px solid var(--border-color); }
-        .tab-btn { flex:1; padding:14px 4px; font-size:1em; font-weight:700; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:all 0.2s; letter-spacing:0.2px; margin-bottom:-1px; }
+        .tab-btn { flex:1; padding:8px 4px; font-size:0.85em; font-weight:600; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:all 0.2s; letter-spacing:0.2px; margin-bottom:-1px; }
         .tab-btn.active { color:var(--primary-color); border-bottom-color:var(--primary-color); }
 
         /* ===== 배경음악 ===== */
@@ -335,24 +335,36 @@
                         <button class="episode-banner-close" onclick="closeBanner()">✕</button>
                     </div>
                 </div>
-                <div class="bgm-btn-container">
-                    <button id="btn-bgm" class="btn-bgm" onclick="openBgmSelector()">
-                        <span id="bgm-icon">🎵</span>
-                        <span id="bgm-text">배경음악</span>
-                    </button>
-                </div>
-                <div id="readonly-banner" class="readonly-banner" style="display:none;">📅 과거 확언을 보고 있습니다 (읽기 전용)</div>
+                        <div id="readonly-banner" class="readonly-banner" style="display:none;">📅 과거 확언을 보고 있습니다 (읽기 전용)</div>
                 <div id="streak-display-home" style="text-align:center;font-size:18px;color:#E63946;font-weight:bold;margin-bottom:10px;"></div>
-                <!-- ★ ② 다이어리까지 N일 진행바 -->
-                <div id="diary-progress-bar" style="display:none !important;margin:0 4px 14px;">
+                <!-- ★ ② 연속달성 마일스톤 진행바 -->
+                <div id="streak-milestone-bar" style="margin:0 4px 14px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <div style="font-size:0.78em;font-weight:700;color:var(--accent-color);" id="diary-progress-label">🎁 나만의 확언 다이어리까지</div>
-                        <div style="font-size:0.78em;font-weight:700;color:var(--primary-color);" id="diary-progress-days"></div>
+                        <div id="streak-milestone-label" style="font-size:0.78em;font-weight:700;color:var(--primary-color);">🔥 연속 달성 현황</div>
+                        <div id="streak-milestone-next" style="font-size:0.75em;color:var(--text-muted);"></div>
                     </div>
-                    <div style="background:#E8E4DD;border-radius:10px;height:8px;overflow:hidden;">
-                        <div id="diary-progress-fill" style="height:100%;background:linear-gradient(90deg,var(--primary-color),var(--accent-color));border-radius:10px;transition:width 0.6s ease;"></div>
+                    <div style="background:#E8E4DD;border-radius:10px;height:10px;overflow:hidden;margin-bottom:6px;">
+                        <div id="streak-milestone-fill" style="height:100%;background:linear-gradient(90deg,var(--primary-color),var(--accent-color));border-radius:10px;transition:width 0.6s ease;width:0%;"></div>
                     </div>
-                    <div style="font-size:0.72em;color:var(--text-muted);text-align:right;margin-top:4px;" id="diary-progress-sub"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.68em;color:var(--text-muted);margin-bottom:8px;">
+                        <span>🌱 7일</span><span>🌿 30일</span><span>🏔️ 100일</span><span>☁️ 200일</span><span>✨ 365일</span>
+                    </div>
+                    <!-- 결석 + 패자부활전 버튼 (결석 있을 때만 표시) -->
+                    <div id="streak-revival-area" style="display:none;background:#FFF3CD;border-radius:10px;padding:10px 12px;margin-top:4px;">
+                        <div style="font-size:0.78em;font-weight:700;color:#856404;margin-bottom:8px;">
+                            ⚠️ 결석 <span id="streak-absent-count" style="color:#E63946;"></span>일 — 패자부활전으로 되살릴 수 있어요!
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="switchView('home');setTimeout(function(){document.getElementById('secret-code-input')?.focus();document.getElementById('secret-code-box')?.scrollIntoView({behavior:'smooth'});},300)"
+                                style="flex:1;min-height:40px;background:var(--primary-color);color:#fff;border:none;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;">
+                                📺 쇼츠 코드 입력<br><span style="font-size:0.85em;opacity:0.85;">결석 1일 삭제</span>
+                            </button>
+                            <button onclick="switchView('story')"
+                                style="flex:1;min-height:40px;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;">
+                                💌 사연 보내기<br><span style="font-size:0.85em;opacity:0.85;">결석 최대 7일 삭제</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="date-nav">
                     <button class="date-nav-btn" onclick="changeSelectedDate(-1)" id="btn-prev-date">◀</button>
@@ -517,15 +529,15 @@
                 </div>
                 <!-- ★ ⑤ 유튜브 시크릿 코드 미션 -->
                 <div id="secret-code-box" style="border:1.5px solid var(--accent-color);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">
+                        <div style="min-width:0;flex:1;">
                             <div style="font-size:0.8em;font-weight:700;color:var(--accent-color);">🎬 유튜브 시크릿 미션 +10PT</div>
                             <div style="font-size:0.73em;color:var(--text-muted);margin-top:2px;">Shorts 영상 끝 4자리 코드를 입력하세요</div>
                         </div>
                         <a href="https://www.youtube.com/@SecondActRadio/shorts" target="_blank"
                             onclick="addPoint(2,'쇼츠클릭','shorts_visit')"
-                            style="background:var(--primary-color);color:#fff;text-decoration:none;border-radius:20px;padding:6px 14px;font-size:0.78em;font-weight:700;flex-shrink:0;white-space:nowrap;">
-                            📺 쇼츠 보기
+                            style="background:var(--primary-color);color:#fff;text-decoration:none;border-radius:20px;padding:6px 12px;font-size:0.78em;font-weight:700;flex-shrink:0;white-space:nowrap;">
+                            📺 쇼츠
                         </a>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
@@ -3622,7 +3634,18 @@
         let html=`🔥 ${streak}일 연속 달성 중!`;
         if(!cd.includes(ts)&&!cd.includes(ys)&&ct>0&&streak===0)html=`🔥 스트릭이 끊길 위기! <button class="btn-sub" style="font-size:16px;padding:6px 12px;margin-left:10px;cursor:pointer;border:none;border-radius:8px;font-weight:bold;" onclick="useTicket()">보호권 사용(남음:${ct})</button>`;
         document.getElementById('streak-display-home').innerHTML=html;
-        renderDiaryProgressBar();
+        // 결석일 자동 계산: 오늘+어제 모두 미완료 시 결석 누적
+        if(!cd.includes(ts)&&!cd.includes(ys)){
+            var abKey='revival_absent_last_date', lastDate=safeGetItem(abKey,'');
+            if(lastDate!==ts){
+                var ab=parseInt(safeGetItem('revival_absent_days','0'))||0;
+                safeSetItem('revival_absent_days',String(ab+1));
+                safeSetItem(abKey,ts);
+            }
+        }
+        // 완료한 날이면 결석 카운터 리셋
+        if(cd.includes(ts)) safeSetItem('revival_absent_days','0');
+        renderStreakMilestone();
     }
     window.useTicket=function(){
         let d=new Date(todayObj);d.setDate(d.getDate()-1);
@@ -4629,23 +4652,60 @@ https://life2radio.github.io/affirmation/
         document.getElementById('share-app-modal').style.display = 'none';
     }
     /* ===== ② 홈 다이어리 진행바 ===== */
-    function renderDiaryProgressBar(){
-        const cd    = safeGetJSON('completed_dates',[]);
-        const total = cd.length;
-        const bar   = document.getElementById('diary-progress-bar');
-        if(!bar) return;
+    function renderStreakMilestone(){
+        const cd = safeGetJSON('completed_dates', []);
+        const streak = calcCurrentStreak(cd);
+        const today = getFormatDate(todayObj);
+        const yesterday = getFormatDate(new Date(todayObj.getTime() - 86400000));
 
-        if(total >= 300){
-            // 이미 달성 → 숨김 (배너로 대체)
-            bar.style.display = 'none';
-            return;
+        // 결석일 계산: 연속달성 시작일부터 오늘까지 - 실제 완료일
+        const absentDays = safeGetItem('revival_absent_days', null) !== null
+            ? parseInt(safeGetItem('revival_absent_days', '0'))
+            : 0;
+
+        // 마일스톤 구간 결정
+        const milestones = [7, 30, 100, 200, 365];
+        const icons = ['🌱', '🌿', '🏔️', '☁️', '✨'];
+        let prevMile = 0, nextMile = 7, nextIcon = '🌱';
+        for(let i = 0; i < milestones.length; i++){
+            if(streak >= milestones[i]){ prevMile = milestones[i]; }
+            else { nextMile = milestones[i]; nextIcon = icons[i]; break; }
         }
-        bar.style.display = 'block';
-        const pct  = Math.min(Math.round(total/300*100), 100);
-        const left = 300 - total;
-        document.getElementById('diary-progress-fill').style.width = pct + '%';
-        document.getElementById('diary-progress-days').textContent = `${total} / 300일`;
-        document.getElementById('diary-progress-sub').textContent  = `앞으로 ${left}일 더! 🎁 실물 다이어리 선물`;
+        if(streak >= 365){ nextMile = 365; nextIcon = '✨'; prevMile = 200; }
+
+        const pct = Math.min(100, Math.round((streak - prevMile) / (nextMile - prevMile) * 100));
+
+        // 진행바 업데이트
+        const fill = document.getElementById('streak-milestone-fill');
+        const lbl  = document.getElementById('streak-milestone-label');
+        const nxt  = document.getElementById('streak-milestone-next');
+        if(fill) fill.style.width = pct + '%';
+        if(lbl)  lbl.textContent = '🔥 ' + streak + '일 연속 달성 중!';
+        if(nxt)  nxt.textContent = nextIcon + ' ' + nextMile + '일까지 ' + (nextMile - streak) + '일';
+
+        // 결석 표시
+        const revivalArea = document.getElementById('streak-revival-area');
+        const absentEl    = document.getElementById('streak-absent-count');
+        const absent = parseInt(safeGetItem('revival_absent_days', '0')) || 0;
+
+        if(revivalArea){
+            if(absent > 0 && absent <= 10){
+                // 1~10일 결석: 패자부활전 가능
+                revivalArea.style.display = 'block';
+                revivalArea.style.background = absent >= 7 ? '#FFE0E0' : '#FFF3CD';
+                if(absentEl) absentEl.textContent = absent;
+            } else if(absent > 10){
+                // 11일 이상: 스트릭 리셋
+                safeSetItem('revival_absent_days', '0');
+                safeSetJSON('completed_dates', []);
+                safeSetItem('streak_reset_date', getFormatDate(todayObj));
+                revivalArea.style.display = 'none';
+                showToast('😢 결석 11일로 스트릭이 초기화됐어요. 다시 시작해요! 🌱');
+                setTimeout(function(){ renderStreakProtectHome(); }, 500);
+            } else {
+                revivalArea.style.display = 'none';
+            }
+        }
     }
 
     /* ===== ④ 배지 보관함 다이어리 카드 렌더링 ===== */
@@ -5485,6 +5545,8 @@ https://life2radio.github.io/affirmation/
             safeSetItem(usedKey, '1');
             // 사용한 코드 목록에 저장
             usedCodes.push(input); safeSetJSON('used_secret_codes', usedCodes);
+            // 패자부활: 결석 1일 삭제
+            var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
             // 누적 코드 카운트 증가
             const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
@@ -6923,6 +6985,17 @@ https://life2radio.github.io/affirmation/
                 if(res.ok){
                     showToast('💌 사연이 전송됐어요! +10PT 적립됐어요 😊');
                     addPoint(10,'사연보내기',`story_send_${todayObj.getFullYear()}_${todayObj.getMonth()+1}`);
+                    // 패자부활: 월 1회, 결석 최대 7일 삭제
+                    var revKey='revival_story_'+todayObj.getFullYear()+'_'+(todayObj.getMonth()+1);
+                    if(!safeGetItem(revKey,'')){
+                        var ab=parseInt(safeGetItem('revival_absent_days','0'))||0;
+                        if(ab>0){
+                            var del=Math.min(ab,7);
+                            safeSetItem('revival_absent_days',String(ab-del));
+                            safeSetItem(revKey,'1');
+                            showToast('🎉 패자부활! 결석 '+del+'일이 삭제됐어요!');
+                        }
+                    }
                     ['story-title','story-body','story-name'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
                     document.getElementById('story-char-count').textContent='0자';
                 } else throw new Error();
