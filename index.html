@@ -306,8 +306,8 @@
     </header>
     <!-- 포인트/레벨 표시 바 -->
     <div id="point-bar" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--bg-color);border-bottom:1px solid var(--border-color);font-size:0.78em;">
-        <span id="point-bar-emoji" onclick="openLevelGuide()" style="font-size:16px;cursor:pointer;">🌱</span>
-        <span id="point-bar-level" onclick="openLevelGuide()" style="font-weight:700;color:var(--primary-color);min-width:32px;cursor:pointer;text-decoration:underline dotted;">씨앗</span>
+        <span id="point-bar-emoji" onclick="openLevelGuide()" style="font-size:16px;cursor:pointer;"></span>
+        <span id="point-bar-level" onclick="openLevelGuide()" style="font-weight:700;color:var(--primary-color);min-width:32px;cursor:pointer;text-decoration:underline dotted;"></span>
         <div onclick="openLevelGuide()" style="flex:1;background:var(--border-color);border-radius:6px;height:6px;overflow:hidden;cursor:pointer;">
             <div id="point-bar-progress" style="height:100%;background:var(--primary-color);border-radius:6px;transition:width 0.4s ease;width:0%;"></div>
         </div>
@@ -336,25 +336,26 @@
                     </div>
                 </div>
                         <div id="readonly-banner" class="readonly-banner" style="display:none;">📅 과거 확언을 보고 있습니다 (읽기 전용)</div>
-                <div id="streak-display-home" style="text-align:center;font-size:18px;color:#E63946;font-weight:bold;margin-bottom:10px;"></div>
+                <div id="streak-display-home" style="display:none;"></div>
                 <!-- ★ ② 연속달성 마일스톤 진행바 -->
                 <div id="streak-milestone-bar" style="margin:0 4px 14px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <div id="streak-milestone-label" style="font-size:0.78em;font-weight:700;color:var(--primary-color);">🔥 연속 달성 현황</div>
+                        <div id="streak-milestone-label" onclick="showStreakCriteria()" style="font-size:0.78em;font-weight:700;color:var(--primary-color);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;">🔥 연속 달성 현황 ⓘ</div>
                         <div id="streak-milestone-next" style="font-size:0.75em;color:var(--text-muted);"></div>
                     </div>
+                    <div id="daily-mission-badge" style="display:none;font-size:0.78em;text-align:center;margin-bottom:6px;padding:4px 0;border-radius:6px;background:var(--card-bg);"></div>
                     <div style="background:#E8E4DD;border-radius:10px;height:10px;overflow:hidden;margin-bottom:6px;">
                         <div id="streak-milestone-fill" style="height:100%;background:linear-gradient(90deg,var(--primary-color),var(--accent-color));border-radius:10px;transition:width 0.6s ease;width:0%;"></div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:0.68em;color:var(--text-muted);margin-bottom:8px;">
-                        <span>🌱 7일</span><span>🌿 30일</span><span>🏔️ 100일</span><span>☁️ 200일</span><span>✨ 365일</span>
+                        <span>7일🏅</span><span>30일🥈</span><span>100일🏔️</span><span>200일☁️</span><span>300일✨</span>
                     </div>
                     <!-- 결석 + 패자부활전 버튼 (결석 있을 때만 표시) -->
                     <div id="streak-revival-area" style="display:none;background:#FFF3CD;border-radius:10px;padding:10px 12px;margin-top:4px;">
                         <div style="font-size:0.78em;font-weight:700;color:#856404;margin-bottom:8px;">
                             ⚠️ 결석 <span id="streak-absent-count" style="color:#E63946;"></span>일 — 패자부활전으로 되살릴 수 있어요!
                         </div>
-                        <div style="display:flex;gap:8px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button onclick="switchView('home');setTimeout(function(){document.getElementById('secret-code-input')?.focus();document.getElementById('secret-code-box')?.scrollIntoView({behavior:'smooth'});},300)"
                                 style="flex:1;min-height:40px;background:var(--primary-color);color:#fff;border:none;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;">
                                 📺 쇼츠 코드 입력<br><span style="font-size:0.85em;opacity:0.85;">결석 1일 삭제</span>
@@ -362,6 +363,10 @@
                             <button onclick="switchView('story')"
                                 style="flex:1;min-height:40px;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;">
                                 💌 사연 보내기<br><span style="font-size:0.85em;opacity:0.85;">결석 최대 7일 삭제</span>
+                            </button>
+                            <button onclick="reviveWithPoints()"
+                                style="width:100%;min-height:40px;background:#E8F5E9;color:var(--primary-color);border:1.5px solid var(--primary-color);border-radius:8px;font-size:0.78em;font-weight:700;cursor:pointer;">
+                                💰 포인트 10PT로 결석 1일 삭제<br><span id="revival-pt-info" style="font-size:0.85em;opacity:0.85;">보유 포인트 확인 중...</span>
                             </button>
                         </div>
                     </div>
@@ -638,7 +643,7 @@
                             <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">☁️ 라디오스타 직행!</span>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(201,168,76,0.3);border-radius:8px;padding:8px 12px;border:1px solid #C9A84C;">
-                            <span style="font-size:0.82em;color:#fff;font-weight:700;">✨ 365일 연속 확언 완료</span>
+                            <span style="font-size:0.82em;color:#fff;font-weight:700;">✨ 300일 연속 확언 완료</span>
                             <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">인생챔피언 직행!!</span>
                         </div>
                     </div>
@@ -1519,7 +1524,7 @@
                 7일 연속 달성 <b style="float:right;color:#C9A84C;">+10 PT</b><br>
                 30일 연속 달성 <b style="float:right;color:#C9A84C;">+50 PT</b><br>
                 100일 달성 <b style="float:right;color:#C9A84C;">+200 PT</b><br>
-                365일 달성 <b style="float:right;color:#C9A84C;">+500 PT</b>
+                300일 달성 <b style="float:right;color:#C9A84C;">+500 PT</b>
             </div>
         </div>
         <div style="background:#FFF8E8;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #F0D080;">
@@ -1550,7 +1555,7 @@
             <div style="font-size:0.82em;color:rgba(255,255,255,0.9);line-height:2.2;">
                 100일 연속 달성 <b style="float:right;color:#C9A84C;">🏔️ 인생2막러 직행</b><br>
                 200일 연속 달성 <b style="float:right;color:#C9A84C;">☁️ 라디오스타 직행</b><br>
-                365일 연속 달성 <b style="float:right;color:#C9A84C;">✨ 인생챔피언 직행</b>
+                300일 연속 달성 <b style="float:right;color:#C9A84C;">✨ 인생챔피언 직행</b>
             </div>
             <div style="font-size:0.75em;color:rgba(255,255,255,0.6);margin-top:8px;line-height:1.6;">
                 * 연속 달성이란 매일 빠짐없이 확언을 완료한 날 기준이에요.<br>
@@ -1566,7 +1571,7 @@
                     코드 10개만 모아도 <b>+120PT 추가</b>! 🎯<br>
                     <b>주 4개 코드 + 풀적립</b> 시 <b style="color:#C9A84C;">최단 64일</b> 달성 가능! ✨<br>
                     <b>100일 연속 달성</b>하면 인생2막러 등급 직행 🏔️<br>
-                    <b>200일 연속</b> → 라디오스타 ☁️ / <b>365일 연속</b> → 인생챔피언 ✨
+                    <b>200일 연속</b> → 라디오스타 ☁️ / <b>300일 연속</b> → 인생챔피언 ✨
                 </div>
             </div>
 
@@ -3057,7 +3062,32 @@
         showToast('💌 받는 분 이름이 저장됐어요!');
     }
 
-    window.initApp = function initApp(){
+    function checkKakaoAndRedirect(){
+        if(!/KAKAOTALK/i.test(navigator.userAgent)||!/Android/i.test(navigator.userAgent)) return false;
+        var o=document.createElement('div');
+        o.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;';
+        var b=document.createElement('div');
+        b.style.cssText='background:#fff;border-radius:20px;padding:32px 24px;width:88%;max-width:360px;text-align:center;';
+        b.innerHTML=[
+            '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>',
+            '<div style="font-size:1.1em;font-weight:700;color:#1B4332;margin-bottom:10px;">데이터 보호를 위해<br>Chrome으로 열어주세요!</div>',
+            '<div style="font-size:0.84em;color:#666;line-height:1.8;margin-bottom:24px;">카카오톡 브라우저에서는<br>열심히 쓴 <b style="color:#E63946;">일기·기록이 사라질 수 있어요.</b></div>',
+            '<button id="k-chrome" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">🌐 Chrome으로 열기</button>',
+            '<button id="k-skip" style="width:100%;min-height:44px;background:none;border:1px solid #ccc;border-radius:14px;font-size:0.88em;color:#999;cursor:pointer;">그냥 계속하기</button>'
+        ].join('');
+        o.appendChild(b); document.body.appendChild(o);
+        document.getElementById('k-chrome').onclick=function(){
+            var h=location.host+location.pathname+location.search;
+            location.href='intent://'+h+'#Intent;scheme=https;action=android.intent.action.VIEW;package=com.android.chrome;end';
+            setTimeout(function(){ location.href='intent://'+h+'#Intent;scheme=https;action=android.intent.action.VIEW;package=com.sec.android.app.sbrowser;end'; },1500);
+        };
+        document.getElementById('k-skip').onclick=function(){ o.remove(); };
+        return true;
+    }
+
+    initApp = function initApp(){
+        // 카카오톡 인앱브라우저 감지 → Chrome 전환
+        if(checkKakaoAndRedirect()) return;
         applyStoredSettings();
         restoreNotifSchedule();
         initSolidarity();
@@ -3092,8 +3122,24 @@
 
         let installContent = '';
 
+        const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+
         if(isIOS){
-            installContent = `
+            if(isKakao){
+                // 카카오톡 인앱 브라우저 → Safari로 열기 안내
+                installContent = `
+                <div style="background:#FFF3CD;border-radius:14px;padding:14px 16px;margin-bottom:16px;text-align:left;">
+                    <div style="font-size:0.88em;color:#856404;line-height:2.2;font-weight:600;">
+                        카카오톡 브라우저에서는<br>홈화면 추가가 불가해요 😢<br><br>
+                        1️⃣ 오른쪽 하단 <b>···</b> 버튼 탭<br>
+                        2️⃣ <b>"Safari로 열기"</b> 선택<br>
+                        3️⃣ Safari에서 <b>공유 □↑ → 홈 화면에 추가</b>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">일단 시작하기 →</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+            } else {
+                installContent = `
                 <div style="background:#F0F7F4;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:left;">
                     <div style="font-size:0.88em;color:#1B4332;line-height:2.2;font-weight:600;">
                         1️⃣ 아래 <b>공유 버튼 □↑</b> 탭<br>
@@ -3103,9 +3149,22 @@
                 </div>
                 <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">확인했어요! 앱 시작하기 ✓</button>
                 <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+            }
         } else if(isAndroid){
-            // 안드로이드: prompt 있으면 즉시 설치, 없으면 수동 안내
-            if(pwaInstallPrompt){
+            // 안드로이드: 카카오톡 브라우저면 Chrome으로 열기 안내
+            if(isKakao){
+                installContent = `
+                <div style="background:#FFF3CD;border-radius:14px;padding:14px 16px;margin-bottom:16px;text-align:left;">
+                    <div style="font-size:0.88em;color:#856404;line-height:2.2;font-weight:600;">
+                        카카오톡 브라우저에서는<br>홈화면 추가가 불가해요 😢<br><br>
+                        1️⃣ 오른쪽 상단 <b>···</b> 버튼 탭<br>
+                        2️⃣ <b>"다른 브라우저로 열기"</b> 선택<br>
+                        3️⃣ Chrome에서 <b>⋮ → 홈 화면에 추가</b>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">일단 시작하기 →</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+            } else if(pwaInstallPrompt){
                 installContent = `
                     <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
                     <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
@@ -3357,7 +3416,7 @@
 
     /* ===== ④ 변화 스토리 카드 ===== */
     function checkStoryCard(completedCount){
-        const milestones = [7,30,100,200,365];
+        const milestones = [7,30,100,200,300];
         const milestone = milestones.find(m=> completedCount===m);
         if(!milestone) return;
         const key = `story_card_shown_${milestone}`;
@@ -3371,7 +3430,7 @@
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9995;display:flex;align-items:center;justify-content:center;';
         modal.innerHTML = `
             <div style="background:#FFFFFF;border-radius:24px;padding:28px 24px;width:90%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-                <div style="font-size:48px;margin-bottom:12px;">${milestone===365?'🏆':milestone>=100?'🌟':milestone>=30?'🌻':'🌱'}</div>
+                <div style="font-size:48px;margin-bottom:12px;">${milestone===300?'🏆':milestone>=100?'🌟':milestone>=30?'🌻':'🌱'}</div>
                 <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:6px;">${milestone}일 달성!</div>
                 <div style="font-size:0.9em;color:#666;margin-bottom:20px;line-height:1.6;">
                     ${milestone}일 동안 매일 확언과 함께하셨어요.<br>당신의 변화를 카드로 만들어드릴게요!
@@ -3786,7 +3845,7 @@
                 const streakRewards = {
                     100: { pts:1200, msg:'🏔️ 100일 연속! 인생2막러 등급 직행!' },
                     200: { pts:1850, msg:'☁️ 200일 연속! 라디오스타 등급 직행!' },
-                    365: { pts:2390, msg:'✨ 365일 연속! 인생챔피언 직행!' },
+                    300: { pts:2390, msg:'✨ 300일 연속! 인생챔피언 직행!' },
                 };
                 if(streakRewards[ne.target]){
                     const rw = streakRewards[ne.target];
@@ -4652,6 +4711,95 @@ https://life2radio.github.io/affirmation/
         document.getElementById('share-app-modal').style.display = 'none';
     }
     /* ===== ② 홈 다이어리 진행바 ===== */
+
+    // ★ 오늘의 5개 미션 체크
+    function getTodayMissionStatus(){
+        const today = getTodayStr();
+        return {
+            listen:   safeGetItem('pt_daily_listen_'+today,'')   === '1',
+            stt:      safeGetItem('pt_daily_stt_'+today,'')      === '1',
+            complete: safeGetItem('pt_daily_complete_'+today,'') === '1',
+            moodBefore: safeGetItem('mood_before_'+today,'')     !== '',
+            moodAfter:  safeGetItem('mood_after_'+today,'')      !== '',
+        };
+    }
+
+    function countTodayMissions(){
+        const m = getTodayMissionStatus();
+        return [m.listen, m.stt, m.complete, m.moodBefore, m.moodAfter].filter(Boolean).length;
+    }
+
+
+
+    // ★ 포인트로 패자부활 (10PT = 결석 1일 삭제)
+    window.reviveWithPoints = function(){
+        var pts = getPoints();
+        var absent = parseInt(safeGetItem('revival_absent_days','0'))||0;
+        if(absent <= 0){ showToast('현재 결석이 없어요!'); return; }
+        if(pts < 10){ showToast('포인트가 부족해요! (필요: 10PT, 보유: '+pts+'PT)'); return; }
+        // 10PT 차감
+        var currentPts = parseInt(safeGetItem('total_points','0'))||0;
+        safeSetItem('total_points', String(currentPts - 10));
+        // 결석 1일 삭제
+        var newAbsent = Math.max(0, absent - 1);
+        safeSetItem('revival_absent_days', String(newAbsent));
+        showToast('✅ 10PT 사용! 결석 1일이 삭제됐어요 (남은 결석: '+newAbsent+'일)');
+        renderPointBar();
+        renderStreakMilestone();
+    };
+
+    window.closeMissionModal = function(){ var m=document.getElementById('mission-criteria-modal'); if(m)m.remove(); };
+    window.showStreakCriteria = function(){
+        const m = getTodayMissionStatus();
+        const done = countTodayMissions();
+        const items = [
+            {label:'🔊 소리 듣기',      done: m.listen},
+            {label:'🎙️ 따라 읽기',     done: m.stt},
+            {label:'✅ 확언 완료 체크',  done: m.complete},
+            {label:'😊 확언 전 기분 체크', done: m.moodBefore},
+            {label:'💚 확언 후 기분 체크', done: m.moodAfter},
+        ];
+        const old = document.getElementById('mission-criteria-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'mission-criteria-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:8000;display:flex;align-items:flex-end;justify-content:center;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:24px 20px 44px;width:100%;max-width:600px;box-sizing:border-box;';
+        inner.innerHTML =
+            '<div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🔥 연속 달성 기준</div>' +
+            '<div style="font-size:0.8em;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">아래 5가지를 모두 완료하면 오늘의 연속 달성이 인정돼요!</div>' +
+            items.map(function(it){
+                return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+                    '<span style="font-size:1.2em;">' + (it.done ? '✅' : '⬜') + '</span>' +
+                    '<span style="font-size:0.9em;color:' + (it.done ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (it.done ? '700' : '400') + ';">' + it.label + '</span>' +
+                    '</div>';
+            }).join('') +
+            '<div style="margin-top:16px;text-align:center;font-size:0.88em;font-weight:700;color:' + (done===5?'var(--primary-color)':'var(--accent-color)') + ';">' +
+            (done===5 ? '🎉 오늘 미션 완료! 연속 달성 인정!' : done + ' / 5개 완료 — ' + (5-done) + '개 남았어요') + '</div>' +
+            '<button onclick="closeMissionModal()" style="margin-top:14px;width:100%;min-height:44px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    function renderDailyMissionBadge(){
+        const done = countTodayMissions();
+        const el = document.getElementById('daily-mission-badge');
+        if(!el) return;
+        if(done === 5){
+            el.style.display = 'block';
+            el.textContent = '🎉 오늘의 미션 완료!';
+            el.style.color = 'var(--primary-color)';
+            el.style.fontWeight = '700';
+        } else {
+            el.style.display = 'block';
+            el.textContent = '📋 오늘의 미션 ' + done + '/5 완료';
+            el.style.color = 'var(--text-muted)';
+            el.style.fontWeight = '400';
+        }
+    }
+
     function renderStreakMilestone(){
         const cd = safeGetJSON('completed_dates', []);
         const streak = calcCurrentStreak(cd);
@@ -4663,37 +4811,46 @@ https://life2radio.github.io/affirmation/
             ? parseInt(safeGetItem('revival_absent_days', '0'))
             : 0;
 
-        // 마일스톤 구간 결정
-        const milestones = [7, 30, 100, 200, 365];
-        const icons = ['🌱', '🌿', '🏔️', '☁️', '✨'];
-        let prevMile = 0, nextMile = 7, nextIcon = '🌱';
-        for(let i = 0; i < milestones.length; i++){
-            if(streak >= milestones[i]){ prevMile = milestones[i]; }
-            else { nextMile = milestones[i]; nextIcon = icons[i]; break; }
+        // 마일스톤 구간 결정 (각 구간 = 20% 폭)
+        const milestones = [0, 7, 30, 100, 200, 300];
+        const icons      = ['', '🏅', '🥈', '🏔️', '☁️', '✨'];
+        let segIdx = 0;
+        for(let i = 1; i < milestones.length; i++){
+            if(streak < milestones[i]){ segIdx = i - 1; break; }
+            if(i === milestones.length - 1) segIdx = milestones.length - 2;
         }
-        if(streak >= 365){ nextMile = 365; nextIcon = '✨'; prevMile = 200; }
-
-        const pct = Math.min(100, Math.round((streak - prevMile) / (nextMile - prevMile) * 100));
+        const prevMile = milestones[segIdx];
+        const nextMile = milestones[segIdx + 1];
+        const nextIcon = icons[segIdx + 1];
+        // 현재 구간 내 진행률 → 전체 바에서의 위치 (구간당 20%)
+        const segPct  = (nextMile > prevMile)
+            ? (streak - prevMile) / (nextMile - prevMile)
+            : 1;
+        const totalPct = Math.min(100, Math.round((segIdx * 20) + segPct * 20));
 
         // 진행바 업데이트
         const fill = document.getElementById('streak-milestone-fill');
         const lbl  = document.getElementById('streak-milestone-label');
         const nxt  = document.getElementById('streak-milestone-next');
-        if(fill) fill.style.width = pct + '%';
+        if(fill) fill.style.width = totalPct + '%';
         if(lbl)  lbl.textContent = '🔥 ' + streak + '일 연속 달성 중!';
-        if(nxt)  nxt.textContent = nextIcon + ' ' + nextMile + '일까지 ' + (nextMile - streak) + '일';
+        if(nxt)  nxt.textContent = Math.max(0, nextMile - streak) + '일 더! → ' + nextIcon + nextMile + '일 달성';
 
         // 결석 표시
         const revivalArea = document.getElementById('streak-revival-area');
         const absentEl    = document.getElementById('streak-absent-count');
         const absent = parseInt(safeGetItem('revival_absent_days', '0')) || 0;
 
+        renderDailyMissionBadge();
         if(revivalArea){
             if(absent > 0 && absent <= 10){
                 // 1~10일 결석: 패자부활전 가능
                 revivalArea.style.display = 'block';
                 revivalArea.style.background = absent >= 7 ? '#FFE0E0' : '#FFF3CD';
                 if(absentEl) absentEl.textContent = absent;
+                // 포인트 버튼 정보 업데이트
+                var ptInfo = document.getElementById('revival-pt-info');
+                if(ptInfo){ var p=getPoints(); ptInfo.textContent = p>=10 ? '보유 '+p+'PT (사용 가능)' : '보유 '+p+'PT — 부족'; ptInfo.style.color = p>=10 ? '' : '#E63946'; }
             } else if(absent > 10){
                 // 11일 이상: 스트릭 리셋
                 safeSetItem('revival_absent_days', '0');
@@ -4893,7 +5050,7 @@ https://life2radio.github.io/affirmation/
         addPoint(2,'가족공유','share_family');
         if(navigator.share){
             navigator.share({ title:`${sender}의 확언`, text: msg })
-                .catch(()=>{ copyToClipboard(msg); showToast('클립보드에 복사됐어요 📋'); });
+                .catch(function(e){ if(e.name!=='AbortError'){ copyToClipboard(msg); showToast('클립보드에 복사됐어요 📋'); } });
         } else {
             copyToClipboard(msg);
             showToast('클립보드에 복사됐어요 📋');
@@ -5376,8 +5533,9 @@ https://life2radio.github.io/affirmation/
             if(!file) return;
             const reader = new FileReader();
             reader.onload = function(ev){
+                const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
                 const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
                 modal.innerHTML =
                     '<div style="font-size:0.88em;color:#C9A84C;font-weight:700;margin-bottom:12px;">📸 오늘의 실천 인증</div>' +
                     '<img src="' + ev.target.result + '" style="max-width:100%;max-height:50vh;border-radius:12px;object-fit:contain;">' +
@@ -5708,7 +5866,7 @@ https://life2radio.github.io/affirmation/
         if(!affirmEl) return;
         const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
         const text = `🌿 ${today} 오늘의 확언\n\n"${affirmEl.innerText.trim()}"\n\n매일 아침 나를 위한 확언 한 문장 💚\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
-        if(navigator.share){ navigator.share({title:'오늘의 확언 💚', text}).catch(()=>copyToClipboard(text)); }
+        if(navigator.share){ navigator.share({title:'오늘의 확언 💚', text}).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(text); }); }
         else { copyToClipboard(text); }
         document.getElementById('complete-reward-modal')?.remove();
         trackEvent('share_after_complete');
@@ -6896,7 +7054,7 @@ https://life2radio.github.io/affirmation/
         const theme = document.getElementById('oracle-theme-text')?.innerText || '';
         const msg = `✨ 오늘의 한마디\n\n${theme}\n"${text}"\n\n— 인생2막라디오 365일 확언 앱\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 채널: https://www.youtube.com/@SecondActRadio`;
         if(navigator.share){
-            navigator.share({title:'오늘의 한마디', text:msg}).catch(()=>copyToClipboard(msg));
+            navigator.share({title:'오늘의 한마디', text:msg}).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(msg); });
         } else {
             copyToClipboard(msg);
         }
