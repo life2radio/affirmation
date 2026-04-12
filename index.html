@@ -1,7 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5K7474H51W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-5K7474H51W');
+</script>
     <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -39,6 +49,13 @@
         window.trackEvent = function(name, params){
             if(typeof gtag !== 'undefined') gtag('event', name, params||{});
         };
+        // ★ 주요 행동 자동 GA4 추적
+        window.addEventListener('load', function(){
+            trackEvent('app_open');
+        });
+        window.addEventListener('beforeinstallprompt', function(){
+            trackEvent('pwa_install_prompt');
+        });
     </script>
     <style>
         :root {
@@ -223,6 +240,8 @@
         /* ===== 설정 ===== */
         .setting-size-btn { flex:1; min-height:48px; font-size:0.833em; font-weight:600; border:1px solid var(--border-color); border-radius:var(--radius-sm); cursor:pointer; background:var(--card-bg); color:var(--text-muted); transition:all 0.15s; -webkit-tap-highlight-color:transparent; }
         .setting-size-btn.active { background:var(--primary-color); color:#FFFFFF; border-color:var(--primary-color); }
+        .fam-chip { min-height:38px; padding:6px 14px; border-radius:20px; border:1.5px solid var(--border-color); background:var(--card-bg); color:var(--text-muted); font-size:0.88em; font-weight:600; cursor:pointer; transition:all 0.15s; -webkit-tap-highlight-color:transparent; }
+        .fam-chip.active { background:var(--primary-color); color:#fff; border-color:var(--primary-color); }
         .setting-mode-btn { flex:1; min-height:48px; font-size:0.833em; font-weight:600; border:1px solid var(--border-color); border-radius:var(--radius-sm); cursor:pointer; background:var(--card-bg); color:var(--text-muted); transition:all 0.15s; -webkit-tap-highlight-color:transparent; }
         .setting-mode-btn.active { background:var(--primary-color); color:#FFFFFF; border-color:var(--primary-color); }
         /* 알림 */
@@ -268,6 +287,11 @@
         .nav-icon { display:none; }
         .nav-svg { width:22px; height:22px; display:block; margin-bottom:4px; }
         .nav-text { font-size:0.611em; font-weight:700; text-align:center; line-height:1.2; letter-spacing:0.3px; }
+    
+        .letter-date-btn{padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg);color:var(--text-muted);font-size:0.8em;cursor:pointer;}
+        .letter-date-btn.active{background:var(--primary-color);color:#fff;border-color:var(--primary-color);}
+    
+        @keyframes ptFloat{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(-80px);}}
     </style>
 </head>
 <body>
@@ -276,9 +300,19 @@
         <a onclick="switchView('settings')" class="header-icon-btn" style="left:16px;" title="설정">⚙️</a>
         <a onclick="shareApp()" class="header-icon-btn" style="left:62px;" title="앱 공유">🔗</a>
         <span id="main-header-title">오늘의 확언</span>
-        <a onclick="openSearch()" class="header-icon-btn" style="right:64px;" title="검색">🔍</a>
+        <a onclick="openSearch()" class="header-icon-btn" style="right:110px;" title="검색">🔍</a>
+        <a id="header-bgm-btn" onclick="isBgmOn?(pauseBGM(),updateBgmUI()):openBgmSelector()" class="header-icon-btn" style="right:64px;font-size:1em;" title="배경음악">🎵</a>
         <a href="https://www.youtube.com/@SecondActRadio" target="_blank" class="header-icon-btn" style="right:16px;" title="유튜브">📺</a>
     </header>
+    <!-- 포인트/레벨 표시 바 -->
+    <div id="point-bar" style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--bg-color);border-bottom:1px solid var(--border-color);font-size:0.78em;">
+        <span id="point-bar-emoji" onclick="openLevelGuide()" style="font-size:16px;cursor:pointer;">🌱</span>
+        <span id="point-bar-level" onclick="openLevelGuide()" style="font-weight:700;color:var(--primary-color);min-width:32px;cursor:pointer;text-decoration:underline dotted;">씨앗</span>
+        <div onclick="openLevelGuide()" style="flex:1;background:var(--border-color);border-radius:6px;height:6px;overflow:hidden;cursor:pointer;">
+            <div id="point-bar-progress" style="height:100%;background:var(--primary-color);border-radius:6px;transition:width 0.4s ease;width:0%;"></div>
+        </div>
+        <span id="point-bar-pts" onclick="openPointGuide()" style="color:var(--primary-color);min-width:52px;text-align:right;font-weight:700;cursor:pointer;text-decoration:underline dotted;">0 PT</span>
+    </div>
     <main>
         <!-- 홈 -->
         <div id="view-home" class="view-section active">
@@ -302,15 +336,15 @@
                     </div>
                 </div>
                 <div class="bgm-btn-container">
-                    <button id="btn-bgm" class="btn-bgm" onclick="toggleBGM()">
-                        <span id="bgm-icon"></span>
-                        <span id="bgm-text">음악 끄기</span>
+                    <button id="btn-bgm" class="btn-bgm" onclick="openBgmSelector()">
+                        <span id="bgm-icon">🎵</span>
+                        <span id="bgm-text">배경음악</span>
                     </button>
                 </div>
                 <div id="readonly-banner" class="readonly-banner" style="display:none;">📅 과거 확언을 보고 있습니다 (읽기 전용)</div>
                 <div id="streak-display-home" style="text-align:center;font-size:18px;color:#E63946;font-weight:bold;margin-bottom:10px;"></div>
                 <!-- ★ ② 다이어리까지 N일 진행바 -->
-                <div id="diary-progress-bar" style="display:none;margin:0 4px 14px;">
+                <div id="diary-progress-bar" style="display:none !important;margin:0 4px 14px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <div style="font-size:0.78em;font-weight:700;color:var(--accent-color);" id="diary-progress-label">🎁 나만의 확언 다이어리까지</div>
                         <div style="font-size:0.78em;font-weight:700;color:var(--primary-color);" id="diary-progress-days"></div>
@@ -369,7 +403,7 @@
                 <!-- ★ 오디오/읽기 버튼 — 확언 바로 아래 -->
                 <div class="action-buttons" style="margin-top:4px;">
                     <div class="row-buttons">
-                        <button class="btn btn-sub" id="btn-listen" onclick="playTTS(false)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>들어보기</button>
+                        <button class="btn btn-sub" id="btn-listen" onclick="playTTS(false); addPoint(1,'소리듣기','listen')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>들어보기</button>
                         <button class="btn btn-sub" id="btn-loop" onclick="playTTS(true)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>반복 듣기</button>
                         <button class="btn btn-sub" id="btn-stt" onclick="startSTT()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>따라 읽기</button>
                     </div>
@@ -445,6 +479,12 @@
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
                     </a>
+                    <!-- 키워드 칩 UI -->
+                    <div id="keyword-chip-area" style="margin-top:12px;">
+                        <div style="font-size:0.75em;color:var(--text-muted);margin-bottom:8px;">💊 지금 내 마음과 가장 가까운 키워드를 골라보세요</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="keyword-chips"></div>
+                        <button id="keyword-find-btn" onclick="openKeywordEpisode()" style="display:none;width:100%;min-height:40px;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">🎬 지금 내게 맞는 영상 찾아주기</button>
+                    </div>
                 </div>
 
                 <div id="solidarity-box" style="text-align:center;padding:10px 0;margin-bottom:14px;">
@@ -462,12 +502,12 @@
                 <div id="home-yt-recommend" style="display:none;margin-bottom:16px;">
                     <div style="background:var(--primary-color);border-radius:14px;padding:16px 18px;">
                         <div style="font-size:0.75em;color:var(--accent-color);font-weight:700;letter-spacing:0.8px;margin-bottom:8px;">오늘 당신에게 필요한 영상</div>
-                        <a id="home-yt-link" href="https://www.youtube.com/@SecondActRadio" target="_blank" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
+                        <a id="home-yt-link" href="https://www.youtube.com/watch?v=t7QbS_CJJso&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O" target="_blank" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
                             <div style="width:44px;height:44px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </div>
                             <div style="flex:1;">
-                                <div style="font-size:0.92em;font-weight:700;color:#FFFFFF;line-height:1.4;" id="home-yt-title">인생2막라디오</div>
+                                <div style="font-size:0.92em;font-weight:700;color:#FFFFFF;line-height:1.4;" id="home-yt-title">EP.04 변하려 하면 가까운 사람이 멀어지는 이유</div>
                                 <div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:2px;" id="home-yt-hook"></div>
                                 <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:2px;" id="home-yt-duration"></div>
                             </div>
@@ -476,15 +516,23 @@
                     </div>
                 </div>
                 <!-- ★ ⑤ 유튜브 시크릿 코드 미션 -->
-                <div id="secret-code-box" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;">
-                    <div style="font-size:0.8em;color:var(--accent-color);font-weight:700;letter-spacing:1px;margin-bottom:6px;">📺 유튜브 시크릿 미션</div>
-                    <div style="font-size:0.88em;color:rgba(255,255,255,0.85);margin-bottom:14px;line-height:1.5;">오늘 Shorts 영상 끝에 나온<br>4자리 코드를 입력하세요!</div>
-                    <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
-                        <input id="secret-code-input" type="text" maxlength="4" placeholder="0000"
-                            style="width:100%;font-size:1.8em;font-weight:700;text-align:center;padding:14px;border:2px solid var(--accent-color);border-radius:10px;background:rgba(255,255,255,0.1);color:#FFFFFF;letter-spacing:8px;outline:none;box-sizing:border-box;">
-                        <button onclick="checkSecretCode()" style="width:100%;min-height:50px;background:var(--accent-color);color:#1B4332;border:none;border-radius:10px;font-size:1em;font-weight:700;cursor:pointer;">확인하기</button>
+                <div id="secret-code-box" style="border:1.5px solid var(--accent-color);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:0.8em;font-weight:700;color:var(--accent-color);">🎬 유튜브 시크릿 미션 +10PT</div>
+                            <div style="font-size:0.73em;color:var(--text-muted);margin-top:2px;">Shorts 영상 끝 4자리 코드를 입력하세요</div>
+                        </div>
+                        <a href="https://www.youtube.com/@SecondActRadio/shorts" target="_blank"
+                            onclick="addPoint(2,'쇼츠클릭','shorts_visit')"
+                            style="background:var(--primary-color);color:#fff;text-decoration:none;border-radius:20px;padding:6px 14px;font-size:0.78em;font-weight:700;flex-shrink:0;white-space:nowrap;">
+                            📺 쇼츠 보기
+                        </a>
                     </div>
-                    <div id="secret-code-result" style="margin-top:10px;font-size:0.85em;color:rgba(255,255,255,0.7);min-height:20px;"></div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="secret-code-input" type="text" maxlength="4" placeholder="0  0  0  0"
+                            style="flex:1;font-size:1.4em;font-weight:700;text-align:center;padding:10px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--card-bg);color:var(--text-color);letter-spacing:6px;outline:none;box-sizing:border-box;">
+                        <button onclick="checkSecretCode()" style="min-height:44px;padding:0 20px;background:var(--primary-color);color:#fff;border:none;border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">확인</button>
+                    </div>
                 </div>
                 <button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button>
                 <!-- ★ 6단계: 확언 카드 공유 버튼 -->
@@ -495,7 +543,7 @@
                         <button class="btn-oracle" onclick="shareToFamily()" style="flex:1;background:#C9A84C;color:#1B4332;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>가족에게 보내기</button>
                     </div>
                 </div>
-                <button class="btn-oracle" onclick="openOracle()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>오늘의 한마디</button>
+                <div id="oracle-btn-wrap"></div>
             </div>
         </div>
 
@@ -512,6 +560,16 @@
                 <div class="stats-sub">
                     <span class="stats-streak" id="cal-stat-streak">🔥 0일 연속 중!</span>
                     <span id="cal-stat-rate">이번 달 완료율: 0%</span>
+                </div>
+                <hr style="border:0;border-top:1px solid #E8E5E0;margin:15px 0;">
+                <!-- 이번 달 미션 -->
+                <div id="monthly-mission-box" style="background:linear-gradient(135deg,#F0F7F4,#E8F4EE);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid #C8DDD2;">
+                    <div style="font-size:0.9em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🎯 이번 달 미션</div>
+                    <div id="mission-progress-text" style="font-size:0.83em;color:#555;margin-bottom:8px;line-height:1.6;"></div>
+                    <div style="background:#E0EEE8;border-radius:20px;height:10px;overflow:hidden;margin-bottom:6px;">
+                        <div id="mission-bar" style="height:100%;background:var(--primary-color);border-radius:20px;transition:width 0.4s ease;width:0%;"></div>
+                    </div>
+                    <div id="mission-reward-text" style="font-size:0.78em;color:#888;"></div>
                 </div>
                 <hr style="border:0;border-top:1px solid #E8E5E0;margin:15px 0;">
                 <div style="font-size:16px;color:#555;text-align:left;line-height:1.8;font-weight:bold;">
@@ -535,12 +593,7 @@
                 </div>
                 <div class="cal-grid" id="cal-grid-days" style="margin-bottom:0;"></div>
             </div>
-            <div class="mission-box">
-                <div class="mission-title">이번 달 미션 🎯</div>
-                <div class="mission-item" id="miss-1">☐ 이번 달 20일 이상 체크하기</div>
-                <div class="mission-item" id="miss-2">☐ 메모 5번 이상 쓰기</div>
-                <div class="mission-item" id="miss-3">☐ 즐겨찾기 3개 이상 모으기</div>
-            </div>
+
             <div class="chart-box">
                 <div class="chart-title">월간 기분 변화 그래프</div>
                 <div class="chart-subtitle" id="chart-avg-text">이번 달 평균 기분 변화: +0단계</div>
@@ -558,10 +611,33 @@
                     <div style="font-size:0.82em;color:rgba(255,255,255,0.75);line-height:1.6;" id="identity-desc"></div>
                 </div>
                 <div class="badges-title">나의 달성 배지 보관함 🎖️</div>
+
+                <!-- 연속 달성 등급 직행 홍보 -->
+                <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:14px;padding:16px;margin-bottom:14px;">
+                    <div style="font-size:0.9em;font-weight:700;color:#C9A84C;margin-bottom:8px;text-align:center;">🏆 연속 달성하면 등급이 직행해요!</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;">
+                            <span style="font-size:0.82em;color:rgba(255,255,255,0.9);">🌳 100일 연속 확언 완료</span>
+                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">🏔️ 인생2막러 직행!</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;">
+                            <span style="font-size:0.82em;color:rgba(255,255,255,0.9);">🌟 200일 연속 확언 완료</span>
+                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">☁️ 라디오스타 직행!</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(201,168,76,0.3);border-radius:8px;padding:8px 12px;border:1px solid #C9A84C;">
+                            <span style="font-size:0.82em;color:#fff;font-weight:700;">✨ 365일 연속 확언 완료</span>
+                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">인생챔피언 직행!!</span>
+                        </div>
+                    </div>
+                    <div style="font-size:0.73em;color:rgba(255,255,255,0.5);margin-top:8px;text-align:center;">매일 하루도 빠지지 않고 확언을 완료한 날 기준이에요</div>
+                    <button onclick="openPointGuide()" style="width:100%;margin-top:10px;min-height:40px;background:rgba(201,168,76,0.3);color:#C9A84C;border:1px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">📊 포인트 & 등급 상세 보기 →</button>
+                </div>
+            </div>
+
                 <div class="badges-grid" id="badge-list-container"></div>
 
                 <!-- ★ ④ 다이어리 상시 노출 카드 -->
-                <div id="diary-promo-card" style="margin-top:20px;border-radius:14px;overflow:hidden;border:1.5px solid var(--accent-color);">
+                <div id="diary-promo-card" style="display:none;margin-top:20px;border-radius:14px;overflow:hidden;border:1.5px solid var(--accent-color);">
                     <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:18px 16px;">
                         <div style="display:flex;align-items:center;gap:12px;">
                             <div style="font-size:36px;flex-shrink:0;" id="diary-promo-icon">📖</div>
@@ -584,7 +660,6 @@
                         <div id="diary-promo-btn-wrap"></div>
                     </div>
                 </div>
-            </div>
 
             <!-- ★ 9-3단계: 통계 강화 -->
             <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #E8E5E0;">
@@ -621,8 +696,10 @@
         <div id="view-favorites" class="view-section">
             <div class="fav-page-title">내 최애 확언 ⭐</div>
             <div class="fav-action-row">
-                <button class="btn btn-sub" onclick="playFavsInOrder()">🔊 순서대로 듣기</button>
-                <button class="btn btn-sub" onclick="playFavRandom()">🎲 랜덤으로 듣기</button>
+                <button class="btn btn-sub" onclick="playFavsInOrder()">▶️ 순서재생</button>
+                <button class="btn btn-sub" onclick="playFavsInOrder(true)">🔁 무한반복</button>
+                <button class="btn btn-sub" onclick="playFavRandom()">🎲 랜덤듣기</button>
+                <button class="btn btn-sub" onclick="window.speechSynthesis&&window.speechSynthesis.cancel();showToast('⏹ 재생 중지')" style="background:#FFE8E8;color:#C0392B;">⏹ 중지</button>
             </div>
             <div id="fav-list"></div>
         </div>
@@ -664,36 +741,44 @@
                 <div id="free-note-list"></div>
             </div>
 
-            <!-- ★ ④ 1년 후 나에게 편지 탭 -->
+            <!-- ★ ④ 미래편지 탭 -->
             <div id="memo-letter-view" style="display:none;">
-                <div id="letter-write-section">
+                <!-- 새 편지 쓰기 -->
+                <div id="letter-write-section" style="display:none;">
                     <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:14px;padding:20px;margin-bottom:16px;text-align:center;">
-                        <div style="font-size:1em;font-weight:700;color:var(--accent-color);margin-bottom:6px;">💌 1년 후 나에게 쓰는 편지</div>
-                        <div style="font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1.6;">지금의 마음을 담아 1년 후의 나에게 편지를 써보세요.<br>정확히 1년 후에 이 편지가 열립니다.</div>
+                        <div style="font-size:1em;font-weight:700;color:var(--accent-color);margin-bottom:6px;">💌 미래의 나에게 편지 쓰기</div>
+                        <div style="font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1.6;">지금의 마음을 담아 미래의 나에게 편지를 써보세요.</div>
                     </div>
-                    <textarea id="letter-input" placeholder="1년 후의 나에게...&#10;&#10;지금 나는 ___한 상태야. 1년 후에는 꼭 ___하고 싶어. 지금 이 순간 내가 가장 바라는 건..." style="width:100%;min-height:220px;font-size:1em;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;border:1.5px solid var(--border-color);border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:var(--text-color);background:var(--card-bg);outline:none;"></textarea>
-                    <div style="text-align:right;font-size:0.78em;color:var(--text-muted);margin:6px 4px 14px;" id="letter-char-count">0자</div>
-                    <button class="btn btn-main" onclick="saveLetter()" style="margin-bottom:20px;">봉인하기 — 1년 후에 열립니다 🔒</button>
-                </div>
-                <!-- 편지가 이미 있을 때 -->
-                <div id="letter-sealed-section" style="display:none;text-align:center;padding:20px 0;">
-                    <div style="font-size:48px;margin-bottom:12px;">📮</div>
-                    <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">편지가 봉인됐어요</div>
-                    <div style="font-size:0.88em;color:var(--text-muted);line-height:1.6;margin-bottom:20px;" id="letter-open-date"></div>
-                    <div id="letter-countdown" style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                        <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:6px;">개봉까지 남은 날</div>
-                        <div style="font-size:2.5em;font-weight:700;color:var(--primary-color);" id="letter-days-left"></div>
-                    </div>
-                    <div id="letter-open-btn" style="display:none;">
-                        <button onclick="openLetter()" class="btn btn-main" style="font-size:1em;min-height:56px;">📬 편지 열어보기</button>
-                    </div>
-                    <div id="letter-content-box" style="display:none;background:var(--card-bg);border-radius:14px;padding:20px;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                        <div style="font-size:0.78em;color:var(--accent-color);font-weight:700;margin-bottom:10px;">과거의 나로부터 온 편지</div>
-                        <div style="font-size:0.95em;color:var(--text-color);line-height:1.8;white-space:pre-wrap;" id="letter-content-text"></div>
-                        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">
-                            <button onclick="writeLetter2()" style="width:100%;min-height:48px;background:#F0F7F4;color:var(--primary-color);border:1px solid #C8DDD2;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;">다시 1년 후에게 편지 쓰기</button>
+                    <div style="background:var(--card-bg);border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--border-color);">
+                        <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:10px;">📅 개봉일 선택</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                            <button onclick="setLetterDate(1,'day')" class="letter-date-btn" id="ldbtn-1d">내일</button>
+                            <button onclick="setLetterDate(1,'month')" class="letter-date-btn" id="ldbtn-1m">1개월 후</button>
+                            <button onclick="setLetterDate(3,'month')" class="letter-date-btn" id="ldbtn-3m">3개월 후</button>
+                            <button onclick="setLetterDate(6,'month')" class="letter-date-btn" id="ldbtn-6m">6개월 후</button>
+                            <button onclick="setLetterDate(1,'year')" class="letter-date-btn active" id="ldbtn-1y">1년 후</button>
                         </div>
+                        <div style="font-size:0.82em;color:var(--text-muted);">직접 선택: <input type="date" id="letter-open-date-input" style="margin-left:8px;font-size:0.9em;border:1px solid var(--border-color);border-radius:8px;padding:4px 8px;background:var(--card-bg);color:var(--text-color);" onchange="onLetterDateChange()"/></div>
                     </div>
+                    <textarea id="letter-input" placeholder="미래의 나에게...&#10;&#10;지금 나는 ___한 상태야. 그때는 꼭 ___하고 싶어. 지금 이 순간 내가 가장 바라는 건..." style="width:100%;min-height:200px;font-size:1em;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;border:1.5px solid var(--border-color);border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:var(--text-color);background:var(--card-bg);outline:none;"></textarea>
+                    <div style="text-align:right;font-size:0.78em;color:var(--text-muted);margin:6px 4px 14px;" id="letter-char-count">0자</div>
+                    <div style="display:flex;gap:10px;margin-bottom:20px;">
+                        <button class="btn btn-main" onclick="saveLetter()" style="flex:1;">봉인하기 🔒</button>
+                        <button onclick="showLetterList()" style="min-height:50px;padding:0 18px;background:none;border:1px solid var(--border-color);border-radius:12px;font-size:0.9em;color:var(--text-muted);cursor:pointer;">취소</button>
+                    </div>
+                </div>
+                <!-- 편지 목록 -->
+                <div id="letter-list-section">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                        <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);">💌 나의 미래편지</div>
+                        <button onclick="showLetterWrite()" style="background:var(--primary-color);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:0.82em;font-weight:700;cursor:pointer;">+ 새 편지 쓰기</button>
+                    </div>
+                    <div id="letter-list-container"></div>
+                </div>
+                <!-- 편지 상세 -->
+                <div id="letter-detail-section" style="display:none;">
+                    <button onclick="closeLetterDetail()" style="background:none;border:none;font-size:0.9em;color:var(--primary-color);cursor:pointer;margin-bottom:14px;font-weight:700;">← 목록으로</button>
+                    <div id="letter-detail-box"></div>
                 </div>
             </div>
 
@@ -805,6 +890,18 @@
                     style="width:100%;font-size:19px;padding:12px 16px;border:2px solid #E8E5E0;border-radius:12px;box-sizing:border-box;font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#FDFBF7;outline:none;">
             </div>
 
+            <!-- 이메일 등록 (선택) -->
+            <div style="background:var(--card-bg);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:10px;">📧 이메일 등록 (선택)</div>
+                <input id="story-email" type="email" placeholder="이메일 주소 (예: abc@gmail.com)"
+                    style="width:100%;box-sizing:border-box;font-size:0.9em;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--bg-color);color:var(--text-color);outline:none;margin-bottom:10px;">
+                <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:0.82em;color:var(--text-muted);line-height:1.6;">
+                    <input type="checkbox" id="story-marketing" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary-color);">
+                    <span>인생2막라디오 소식과 채널 정보를 이메일로 받는 것에 동의합니다. <span style="opacity:0.7;">(언제든 철회 가능)</span></span>
+                </label>
+                <div style="font-size:0.75em;color:var(--text-muted);margin-top:8px;">💡 이메일은 사연 전송 시 함께 제출돼요</div>
+            </div>
+
             <!-- 제목 -->
             <div style="margin-bottom:14px;">
                 <div style="font-size:18px;font-weight:bold;color:var(--primary-color);margin-bottom:8px;">제목 <span style="color:#D32F2F;">*</span></div>
@@ -829,15 +926,33 @@
             </div>
 
             <!-- 전송 버튼 -->
-            <button class="btn btn-main" onclick="sendStory()" style="font-size:21px;min-height:62px;margin-bottom:14px;">
-                이메일로 보내기
+            <!-- +10PT 안내 -->
+            <div style="background:#FFF8E8;border-radius:12px;padding:12px 14px;margin-bottom:12px;border-left:3px solid #C9A84C;font-size:0.88em;color:#7A5500;line-height:1.7;">
+                🎁 <b>사연을 보내면 +10PT</b>가 바로 적립돼요!<br>
+                이메일 또는 카카오 1:1 채팅으로 보내실 수 있어요. (월 1회 +10PT)
+            </div>
+            <button class="btn btn-main" onclick="sendStory()" style="font-size:21px;min-height:62px;margin-bottom:10px;">
+                📧 이메일로 보내기
             </button>
+            <button id="story-kakao-link" type="button"
+               onclick="openKakaoWithConsent()"
+               style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;box-sizing:border-box;background:#FEE500;color:#3A1D1D;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px;">
+                💬 인생2막❤️라디오 카카오 오픈채팅으로 보내기
+            </button>
+            <button id="story-kakao-done-btn"
+               onclick="onStoryKakaoDone()"
+               style="display:none;width:100%;min-height:46px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;margin-bottom:14px;">
+                ✅ 카카오에서 보냈어요! (+10PT 받기)
+            </button>
+            <div id="story-kakao-done-msg" style="display:none;text-align:center;padding:8px 0;color:#888;font-size:0.85em;margin-bottom:14px;">
+                💬 이번 달 카카오 사연 보내기 완료 ✅
+            </div>
 
             <!-- 안내문 -->
             <div style="background:#FFFFFF;border:1px solid #E8E5E0;border-radius:12px;padding:16px;font-size:16px;color:#888;line-height:1.8;">
                 <div style="font-weight:bold;color:#555;margin-bottom:6px;">📌 보내기 전에 알아두세요</div>
                 • 버튼을 누르면 이메일 앱이 열려요<br>
-                • 받는 분: <span style="color:var(--primary-color);font-weight:bold;">life2radio@gmail.com</span><br>
+                • 받는 분: <span style="color:var(--primary-color);font-weight:bold;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5a36333c3f68283b3e33351a3d373b333674393537">[email&#160;protected]</a></span><br>
                 • 소개된 사연은 채널 콘텐츠에 활용될 수 있어요<br>
                 • 개인 정보는 닉네임 외 포함하지 않아도 돼요
             </div>
@@ -909,6 +1024,8 @@
                 </div>
             </div>
 
+            
+
             <!-- 앱 초기화 -->
             <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #E8E5E0;">
                 <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:6px;">🗑️ 앱 데이터 초기화</div>
@@ -919,28 +1036,34 @@
             <!-- 버전 -->
             <!-- ★ 10단계: 알림 설정 -->
             <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #E8E5E0;">
-                <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:6px;">🔔 매일 아침편지 알림</div>
-                <div style="font-size:16px;color:#888;margin-bottom:18px;line-height:1.6;">매일 정해진 시간에 확언을 읽도록 알려드려요.</div>
+                <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:6px;">⏰ 매일 확언 알림 설정</div>
+                <div style="font-size:14px;color:#888;margin-bottom:18px;line-height:1.6;">매일 같은 시간에 확언을 읽는 습관이 뇌를 바꿉니다.</div>
 
-                <!-- 알림 권한 상태 -->
-                <div id="notif-status-box" style="border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:17px;font-weight:bold;"></div>
+                <!-- 안내 박스 -->
+                <div style="background:#FFF8E8;border-radius:12px;padding:16px;margin-bottom:16px;border-left:4px solid #C9A84C;">
+                    <div style="font-size:0.88em;color:#7A6020;line-height:1.8;">
+                        📌 <b>웹앱 특성상 푸시 알림이 완벽하지 않아요.</b><br>
+                        폰 기본 알람 앱으로 설정하시면 매일 확실하게 알림을 받을 수 있어요.
+                    </div>
+                </div>
 
-                <!-- 시간 설정 -->
-                <div id="notif-time-box" style="display:none;">
-                    <div style="font-size:17px;font-weight:bold;color:#444;margin-bottom:10px;">알림 시간 설정</div>
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                        <input type="time" id="notif-time-input" value="07:00"
-                            style="font-size:24px;font-weight:bold;padding:10px 14px;border:2px solid #E8E5E0;border-radius:12px;color:var(--primary-color);background:#FDFBF7;flex:1;">
-                        <button onclick="saveNotifTime()" class="btn btn-main" style="font-size:17px;min-width:80px;min-height:52px;">저장</button>
+                <!-- 알람 설정 안내 -->
+                <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:12px;">📱 폰 알람으로 설정하는 방법</div>
+                <div style="display:flex;gap:10px;margin-bottom:16px;">
+                    <div style="flex:1;background:#F0F7F4;border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:22px;margin-bottom:6px;">🤖</div>
+                        <div style="font-size:0.82em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">안드로이드</div>
+                        <div style="font-size:0.78em;color:#666;line-height:1.6;">시계 앱 → 알람 추가<br>라벨: "오늘의 확언"</div>
                     </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-                        <button onclick="setNotifPreset('06:00')" class="notif-preset-btn">🌅 6시</button>
-                        <button onclick="setNotifPreset('07:00')" class="notif-preset-btn">☀️ 7시</button>
-                        <button onclick="setNotifPreset('08:00')" class="notif-preset-btn">🍳 8시</button>
-                        <button onclick="setNotifPreset('21:00')" class="notif-preset-btn">🌙 9시</button>
-                        <button onclick="setNotifPreset('22:00')" class="notif-preset-btn">🌛 10시</button>
+                    <div style="flex:1;background:#F0F7F4;border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:22px;margin-bottom:6px;">🍎</div>
+                        <div style="font-size:0.82em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">아이폰</div>
+                        <div style="font-size:0.78em;color:#666;line-height:1.6;">시계 앱 → 알람 추가<br>라벨: "오늘의 확언"</div>
                     </div>
-                    <button onclick="cancelNotif()" style="background:none;border:none;font-size:16px;color:#aaa;cursor:pointer;text-decoration:underline;width:100%;text-align:center;">알림 안 받기</button>
+                </div>
+
+                <div style="font-size:0.8em;color:#aaa;text-align:center;line-height:1.6;">
+                    💡 매일 아침 같은 시간에 앱을 여는 습관만으로도<br>뇌는 루틴을 기억하기 시작해요.
                 </div>
 
                 <!-- 권한 요청 버튼 -->
@@ -997,10 +1120,33 @@
 
         <!-- ★ 9-4단계: 오늘의 선언 Shorts 연계 -->
         <div id="view-shorts" class="view-section">
+            <!-- ★ 하루 실천 포인트 가이드 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:16px;border:1px solid var(--border-color);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);">📊 오늘의 실천 포인트 현황</div>
+                    <button onclick="openPointGuide()" style="background:var(--primary-color);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:0.78em;font-weight:700;cursor:pointer;">전체 가이드 →</button>
+                </div>
+                <div id="shorts-pt-progress" style="margin-bottom:10px;">
+                    <div style="background:#E8E5E0;border-radius:20px;height:8px;overflow:hidden;margin-bottom:6px;">
+                        <div id="shorts-pt-bar" style="height:100%;background:var(--primary-color);border-radius:20px;width:0%;transition:width 0.4s;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.8em;">
+                        <span id="shorts-pt-done" style="color:var(--text-muted);">✓ 0 / 13개 항목</span>
+                        <span id="shorts-pt-score" style="font-weight:700;color:var(--primary-color);">0 / 23 PT</span>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="shorts-pt-items"></div>
+                <button onclick="openPointGuide()" style="width:100%;margin-top:12px;min-height:44px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#C9A84C;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">
+                    🏆 포인트 적립 가이드 & 100일 플랜 보기
+                </button>
+            </div>
+
+            <!-- 선언 콘텐츠 영역 (풀잎 이상) -->
+            <div id="shorts-declaration-area">
             <!-- 헤더 배너 -->
             <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:22px 20px;text-align:center;margin-bottom:20px;">
                 <div style="font-size:32px;margin-bottom:6px;">📣</div>
-                <div style="font-size:22px;font-weight:bold;color:#FFFFFF;margin-bottom:6px;">오늘의 선언</div>
+                <div style="font-size:22px;font-weight:bold;color:#FFFFFF;margin-bottom:6px;">오늘의 실천</div>
                 <div style="font-size:15px;color:rgba(255,255,255,0.75);line-height:1.6;">매일 60초, 확언을 소리 내어 따라하는<br>인생2막라디오 Shorts 시리즈</div>
                 <a href="https://www.youtube.com/@SecondActRadio/shorts" target="_blank"
                     style="display:inline-block;margin-top:14px;background:var(--accent-color);color:var(--primary-color);font-size:17px;font-weight:bold;padding:10px 24px;border-radius:24px;text-decoration:none;">
@@ -1015,9 +1161,10 @@
             </div>
 
             <!-- 30편 목록 -->
-            <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:14px;">📋 오늘의 선언 전체 목록</div>
+            <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:14px;">📋 오늘의 실천 전체 목록</div>
             <div id="shorts-list"></div>
-        </div>
+
+            </div><!-- /shorts-declaration-area -->
 
         <!-- 완주 -->
         <div id="view-celebration" class="view-section">
@@ -1052,7 +1199,7 @@
         </button>
         <button class="nav-item" id="nav-shorts" onclick="switchView('shorts')">
             <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-            <span class="nav-text">선언</span>
+                 <span class="nav-text">실천</span>
         </button>
         <button class="nav-item" id="nav-story" onclick="switchView('story')">
             <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1102,6 +1249,7 @@
         <div class="oracle-action" id="oracle-action-text"></div>
         <div class="oracle-btns">
             <button class="oracle-btn oracle-btn-retry" onclick="openOracle()">다시 뽑기</button>
+            <button class="oracle-btn oracle-btn-fav" onclick="shareOracle()" style="background:#1B4332;color:#C9A84C;">공유</button>
             <button class="oracle-btn oracle-btn-fav" onclick="favOracle()" id="oracle-fav-btn">즐겨찾기 저장</button>
             <button class="oracle-btn oracle-btn-close" onclick="document.getElementById('oracle-modal').style.display='none'">닫기</button>
         </div>
@@ -1143,6 +1291,63 @@
     </div>
 </div>
 
+<!-- ★ 가족에게 보내기 모달 -->
+<div id="family-share-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:5000;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--bg-color);border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:600px;box-sizing:border-box;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:1.1em;font-weight:700;color:var(--primary-color);">💌 가족에게 확언 보내기</div>
+            <button onclick="document.getElementById('family-share-modal').style.display='none'" style="background:#F0F0F0;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1em;cursor:pointer;color:#555;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+        </div>
+        <div style="font-size:0.82em;color:var(--text-muted);text-align:center;margin-bottom:20px;">보내는 분과 받는 분을 선택하거나 직접 입력해주세요</div>
+
+        <!-- 보내는 분 -->
+        <div style="font-size:0.9em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">✍️ 나는 누구인가요?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <button onclick="setFamilySender('엄마')" class="fam-chip" id="chip-s-엄마">엄마</button>
+            <button onclick="setFamilySender('아빠')" class="fam-chip" id="chip-s-아빠">아빠</button>
+            <button onclick="setFamilySender('딸')" class="fam-chip" id="chip-s-딸">딸</button>
+            <button onclick="setFamilySender('아들')" class="fam-chip" id="chip-s-아들">아들</button>
+            <button onclick="setFamilySender('할머니')" class="fam-chip" id="chip-s-할머니">할머니</button>
+            <button onclick="setFamilySender('할아버지')" class="fam-chip" id="chip-s-할아버지">할아버지</button>
+            <button onclick="setFamilySender('손녀')" class="fam-chip" id="chip-s-손녀">손녀</button>
+            <button onclick="setFamilySender('손자')" class="fam-chip" id="chip-s-손자">손자</button>
+            <button onclick="setFamilySender('남편')" class="fam-chip" id="chip-s-남편">남편</button>
+            <button onclick="setFamilySender('아내')" class="fam-chip" id="chip-s-아내">아내</button>
+        </div>
+        <input id="fs-sender" type="text" placeholder="직접 입력 (예: 큰딸)" maxlength="20"
+            oninput="updateFamilyPreview()"
+            style="width:100%;box-sizing:border-box;font-size:0.95em;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--card-bg);color:var(--text-color);outline:none;margin-bottom:18px;">
+
+        <!-- 받는 분 -->
+        <div style="font-size:0.9em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">💚 받는 분은요?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <button onclick="setFamilyReceiver('우리 딸')" class="fam-chip" id="chip-r-우리 딸">우리 딸</button>
+            <button onclick="setFamilyReceiver('아들')" class="fam-chip" id="chip-r-아들">아들</button>
+            <button onclick="setFamilyReceiver('엄마')" class="fam-chip" id="chip-r-엄마">엄마</button>
+            <button onclick="setFamilyReceiver('아빠')" class="fam-chip" id="chip-r-아빠">아빠</button>
+            <button onclick="setFamilyReceiver('부모님')" class="fam-chip" id="chip-r-부모님">부모님</button>
+            <button onclick="setFamilyReceiver('할머니')" class="fam-chip" id="chip-r-할머니">할머니</button>
+            <button onclick="setFamilyReceiver('할아버지')" class="fam-chip" id="chip-r-할아버지">할아버지</button>
+            <button onclick="setFamilyReceiver('손녀')" class="fam-chip" id="chip-r-손녀">손녀</button>
+            <button onclick="setFamilyReceiver('손자')" class="fam-chip" id="chip-r-손자">손자</button>
+            <button onclick="setFamilyReceiver('남편')" class="fam-chip" id="chip-r-남편">남편</button>
+            <button onclick="setFamilyReceiver('아내')" class="fam-chip" id="chip-r-아내">아내</button>
+        </div>
+        <input id="fs-receiver" type="text" placeholder="직접 입력 (예: 우리 아들)" maxlength="20"
+            oninput="updateFamilyPreview()"
+            style="width:100%;box-sizing:border-box;font-size:0.95em;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--card-bg);color:var(--text-color);outline:none;margin-bottom:16px;">
+
+        <!-- 미리보기 (직접 편집 가능) -->
+        <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">📝 문구 미리보기 (직접 수정 가능해요)</div>
+        <textarea id="family-preview" rows="8"
+            style="width:100%;box-sizing:border-box;background:var(--card-bg);border-radius:12px;padding:14px;font-size:0.82em;color:var(--text-color);line-height:1.8;margin-bottom:16px;border:1px solid var(--border-color);outline:none;resize:vertical;font-family:inherit;"></textarea>
+
+        <!-- 버튼 -->
+        <button onclick="sendFamilyMessage()" style="width:100%;min-height:54px;background:var(--primary-color);color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">💌 보내기</button>
+        <button onclick="document.getElementById('family-share-modal').style.display='none'" style="width:100%;min-height:44px;background:none;border:1px solid var(--border-color);border-radius:14px;font-size:0.9em;color:var(--text-muted);cursor:pointer;">닫기</button>
+    </div>
+</div>
+
 <!-- ★ 앱 공유 모달 -->
 <div id="share-app-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:4000;align-items:flex-end;justify-content:center;">
     <div style="background:var(--bg-color);border-radius:24px 24px 0 0;padding:32px 24px 48px;width:100%;max-width:600px;box-sizing:border-box;">
@@ -1178,6 +1383,15 @@
 
         <!-- 카톡으로 보내기 -->
         <div style="background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:12px;border:1px solid var(--border-color);">
+            <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">💬 함께하는 공간</div>
+            <div style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">인생2막라디오 커뮤니티에 참여해보세요</div>
+            <div style="display:flex;gap:10px;">
+                <a href="https://open.kakao.com/o/gr3RC2pi" target="_blank" onclick="addPoint(2,'앱소개공유','share_app')" style="flex:1;min-height:48px;background:#FEE500;color:#3C1E1E;border:none;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;">💛 그룹 채팅방</a>
+                <a href="https://open.kakao.com/o/sKUKl3pi" target="_blank" style="flex:1;min-height:48px;background:#FEE500;color:#3C1E1E;border:none;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;">💌 1:1 대화</a>
+            </div>
+        </div>
+
+        <div style="background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:12px;border:1px solid var(--border-color);">
             <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">지인에게 공유하기</div>
             <div style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">파일을 카카오톡·문자로 전송해요</div>
             <div style="display:flex;gap:10px;">
@@ -1187,6 +1401,300 @@
         </div>
 
         <button onclick="document.getElementById('share-app-modal').style.display='none'" style="width:100%;min-height:50px;background:none;border:1px solid var(--border-color);border-radius:12px;font-size:0.9em;font-weight:600;color:var(--text-muted);cursor:pointer;">닫기</button>
+    </div>
+</div>
+
+<!-- ★ 등급 안내 모달 -->
+<div id="level-guide-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:5000;overflow-y:auto;">
+    <div style="background:var(--bg-color);border-radius:20px 20px 0 0;padding:28px 20px 48px;margin-top:60px;min-height:calc(100vh - 60px);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button onclick="document.getElementById('level-guide-modal').style.display='none'" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--primary-color);">←</button>
+            <div style="font-size:1.1em;font-weight:700;color:var(--primary-color);flex:1;">등급 안내</div>
+            <button onclick="document.getElementById('level-guide-modal').style.display='none'" style="background:none;border:none;font-size:1.4em;cursor:pointer;color:#aaa;line-height:1;">✕</button>
+        </div>
+
+        <!-- 첫 방문 30PT 안내 -->
+        <div style="background:#FFFBE6;border-radius:12px;padding:14px 16px;margin-bottom:16px;border-left:4px solid #C9A84C;">
+            <div style="font-size:0.85em;color:#7A5500;line-height:1.8;">
+                🎁 <b>처음 앱을 열면 30PT가 자동 적립돼요!</b><br>
+                첫 방문 축하 선물이에요. 덕분에 오늘 확언만 완료해도 바로 🌿 새싹이 될 수 있어요!
+            </div>
+        </div>
+
+        <!-- 현재 등급 카드 -->
+        <div id="lg-current-card" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+            <div id="lg-emoji" style="font-size:52px;margin-bottom:8px;">🌱</div>
+            <div id="lg-name" style="font-size:1.3em;font-weight:700;color:#C9A84C;margin-bottom:4px;">씨앗 등급</div>
+            <div id="lg-pts" style="font-size:0.88em;color:rgba(255,255,255,0.75);margin-bottom:12px;"></div>
+            <div style="background:rgba(255,255,255,0.15);border-radius:8px;height:8px;overflow:hidden;">
+                <div id="lg-bar" style="height:100%;background:#C9A84C;border-radius:8px;width:0%;transition:width 0.5s;"></div>
+            </div>
+            <div id="lg-next" style="font-size:0.75em;color:rgba(255,255,255,0.55);margin-top:8px;"></div>
+        </div>
+
+        <!-- 등급 목록 -->
+        <div style="font-size:0.92em;font-weight:700;color:var(--primary-color);margin-bottom:12px;">📊 전체 등급 구조</div>
+        <div id="lg-level-list" style="margin-bottom:20px;"></div>
+
+        <!-- 등급 하락 안내 -->
+        <div style="background:#FFF0EE;border-radius:14px;padding:18px;margin-bottom:16px;border-left:4px solid #C0392B;">
+            <div style="font-size:0.92em;font-weight:700;color:#C0392B;margin-bottom:10px;">⚠️ 등급이 하락할 수 있어요</div>
+            <div style="font-size:0.85em;color:#7A2020;line-height:2.0;">
+                확언을 <b>15일 이상 하지 않으면</b> 등급이 한 단계 내려가요.<br>
+                📌 7일째 경고 → 📌 10일째 강력경고 → 📌 14일째 최후경고 → 📌 15일째 하락
+            </div>
+        </div>
+
+        <!-- 등급 회복 안내 -->
+        <div style="background:#F0F7F4;border-radius:14px;padding:18px;margin-bottom:16px;border-left:4px solid #1B4332;">
+            <div style="font-size:0.92em;font-weight:700;color:#1B4332;margin-bottom:10px;">💚 등급을 회복하는 방법</div>
+            <div style="font-size:0.85em;color:#1B4332;line-height:2.2;">
+                1️⃣ 유튜브 인생2막라디오 채널 방문<br>
+                2️⃣ Shorts 영상을 끝까지 시청<br>
+                3️⃣ 영상 끝에 나오는 <b>시크릿 코드 입력</b><br>
+                4️⃣ 등급 즉시 회복! 🎉
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;">
+                <a href="https://www.youtube.com/@SecondActRadio/shorts" target="_blank"
+                   style="flex:1;min-height:46px;background:#FF0000;color:#fff;border:none;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">
+                   📺 쇼츠 보러가기
+                </a>
+                <button onclick="document.getElementById('level-guide-modal').style.display='none'; switchView('home'); setTimeout(()=>{ const el=document.getElementById('secret-code-input'); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.focus(); }},400);"
+                   style="flex:1;min-height:46px;background:#1B4332;color:#fff;border:none;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">
+                   🔑 코드 입력하러 가기
+                </button>
+            </div>
+        </div>
+
+        <!-- 포인트와 등급 관계 -->
+        <div style="background:#FFFBE6;border-radius:14px;padding:18px;border-left:4px solid #C9A84C;">
+            <div style="font-size:0.92em;font-weight:700;color:#7A5500;margin-bottom:8px;">💡 포인트와 등급의 관계</div>
+            <div style="font-size:0.83em;color:#7A5500;line-height:1.8;">
+                포인트가 등급 기준점 이상이 되면 자동으로 레벨업 해요.<br>
+                포인트는 3일 이상 결석하면 하루 1점씩 줄어요.<br>
+                포인트가 줄어서 등급 기준점 아래로 내려가면 등급도 함께 내려가요.<br><br>
+                <b>매일 확언 완료만 해도 포인트는 유지돼요! 😊</b>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ★ 포인트 안내 모달 -->
+<div id="point-guide-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:5000;overflow-y:auto;">
+    <div style="background:var(--bg-color);border-radius:20px 20px 0 0;padding:28px 20px 48px;margin-top:60px;min-height:calc(100vh - 60px);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button onclick="document.getElementById('point-guide-modal').style.display='none'" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--primary-color);">←</button>
+            <div style="font-size:1.1em;font-weight:700;color:var(--primary-color);flex:1;">하루 실천 포인트 안내</div>
+            <button onclick="document.getElementById('point-guide-modal').style.display='none'" style="background:none;border:none;font-size:1.4em;cursor:pointer;color:#aaa;line-height:1;">✕</button>
+        </div>
+
+        <!-- 현재 포인트 -->
+        <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+            <div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin-bottom:4px;">현재 포인트</div>
+            <div id="pg-pts" style="font-size:2.2em;font-weight:700;color:#C9A84C;">0 PT</div>
+        </div>
+
+        <!-- 매일 적립 -->
+        <div style="font-size:0.92em;font-weight:700;color:var(--primary-color);margin-bottom:10px;">✅ 하루 실천 포인트 (매일 적립)</div>
+        <div id="pg-items"></div>
+
+        <!-- 보너스 적립 -->
+        <div style="font-size:0.92em;font-weight:700;color:var(--primary-color);margin-bottom:10px;">🎁 특별 보너스</div>
+        <div style="background:#FFF8E8;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #F0D080;">
+            <div style="font-size:0.85em;font-weight:700;color:#7A5500;margin-bottom:10px;">⏰ 연속 달성 보너스</div>
+            <div style="font-size:0.83em;color:#7A5500;line-height:2.2;">
+                7일 연속 달성 <b style="float:right;color:#C9A84C;">+10 PT</b><br>
+                30일 연속 달성 <b style="float:right;color:#C9A84C;">+50 PT</b><br>
+                100일 달성 <b style="float:right;color:#C9A84C;">+200 PT</b><br>
+                365일 달성 <b style="float:right;color:#C9A84C;">+500 PT</b>
+            </div>
+        </div>
+        <div style="background:#FFF8E8;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #F0D080;">
+            <div style="font-size:0.85em;font-weight:700;color:#7A5500;margin-bottom:10px;">📺 유튜브 시크릿 코드</div>
+            <div style="font-size:0.83em;color:#7A5500;line-height:2.2;">
+                코드 1개 입력 <b style="float:right;color:#C9A84C;">+10 PT</b><br>
+                코드 누적 5개 <b style="float:right;color:#C9A84C;">+30 PT</b><br>
+                코드 누적 10개 <b style="float:right;color:#C9A84C;">+80 PT</b><br>
+                코드 누적 20개 <b style="float:right;color:#C9A84C;">+200 PT</b>
+            </div>
+        </div>
+        <div style="background:#FFF8E8;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #F0D080;">
+            <div style="font-size:0.85em;font-weight:700;color:#7A5500;margin-bottom:10px;">🎯 이번 달 미션 완료 (매월)</div>
+            <div style="font-size:0.83em;color:#7A5500;line-height:2.2;">
+                3가지 미션 모두 달성 시 <b style="float:right;color:#C9A84C;">+10 PT</b>
+            </div>
+        </div>
+        <div style="background:#FFF8E8;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #F0D080;">
+            <div style="font-size:0.85em;font-weight:700;color:#7A5500;margin-bottom:10px;">🏅 배지 이벤트</div>
+            <div style="font-size:0.83em;color:#7A5500;line-height:2.2;">
+                기분 상승 30일 연속 배지 <b style="float:right;color:#C9A84C;">+10 PT</b><br>
+                첫 방문 기념 🎁 <b style="float:right;color:#C9A84C;">+30 PT</b>
+            </div>
+        </div>
+        <!-- 등급 직행 이벤트 강조 -->
+        <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:14px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:0.9em;font-weight:700;color:#C9A84C;margin-bottom:10px;">🏆 연속 달성 등급 직행 이벤트!</div>
+            <div style="font-size:0.82em;color:rgba(255,255,255,0.9);line-height:2.2;">
+                100일 연속 달성 <b style="float:right;color:#C9A84C;">🏔️ 인생2막러 직행</b><br>
+                200일 연속 달성 <b style="float:right;color:#C9A84C;">☁️ 라디오스타 직행</b><br>
+                365일 연속 달성 <b style="float:right;color:#C9A84C;">✨ 인생챔피언 직행</b>
+            </div>
+            <div style="font-size:0.75em;color:rgba(255,255,255,0.6);margin-top:8px;line-height:1.6;">
+                * 연속 달성이란 매일 빠짐없이 확언을 완료한 날 기준이에요.<br>
+                * 현재 포인트가 해당 등급 미만일 경우 자동으로 포인트가 지급돼요.
+            </div>
+            <button onclick="document.getElementById('point-guide-modal').style.display='none'; switchView('calendar'); setTimeout(()=>{const el=document.querySelector('.badges-box');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},300);" style="width:100%;margin-top:10px;min-height:40px;background:rgba(201,168,76,0.3);color:#C9A84C;border:1px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">🎖️ 내 달성 배지 보관함 보러가기 →</button>
+                </div>
+            <div style="margin-top:12px;padding:10px 12px;background:rgba(201,168,76,0.15);border-radius:10px;border-left:3px solid #C9A84C;">
+                <div style="font-size:0.82em;font-weight:700;color:#7A5500;margin-bottom:4px;">🚀 인생챔피언 더 빨리 달성하는 법!</div>
+                <div style="font-size:0.78em;color:#7A5500;line-height:1.8;">
+                    매일 꾸준히 하면 <b>100일</b>에 인생챔피언이 돼요.<br>
+                    여기에 <b>유튜브 Shorts 시크릿 코드</b>까지 모으면?<br>
+                    코드 10개만 모아도 <b>+120PT 추가</b>! 🎯<br>
+                    <b>주 4개 코드 + 풀적립</b> 시 <b style="color:#C9A84C;">최단 64일</b> 달성 가능! ✨<br>
+                    <b>100일 연속 달성</b>하면 인생2막러 등급 직행 🏔️<br>
+                    <b>200일 연속</b> → 라디오스타 ☁️ / <b>365일 연속</b> → 인생챔피언 ✨
+                </div>
+            </div>
+
+        <!-- 포인트 삭감 -->
+        <div style="background:#FFF0EE;border-radius:14px;padding:16px;margin-bottom:16px;border-left:4px solid #C0392B;">
+            <div style="font-size:0.92em;font-weight:700;color:#C0392B;margin-bottom:8px;">⚠️ 포인트가 줄어드는 경우</div>
+            <div style="font-size:0.83em;color:#7A2020;line-height:1.9;">
+                3일 이상 결석 시 <b>하루 1점씩 자동 삭감</b>돼요.<br>
+                💡 매일 확언만 완료해도 포인트는 절대 줄지 않아요!
+            </div>
+        </div>
+
+        <!-- 하루 최대 한도 -->
+        <div style="background:#F0F7F4;border-radius:14px;padding:16px;margin-bottom:16px;border-left:4px solid #1B4332;">
+            <div style="font-size:0.92em;font-weight:700;color:#1B4332;margin-bottom:6px;">📌 하루 최대 적립 한도</div>
+            <div style="font-size:0.83em;color:#1B4332;line-height:1.8;">
+                하루에 최대 <b>23PT</b>까지만 적립돼요.<br>
+                (연속 보너스·코드 등 특별 보너스는 제외)
+            </div>
+        </div>
+
+        <!-- 100일 플랜 -->
+        <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:16px;">
+            <div style="font-size:1em;font-weight:700;color:#C9A84C;text-align:center;margin-bottom:4px;">🏆 100일 플랜</div>
+            <div style="font-size:0.82em;color:rgba(255,255,255,0.8);text-align:center;margin-bottom:16px;">매일 꾸준히 하면 100일 안에 최고 등급 ✨ 빛!</div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">1일차 — 🌿 새싹 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">첫 방문 30PT + 하루 최대 23PT</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">53 PT</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">6일차 — 🍀 풀잎 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">꾸준히 실천하면 6일 만에!</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">168 PT</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">14일차 — 🌳 확언러 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">PDF 1~3월 해금 🎁</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">362 PT</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">29일차 — 🌲 실천가 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">30일 보너스 직전 · PDF 4~6월 해금 🎁</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">707 PT</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">49일차 — 🏔️ 인생2막러 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">PDF 7~9월 해금 🎁</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">1,217 PT</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:0.82em;font-weight:700;color:#C9A84C;">77일차 — ☁️ 라디오스타 달성!</div>
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">PDF 10~12월 해금 🎁</div>
+                    </div>
+                    <div style="font-size:0.88em;font-weight:700;color:#fff;">1,861 PT</div>
+                </div>
+                <div style="background:rgba(201,168,76,0.25);border:1px solid #C9A84C;border-radius:10px;padding:14px;text-align:center;">
+                    <div style="font-size:0.92em;font-weight:700;color:#C9A84C;margin-bottom:4px;">✨ 100일차 — 인생챔피언 달성!</div>
+                    <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-bottom:8px;">100일 보너스 +200PT 🎉 · 인생2막 챔피언 달성!</div>
+                    <div style="font-size:1.2em;font-weight:700;color:#fff;">2,390 PT</div>
+                </div>
+            </div>
+
+            <div style="margin-top:14px;padding:12px;background:rgba(255,255,255,0.08);border-radius:10px;text-align:center;">
+                <div style="font-size:0.8em;color:rgba(255,255,255,0.7);line-height:1.7;">
+                    매일 꾸준히 실천하면 <b style="color:#C9A84C;">100일</b>만에 인생챔피언!<br>
+                    오늘부터 시작하면 딱 <b style="color:#C9A84C;">100일</b> 후 최고 등급! 🎉
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ★ 다이어리 신청 폼 모달 -->
+<div id="diary-apply-form-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:6000;overflow-y:auto;">
+    <div style="background:var(--bg-color);border-radius:20px 20px 0 0;padding:28px 20px 48px;margin-top:80px;min-height:calc(100vh - 80px);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button onclick="document.getElementById('diary-apply-form-modal').style.display='none'" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--primary-color);">←</button>
+            <div style="font-size:1.1em;font-weight:700;color:var(--primary-color);">🎁 365일 다이어리 신청</div>
+        </div>
+
+        <!-- 안내 -->
+        <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:14px;padding:18px;margin-bottom:20px;text-align:center;">
+            <div style="font-size:2em;margin-bottom:8px;">✨</div>
+            <div style="font-size:0.95em;font-weight:700;color:#C9A84C;margin-bottom:6px;">축하해요! 빛 등급 달성!</div>
+            <div style="font-size:0.82em;color:rgba(255,255,255,0.8);line-height:1.7;">
+                365일 완전판 확언 다이어리를<br>실물로 제작해 보내드려요.<br>
+                아래 정보를 입력해주세요 😊
+            </div>
+        </div>
+
+        <!-- 입력 폼 -->
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
+            <div>
+                <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">성함 *</div>
+                <input id="diary-form-name" type="text" placeholder="실명을 입력해주세요"
+                    style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.95em;background:var(--card-bg);color:var(--text-color);outline:none;">
+            </div>
+            <div>
+                <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">연락처 *</div>
+                <input id="diary-form-phone" type="tel" placeholder="010-0000-0000"
+                    style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.95em;background:var(--card-bg);color:var(--text-color);outline:none;">
+            </div>
+            <div>
+                <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">배송 주소 *</div>
+                <textarea id="diary-form-address" placeholder="우편번호, 기본주소, 상세주소를 입력해주세요"
+                    style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.95em;background:var(--card-bg);color:var(--text-color);outline:none;resize:none;min-height:90px;line-height:1.6;"></textarea>
+            </div>
+        </div>
+
+        <!-- 개인정보 동의 -->
+        <div style="background:#F5F0E8;border-radius:12px;padding:16px;margin-bottom:20px;">
+            <div style="font-size:0.82em;color:#555;line-height:1.7;margin-bottom:12px;">
+                <b style="color:var(--primary-color);">[개인정보 수집 및 이용 동의]</b><br><br>
+                수집 항목: 성함, 연락처, 주소<br>
+                수집 목적: 365일 확언 다이어리 배송<br>
+                보유 기간: 배송 완료 후 즉시 파기<br><br>
+                위 개인정보 수집 및 이용에 동의하십니까?
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" id="diary-form-agree" style="width:18px;height:18px;accent-color:#1B4332;cursor:pointer;">
+                <span style="font-size:0.88em;font-weight:700;color:var(--primary-color);">개인정보 수집 및 이용에 동의합니다 *</span>
+            </label>
+        </div>
+
+        <!-- 제출 버튼 -->
+        <button onclick="submitDiaryApply()" style="width:100%;min-height:54px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">신청하기 📬</button>
+        <button onclick="document.getElementById('diary-apply-form-modal').style.display='none'" style="width:100%;min-height:44px;background:none;border:1px solid var(--border-color);border-radius:14px;font-size:0.9em;color:var(--text-muted);cursor:pointer;">취소</button>
     </div>
 </div>
 
@@ -1282,7 +1790,7 @@
 <!-- ★ 5단계: 토스트 -->
 <div id="toast"></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     /* =========================================================
        ★ 새 에피소드 업로드 시 아래 3개만 수정하세요
        title을 빈 문자열로 두면 배너가 자동으로 숨겨집니다
@@ -1769,6 +2277,7 @@
 
     /* ===== ★ 6단계: 확언 카드 공유 ===== */
     window.openShareCard = function(){
+        addPoint(2,'아침카드공유','share_card');
         const affirmEl = document.getElementById('affirmation-text');
         const themeEl  = document.getElementById('theme-text');
         if(!affirmEl || affirmEl.closest('.blurred-content')) {
@@ -2040,6 +2549,7 @@
         if(idx === -1){
             favs.push(dc);
             safeSetJSON('favorites', favs);
+            addPoint(1,'즐겨찾기','fav_'+getTodayStr());
             showToast('즐겨찾기에 추가됐어요!');
         } else {
             favs.splice(idx,1);
@@ -2083,7 +2593,7 @@
             const dataIndex = (dc-1) % affirmationsData.length;
             const data = affirmationsData[dataIndex];
             const shortText = data.text.length>60 ? data.text.substring(0,60)+'...' : data.text;
-            html += `<div class="fav-card" onclick="goToFav(${dc})">
+            html += `<div class="fav-card" onclick="openFavDetail(${dc})">
                 <div class="fav-card-top">
                     <div class="fav-card-meta">
                         <span class="fav-card-day">D${dc}</span>
@@ -2096,6 +2606,38 @@
         });
         container.innerHTML = html;
     }
+
+
+    window.openFavDetail = function(dc){
+        const dataIndex = (dc-1) % affirmationsData.length;
+        const data = affirmationsData[dataIndex];
+        const old = document.getElementById('fav-detail-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'fav-detail-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:6000;display:flex;align-items:flex-end;justify-content:center;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:28px 22px 44px;width:100%;max-width:600px;box-sizing:border-box;max-height:85vh;overflow-y:auto;';
+        inner.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+            '<span style="font-size:0.85em;color:var(--text-muted);">📅 D' + dc + ' · ' + (data.theme||'') + '</span>' +
+            '<button id="fav-close-btn" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--text-muted);">✕</button>' +
+            '</div>' +
+            '<div style="font-size:1.05em;font-weight:600;color:var(--primary-color);line-height:1.9;margin-bottom:18px;">"' + (data.text||'') + '"</div>' +
+            '<div style="background:var(--card-bg);border-radius:12px;padding:14px;margin-bottom:16px;font-size:0.85em;color:var(--text-muted);line-height:1.7;">' +
+            '<div style="font-size:0.8em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">🎯 오늘의 행동 지침</div>' +
+            (data.action||'') + '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<button id="fav-speak-btn" style="flex:1;min-height:44px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">🔊 듣기</button>' +
+            '<button id="fav-goto-btn" style="flex:1;min-height:44px;background:var(--card-bg);color:var(--primary-color);border:1px solid var(--border-color);border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">📅 날짜로 이동</button>' +
+            '</div>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        document.getElementById('fav-close-btn').onclick = function(){ modal.remove(); };
+        document.getElementById('fav-speak-btn').onclick = function(){ speakTextOnce(data.text); showToast('🔊 재생 중...'); };
+        document.getElementById('fav-goto-btn').onclick = function(){ goToFav(dc); modal.remove(); };
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
 
     window.goToFav = function(dc){
         // 해당 day로 이동
@@ -2127,11 +2669,13 @@
 
     let favTtsIndex=0;
     let favTtsArray=[];
-    window.playFavsInOrder=function(){
+    window.playFavsInOrder=function(loop){
         const favs=safeGetJSON('favorites',[]);
         if(!favs.length){showToast('즐겨찾기한 확언이 없어요');return;}
         favTtsArray=[...favs];
         favTtsIndex=0;
+        favTtsLoop=!!loop;
+        showToast(loop?'🔁 전체 무한반복 재생 중...':'▶️ 순서대로 재생 중...');
         playNextFav();
     }
     window.playFavRandom=function(){
@@ -2142,8 +2686,12 @@
         speakTextOnce(data.text);
         showToast('🎲 '+data.theme);
     }
+    let favTtsLoop = false;
     function playNextFav(){
-        if(favTtsIndex>=favTtsArray.length){showToast('모두 들었어요 ✅');return;}
+        if(favTtsIndex>=favTtsArray.length){
+            if(favTtsLoop){ favTtsIndex=0; }
+            else { showToast('모두 들었어요 ✅'); return; }
+        }
         const dc=favTtsArray[favTtsIndex];
         const data=affirmationsData[(dc-1)%affirmationsData.length];
         speakTextOnce(data.text,()=>{favTtsIndex++;setTimeout(playNextFav,1500);});
@@ -2211,11 +2759,233 @@
     let audioCtx=null,bgmGainNode=null,bgmFilter=null,bgmSource=null,isBgmOn=false,bgmInitialized=false;
     const VOL_NORMAL=0.3,VOL_DUCK=0.05;
     function initAudioContext(){if(!audioCtx){try{const A=window.AudioContext||window.webkitAudioContext;audioCtx=new A();bgmGainNode=audioCtx.createGain();bgmGainNode.gain.value=0;bgmGainNode.connect(audioCtx.destination);}catch(e){}}}
-    function createWhiteNoise(){if(!audioCtx)return null;const b=audioCtx.sampleRate*2,nb=audioCtx.createBuffer(1,b,audioCtx.sampleRate),o=nb.getChannelData(0);for(let i=0;i<b;i++)o[i]=Math.random()*2-1;const wn=audioCtx.createBufferSource();wn.buffer=nb;wn.loop=true;bgmFilter=audioCtx.createBiquadFilter();bgmFilter.type='lowpass';bgmFilter.frequency.value=400;wn.connect(bgmFilter);bgmFilter.connect(bgmGainNode);return wn;}
-    function playBGM(){try{initAudioContext();if(!audioCtx)return;if(audioCtx.state==='suspended')audioCtx.resume();if(!bgmSource){bgmSource=createWhiteNoise();if(bgmSource)bgmSource.start(0);}isBgmOn=true;safeSetItem('bgm_state','on');updateBgmUI();bgmGainNode.gain.setTargetAtTime(isTtsPlaying?VOL_DUCK:VOL_NORMAL,audioCtx.currentTime,0.5);}catch(e){}}
-    function pauseBGM(){try{isBgmOn=false;safeSetItem('bgm_state','off');updateBgmUI();if(bgmGainNode&&audioCtx){bgmGainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.5);setTimeout(()=>{if(!isBgmOn&&audioCtx.state==='running')audioCtx.suspend();},1000);}}catch(e){}}
+        // ★ 배경음악 타입
+    let bgmType = parseInt(safeGetItem('bgm_type','0'))||0;
+    const BGM_TYPES = [
+        {label:'🌊 파도', icon:'🌊'},
+        {label:'🌧️ 빗소리', icon:'🌧️'},
+        {label:'🐦 새소리', icon:'🐦'},
+        {label:'🎵 음악상자', icon:'🎵'}
+    ];
+
+    function createBgmByType(type){
+        if(!audioCtx) return null;
+        try{
+            if(type===0) return createWaveSound();
+            if(type===1) return createRainSound();
+            if(type===2) return createBirdSound();
+            if(type===3) return createMusicBoxSound();
+        }catch(e){ return createWaveSound(); }
+        return createWaveSound();
+    }
+
+    // 핑크노이즈 생성기
+    function makePink(dur){
+        const sr=audioCtx.sampleRate, len=sr*dur;
+        const buf=audioCtx.createBuffer(1,len,sr), d=buf.getChannelData(0);
+        let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+        for(let i=0;i<len;i++){
+            const w=Math.random()*2-1;
+            b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+            b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+            b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+            d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926;
+        }
+        return buf;
+    }
+
+    // 🌊 파도소리
+    function createWaveSound(){
+        const src=audioCtx.createBufferSource();
+        const lp=audioCtx.createBiquadFilter();
+        const amp=audioCtx.createGain();
+        const mod=audioCtx.createOscillator(), mg=audioCtx.createGain();
+        src.buffer=makePink(8); src.loop=true;
+        lp.type='lowpass'; lp.frequency.value=300;
+        mod.frequency.value=0.1; mod.type='sine';
+        mg.gain.value=0.22; amp.gain.value=0.78;
+        mod.connect(mg); mg.connect(amp.gain);
+        src.connect(lp); lp.connect(amp); amp.connect(bgmGainNode);
+        mod.start(0); src.start(0);
+        src._extra=[mod]; return src;
+    }
+
+    // 🌧️ 빗소리
+    function createRainSound(){
+        const sr=audioCtx.sampleRate, len=sr*4;
+        const buf=audioCtx.createBuffer(1,len,sr), d=buf.getChannelData(0);
+        for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*0.35;
+        const src=audioCtx.createBufferSource();
+        const hp=audioCtx.createBiquadFilter(), lp=audioCtx.createBiquadFilter();
+        const amp=audioCtx.createGain(), mod=audioCtx.createOscillator(), mg=audioCtx.createGain();
+        hp.type='highpass'; hp.frequency.value=1200;
+        lp.type='lowpass'; lp.frequency.value=7000;
+        mod.frequency.value=4; mg.gain.value=0.1; amp.gain.value=0.9;
+        mod.connect(mg); mg.connect(amp.gain);
+        src.buffer=buf; src.loop=true;
+        src.connect(hp); hp.connect(lp); lp.connect(amp); amp.connect(bgmGainNode);
+        mod.start(0); src.start(0);
+        src._extra=[mod]; return src;
+    }
+
+    // 🐦 새소리
+    let _bt=[]; // bird timers
+    function _sb(){ _bt.forEach(function(t){clearTimeout(t);}); _bt=[]; }
+    function _ch(f){
+        if(!audioCtx||!isBgmOn) return;
+        try{
+            const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+            o.type='sine'; o.frequency.setValueAtTime(f,audioCtx.currentTime);
+            o.frequency.exponentialRampToValueAtTime(f*1.3,audioCtx.currentTime+0.08);
+            o.frequency.exponentialRampToValueAtTime(f*0.9,audioCtx.currentTime+0.2);
+            g.gain.setValueAtTime(0,audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.14,audioCtx.currentTime+0.02);
+            g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+            o.connect(g); g.connect(bgmGainNode);
+            o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime+0.25);
+        }catch(e){}
+    }
+    function createBirdSound(){
+        // 배경 바람
+        const src=audioCtx.createBufferSource();
+        const lp=audioCtx.createBiquadFilter(), amp=audioCtx.createGain();
+        src.buffer=makePink(6); src.loop=true;
+        lp.type='lowpass'; lp.frequency.value=500; amp.gain.value=0.5;
+        src.connect(lp); lp.connect(amp); amp.connect(bgmGainNode); src.start(0);
+        // 새소리 스케줄
+        _sb();
+        const freqs=[2400,3000,2800,3600,4000];
+        function next(){
+            if(!isBgmOn) return;
+            const t=setTimeout(function(){
+                if(!isBgmOn) return;
+                const f=freqs[Math.floor(Math.random()*freqs.length)];
+                const n=Math.floor(Math.random()*3)+1;
+                for(let i=0;i<n;i++){
+                    const bt=setTimeout(function(){_ch(f+Math.random()*100);},i*190);
+                    _bt.push(bt);
+                }
+                next();
+            }, 2000+Math.random()*4000);
+            _bt.push(t);
+        }
+        next();
+        src._extra=[]; src._isBird=true; return src;
+    }
+
+    // 🎵 음악상자
+    let _mt=null;
+    function _sm(){ if(_mt){clearTimeout(_mt);_mt=null;} }
+    function createMusicBoxSound(){
+        const scale=[523.25,587.33,659.25,783.99,880,1046.5];
+        const pats=[[0,2,4,5,4,2],[0,4,2,5],[5,3,1,0,2]];
+        let ni=0, pi=0, pat=pats[0];
+        function note(){
+            if(!isBgmOn) return;
+            try{
+                const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+                o.type='sine'; o.frequency.value=scale[pat[ni%pat.length]];
+                const t=audioCtx.currentTime;
+                g.gain.setValueAtTime(0,t);
+                g.gain.linearRampToValueAtTime(0.18,t+0.01);
+                g.gain.exponentialRampToValueAtTime(0.001,t+1.8);
+                o.connect(g); g.connect(bgmGainNode);
+                o.start(t); o.stop(t+1.9);
+            }catch(e){}
+            ni++;
+            if(ni%pat.length===0){ pi=(pi+1)%pats.length; pat=pats[pi]; }
+            _mt=setTimeout(note, 700+Math.random()*400);
+        }
+        note();
+        const dummy=audioCtx.createBufferSource();
+        dummy._isMusicBox=true; return dummy;
+    }
+
+    
+    window.selectBgmType = function(type){
+        bgmType = type;
+        safeSetItem('bgm_type', String(type));
+        // 재생 중이면 재시작
+        if(isBgmOn){
+            if(bgmSource){ _sb();_sm(); if(!bgmSource._isMusicBox&&!bgmSource._isBird){try{bgmSource.stop();}catch(e){}} bgmSource=null; }
+            bgmSource = createBgmByType(bgmType);
+            if(bgmSource) bgmSource.start(0);
+        }
+        // UI 업데이트
+        updateBgmUI();
+        document.getElementById('bgm-selector-modal')?.remove();
+    };
+
+    window.openBgmSelector = function(){
+        const existing = document.getElementById('bgm-selector-modal');
+        if(existing){ existing.remove(); return; }
+
+        const modal = document.createElement('div');
+        modal.id = 'bgm-selector-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:6000;display:flex;align-items:flex-end;justify-content:center;';
+
+        const sheet = document.createElement('div');
+        sheet.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:20px 20px 40px;width:100%;max-width:600px;box-sizing:border-box;';
+        sheet.innerHTML = '<div style="text-align:center;font-weight:700;color:var(--primary-color);font-size:1em;margin-bottom:6px;">🎵 배경음악 선택</div>' +
+            '<div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:16px;">확언에 집중하는 데 도움이 되는 소리를 골라보세요</div>';
+
+        const options = [
+            {type:-1, icon:'🔇', label:'끄기', desc:'배경음악 없음'},
+            {type:0,  icon:'🌊', label:'파도', desc:'잔잔한 파도 소리'},
+            {type:1,  icon:'🎹', label:'피아노', desc:'부드러운 화음'},
+            {type:2,  icon:'🎻', label:'첼로', desc:'깊은 현악기 소리'},
+            {type:3,  icon:'🌲', label:'숲속', desc:'자연 속 바람 소리'},
+        ];
+
+        options.forEach(function(opt){
+            const isActive = (opt.type === -1 && !isBgmOn) || (opt.type === bgmType && isBgmOn);
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;background:' + (isActive?'var(--card-bg)':'transparent') + ';margin-bottom:4px;border:' + (isActive?'1.5px solid var(--primary-color)':'1.5px solid transparent') + ';';
+            row.innerHTML = '<span style="font-size:24px;">' + opt.icon + '</span>' +
+                '<div style="flex:1;"><div style="font-size:0.9em;font-weight:' + (isActive?'700':'500') + ';color:var(--text-color);">' + opt.label + '</div>' +
+                '<div style="font-size:0.75em;color:var(--text-muted);">' + opt.desc + '</div></div>' +
+                (isActive ? '<span style="color:var(--primary-color);font-size:1.1em;">✓</span>' : '');
+            row.onclick = function(){
+                if(opt.type === -1){
+                    pauseBGM();
+                } else {
+                    bgmType = opt.type;
+                    safeSetItem('bgm_type', String(bgmType));
+                    if(bgmSource){ try{ bgmSource.stop(); }catch(e){} bgmSource=null; }
+                    playBGM();
+                }
+                updateBgmUI();
+                modal.remove();
+            };
+            sheet.appendChild(row);
+        });
+
+        modal.appendChild(sheet);
+        document.body.appendChild(modal);
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    function playBGM(){try{initAudioContext();if(!audioCtx)return;if(audioCtx.state==='suspended')audioCtx.resume();if(!bgmSource){bgmSource=createBgmByType(bgmType);if(bgmSource)bgmSource.start(0);}isBgmOn=true;safeSetItem('bgm_state','on');updateBgmUI();bgmGainNode.gain.setTargetAtTime(isTtsPlaying?VOL_DUCK:VOL_NORMAL,audioCtx.currentTime,0.5);}catch(e){}}
+    function pauseBGM(){try{_sb();_sm();isBgmOn=false;safeSetItem('bgm_state','off');updateBgmUI();if(bgmGainNode&&audioCtx){bgmGainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.5);setTimeout(()=>{if(!isBgmOn&&audioCtx.state==='running')audioCtx.suspend();},1000);}}catch(e){}}
     window.toggleBGM=function(){if(!bgmInitialized){bgmInitialized=true;document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);}isBgmOn?pauseBGM():playBGM();}
-    function updateBgmUI(){const btn=document.getElementById('btn-bgm'),ic=document.getElementById('bgm-icon'),tx=document.getElementById('bgm-text');if(!btn)return;if(isBgmOn){btn.classList.add('on');ic.innerText='🎵';tx.innerText='배경음악 켜짐';}else{btn.classList.remove('on');ic.innerText='🔇';tx.innerText='음악 끄기';}}
+    function updateBgmUI(){
+        const btn=document.getElementById('btn-bgm'),ic=document.getElementById('bgm-icon'),tx=document.getElementById('bgm-text');
+        const hdrBtn=document.getElementById('header-bgm-btn');
+        if(isBgmOn){
+            if(btn){ btn.classList.add('on'); }
+            if(ic) ic.innerText = BGM_TYPES[bgmType]?.icon || '🎵';
+            if(tx) tx.innerText = '배경음악 · ' + (BGM_TYPES[bgmType]?.label || '');
+            if(hdrBtn) hdrBtn.textContent = BGM_TYPES[bgmType]?.icon || '🎵';
+            if(hdrBtn) hdrBtn.style.background = 'var(--accent-color)';
+            if(hdrBtn) hdrBtn.style.color = 'var(--primary-color)';
+        } else {
+            if(btn) btn.classList.remove('on');
+            if(ic) ic.innerText='🎵';
+            if(tx) tx.innerText='배경음악';
+            if(hdrBtn){ hdrBtn.textContent='🎵'; hdrBtn.style.background='var(--primary-color)'; hdrBtn.style.color='#fff'; }
+        }
+    }
+
     function applyDucking(){if(isBgmOn&&bgmGainNode&&audioCtx)bgmGainNode.gain.setTargetAtTime(VOL_DUCK,audioCtx.currentTime,0.5);}
     function removeDucking(){if(isBgmOn&&bgmGainNode&&audioCtx)bgmGainNode.gain.setTargetAtTime(VOL_NORMAL,audioCtx.currentTime,0.5);}
     function unlockAudio(){
@@ -2258,7 +3028,7 @@
         if(typeof window.stopTTS==='function')stopTTS();
         document.querySelectorAll('.view-section').forEach(el=>el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-        const titles={home:'오늘의 확언',calendar:'달력 및 통계',favorites:'내 최애 확언 ⭐',memo:'메모장',story:'사연 보내기',settings:'앱 설정',shorts:'오늘의 선언 📣',completion:'완주 축하합니다!'};
+        const titles={home:'오늘의 확언',calendar:'달력 및 통계',favorites:'내 최애 확언 ⭐',memo:'메모장',story:'사연 보내기',settings:'앱 설정',shorts:'오늘의 실천 📣',completion:'완주 축하합니다!'};
         document.getElementById('main-header-title').innerText=titles[viewName]||'오늘의 확언';
         if(viewName==='home'){
             document.getElementById('view-home').classList.add('active');
@@ -2285,13 +3055,51 @@
             // ★ 필사 탭으로 초기화
             switchMemoTab('write');
         } else if(viewName==='story'){
+            setTimeout(initStoryKakaoUI, 100);
             document.getElementById('view-story').classList.add('active');
             document.getElementById('nav-story').classList.add('active');
             initStoryView();
         } else if(viewName==='shorts'){
             document.getElementById('view-shorts').classList.add('active');
             document.getElementById('nav-shorts').classList.add('active');
-            initShortsView();
+            setTimeout(renderShortsPointSummary, 100);
+            // 풀잎(레벨2) 미만이면 잠금 안내
+            if(getLevel(getPoints()) < 2){
+                document.getElementById('shorts-declaration-area').innerHTML = `
+                    <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:24px 20px;margin-bottom:16px;">
+                        <div style="font-size:0.78em;color:#C9A84C;font-weight:700;letter-spacing:1px;text-align:center;margin-bottom:10px;">🔓 풀잎 등급 달성 시 오픈</div>
+                        <div style="font-size:1.1em;font-weight:700;color:#fff;text-align:center;margin-bottom:14px;">마음이 힘들 때 꺼내 먹는<br>🧪 확언 처방전</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                💔 거절당한 날 → 자존감 회복 확언 영상
+                            </div>
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                😔 자신이 없을 때 → 자기확신 확언 영상
+                            </div>
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                🌀 불안하고 흔들릴 때 → 마음 안정 확언 영상
+                            </div>
+                        </div>
+                        <div style="background:rgba(201,168,76,0.15);border-radius:12px;padding:12px 14px;margin-bottom:14px;border-left:3px solid #C9A84C;">
+                            <div style="font-size:0.8em;font-weight:700;color:#C9A84C;margin-bottom:6px;">🧠 뇌과학이 증명한 효과</div>
+                            <div style="font-size:0.76em;color:rgba(255,255,255,0.8);line-height:1.8;">
+                                확언 콘텐츠를 보면 뇌의 <b style="color:#C9A84C;">vmPFC(내측 전전두엽)</b>가 활성화되며,<br>
+                                스트레스 반응이 줄고 <b style="color:#C9A84C;">실제 행동 변화</b>로 이어집니다.<br>
+                                <span style="font-size:0.88em;opacity:0.7;">— Falk et al., PNAS 2015 · Dutcher et al., SCAN 2020</span>
+                            </div>
+                        </div>
+                        <div style="background:rgba(201,168,76,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;text-align:center;">
+                            <div style="font-size:0.8em;color:#C9A84C;font-weight:700;">🌱 현재: ${LEVELS[getLevel(getPoints())].emoji} ${LEVELS[getLevel(getPoints())].name}</div>
+                            <div style="font-size:0.76em;color:rgba(255,255,255,0.7);margin-top:2px;">풀잎까지 <b style="color:#C9A84C;">${Math.max(0,150-getPoints())}PT</b> 남았어요! (약 6일)</div>
+                        </div>
+                        <button onclick="switchView('home')" style="width:100%;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:12px;padding:12px;font-size:0.9em;font-weight:700;cursor:pointer;">오늘 확언 하러 가기 →</button>
+                    </div>
+                    <div style="font-size:0.78em;color:var(--text-muted);text-align:center;margin-top:8px;line-height:1.6;">
+                        풀잎 달성 후 <b>실천 탭</b>을 다시 누르면 확언 처방전이 열려요 🌿
+                    </div>`;
+            } else {
+                initShortsView();
+            }
         } else if(viewName==='settings'){
             document.getElementById('view-settings').classList.add('active');
             initSettings();
@@ -2309,16 +3117,33 @@
         showToast('🏅 닉네임이 저장됐어요!');
     }
 
+    window.saveFamilySender = function(){
+        const val = document.getElementById('family-sender-input').value.trim();
+        if(!val){ showToast('이름을 입력해주세요'); return; }
+        safeSetItem('family_sender', val);
+        showToast('💌 보내는 분 서명이 저장됐어요!');
+    }
+
+    window.saveFamilyReceiver = function(){
+        const val = document.getElementById('family-receiver-input').value.trim();
+        if(!val){ showToast('이름을 입력해주세요'); return; }
+        safeSetItem('family_receiver', val);
+        showToast('💌 받는 분 이름이 저장됐어요!');
+    }
+
     window.initApp = function initApp(){
         applyStoredSettings();
         restoreNotifSchedule();
         initSolidarity();
         loadSheetData();
         // ★ 설치 팝업 → 온보딩 순서
-        if(safeGetItem('install_prompt_shown','') !== '1'){
-            showInstallPrompt();
-        } else {
+        // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                          || navigator.standalone === true;
+        if(isStandalone || safeGetItem('install_prompt_shown','') === '1'){
             initOnboarding();
+        } else {
+            showInstallPrompt();
         }
         currentMode=safeGetItem('app_mode','A');
         selectedDateObj=new Date(todayObj);
@@ -2326,6 +3151,7 @@
         isBgmOn=safeGetItem('bgm_state','off')==='on';
         updateBgmUI();
         initBanner();
+        renderPointBar();
         switchView('home');
     }
 
@@ -2441,6 +3267,7 @@
             showMoodReasonQuestion(idx); // ★ 감정 원인 질문
         }
         if(type==='after'){
+            addPoint(1,'기분체크','mood_check');
             checkMoodRiseStreak();
             const completed=safeGetJSON('completed_dates',[]);
             checkStoryCard(completed.length);
@@ -2755,7 +3582,13 @@
                 if(!earned.includes(badgeId)){
                     earned.push(badgeId);
                     safeSetJSON('earned_badges', earned);
-                    setTimeout(()=> showToast(`새 배지: ${badge.icon} ${badge.label}`), 600);
+                    // ★ 30일 연속 기분 상승 배지 → +10PT
+                    if(badge.days === 30){
+                        addPoint(10, '기분상승30일배지', 'mood_rise_30_bonus');
+                        setTimeout(()=> showToast(`🏅 ${badge.label} +10PT 지급!`), 600);
+                    } else {
+                        setTimeout(()=> showToast(`새 배지: ${badge.icon} ${badge.label}`), 600);
+                    }
                     renderDashboard();
                 }
             } else {
@@ -2772,6 +3605,7 @@
         trackEvent('complete_affirmation', {day_count: completed.length, streak: streak});
         checkStoryCard(completed.length);
         showCompleteReward(completed.length, streak); // ★ 감정 보상 + 공유 유도
+        addPoint(1,'확언완료','complete'); checkStreakBonus(streak);
     }}catch(e){}}
 
     function updateCompleteButton(){const btn=document.getElementById('btn-complete');if(!btn)return;const icon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';if(!isToday){btn.style.display='none';}else{btn.style.display='flex';const completed=safeGetJSON('completed_dates',[]);if(completed.includes(getFormatDate(selectedDateObj))){btn.innerHTML=icon+'완료됨';btn.disabled=true;}else{btn.innerHTML=icon+'오늘 완료 체크';btn.disabled=false;}}}
@@ -2811,10 +3645,14 @@
         if(isToday&&mb===null){cc='blurred-content';overlay=`<div class="unlock-message" id="unlock-msg">오늘 기분을 선택하면<br>확언이 열립니다 🔓</div>`;}
         const actionDoneKey = `action_done_${getFormatDate(selectedDateObj)}`;
         const actionDone = safeGetItem(actionDoneKey, '') === '1';
+        const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
         const actionBtnHtml = isToday ? `
             <div style="margin-top:14px;border-top:1px solid rgba(201,168,76,0.2);padding-top:14px;">
-                <button id="action-done-btn" onclick="toggleActionDone()" style="width:100%;min-height:44px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">
+                <button id="action-done-btn" onclick="toggleActionDone()" style="width:100%;min-height:44px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;margin-bottom:8px;">
                     ${actionDone?'✓ 오늘 행동 실천 완료!':'실행 완료 체크하기'}
+                </button>
+                <button onclick="openActionPhoto()" style="width:100%;min-height:44px;background:${photoDone?'#C9A84C':'rgba(201,168,76,0.15)'};color:${photoDone?'#fff':'#C9A84C'};border:1.5px solid #C9A84C;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">
+                    ${photoDone?'📸 오늘 실천 인증 완료! (+5PT)':'📸 사진으로 실천 인증하기 (+5PT)'}
                 </button>
             </div>` : '';
         document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><div class="action-box"><div class="action-title">오늘의 행동 지침</div><div class="action-text" id="action-text">${data.action}</div>${actionBtnHtml}</div></div>`;
@@ -2822,6 +3660,7 @@
         if(data.episode&&data.episode.trim()!==''){
             ep.style.display='flex';
             ep.href=data.episode;
+            ep.setAttribute('onclick', "addPoint(2,'영상클릭','episode_visit')");
             // ② 확언 근거 감성 훅
             ep.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;">
                 <div style="font-size:0.78em;color:rgba(255,255,255,0.7);">이 확언은 그냥 말이 아닙니다. 이유가 있어요.</div>
@@ -2841,6 +3680,9 @@
         renderHomeYTRecommend();
         renderNicknameGreeting();
         check100DayNotify();
+        checkFirstVisit();
+        renderAbsenceBanner(null);
+        renderOracleBtn(); // 배너만 표시 (삭감/하락은 initApp에서만)
         // 기분 전 제목에 닉네임 적용
         const _mbt = document.getElementById('mood-before-title');
         if(_mbt){ const _n=safeGetItem('my_nickname',''); _mbt.textContent = _n ? `${_n}님, 오늘 확언을 보기 전 지금 기분은 어떠세요?` : '오늘 확언을 보기 전 지금 기분은 어떠세요?'; }
@@ -2908,10 +3750,49 @@
             let st=calcCurrentStreak(cd);
             document.getElementById('cal-stat-streak').innerText=`🔥 ${st}일 연속 중!`;
             document.getElementById('cal-stat-rate').innerText=`이번 달 완료율: ${Math.round((mc/dim)*100)}%`;
-            setTimeout(()=>{drawMoodGraph(calYear,calMonth,dim);renderDashboard();},50);
+            setTimeout(()=>{drawMoodGraph(calYear,calMonth,dim);renderDashboard();renderMonthlyMission();},50);
             renderBadgeList();
         }catch(e){console.error(e);}
     }
+    function renderMonthlyMission(){
+        const ms = `${todayObj.getFullYear()}_${todayObj.getMonth()+1}`;
+        const cd = safeGetJSON('completed_dates',[]);
+        let mc = 0;
+        const ym = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}`;
+        for(let s of cd){ if(s.startsWith(ym)) mc++; }
+        const memoCnt = safeGetJSON(`memo_count_${ms}`,0);
+        const favCnt  = safeGetJSON('favorites',[]).length;
+        const alreadyDone = safeGetJSON('earned_badges',[]).includes(`mission_${ms}`);
+
+        // 3가지 미션 달성 체크
+        const m1 = mc >= 20;
+        const m2 = memoCnt >= 5;
+        const m3 = favCnt >= 3;
+        const doneCount = [m1,m2,m3].filter(Boolean).length;
+        const pct = Math.round((doneCount/3)*100);
+
+        const pt = document.getElementById('mission-progress-text');
+        const bar = document.getElementById('mission-bar');
+        const rt  = document.getElementById('mission-reward-text');
+        if(!pt || !bar || !rt) return;
+
+        pt.innerHTML =
+            `${m1?'✅':'⬜'} 이번 달 20일 이상 체크 (${mc}/20일)<br>` +
+            `${m2?'✅':'⬜'} 필사·일기 5번 이상 (${memoCnt}/5회)<br>` +
+            `${m3?'✅':'⬜'} 즐겨찾기 3개 이상 (${favCnt}/3개)`;
+
+        bar.style.width = pct + '%';
+        bar.style.background = alreadyDone ? '#C9A84C' : 'var(--primary-color)';
+
+        if(alreadyDone){
+            rt.innerHTML = '<b style="color:#C9A84C;">🏅 이번 달 미션 완료! +10PT 수령 완료</b>';
+        } else if(doneCount === 3){
+            rt.innerHTML = '<b style="color:var(--primary-color);">🎉 모두 달성! 달력 탭을 다시 열면 +10PT 지급돼요</b>';
+        } else {
+            rt.innerHTML = `${3-doneCount}개 더 달성하면 <b style="color:var(--primary-color);">+10PT</b> 보너스!`;
+        }
+    }
+
     function renderDashboard(){
         let cd=safeGetJSON('completed_dates',[]);
         let favs=safeGetJSON('favorites',[]);
@@ -2932,7 +3813,7 @@
         if(m1){if(mc>=20){m1.innerText='✅ 이번 달 20일 이상 체크하기';m1.classList.add('done');}else{m1.innerText=`☐ 이번 달 20일 이상 체크하기 (${mc}/20)`;m1.classList.remove('done');}}
         if(m2){if(memoCnt>=5){m2.innerText='✅ 메모 5번 이상 쓰기';m2.classList.add('done');}else{m2.innerText=`☐ 메모 5번 이상 쓰기 (${memoCnt}/5)`;m2.classList.remove('done');}}
         if(m3){if(favCnt>=3){m3.innerText='✅ 즐겨찾기 3개 이상 모으기';m3.classList.add('done');}else{m3.innerText=`☐ 즐겨찾기 3개 이상 모으기 (${favCnt}/3)`;m3.classList.remove('done');}}
-        if(mc>=20&&memoCnt>=5&&favCnt>=3){let earned=safeGetJSON('earned_badges',[]),bid=`mission_${ms}`;if(!earned.includes(bid)){earned.push(bid);safeSetJSON('earned_badges',earned);alert('🏅 이달의 미션 완료! 특별 배지를 획득했습니다!');renderBadgeList();renderDashboard();}}
+        if(mc>=20&&memoCnt>=5&&favCnt>=3){let earned=safeGetJSON('earned_badges',[]),bid=`mission_${ms}`;if(!earned.includes(bid)){earned.push(bid);safeSetJSON('earned_badges',earned); addPoint(10,'월간미션완료',`monthly_${ms}`); showToast('🏅 이달의 미션 완료! +10PT 적립!'); launchConfetti(); renderBadgeList();renderDashboard();}}
     }
     function drawMoodGraph(year,month,dim){
         try{
@@ -2964,13 +3845,28 @@
             for(let b of BADGES){if(sc>=b.target&&!earned.includes('streak_'+b.target)){earned.push('streak_'+b.target);ne=b;}}
             if(ne){
                 safeSetJSON('earned_badges',earned);
+                // ★ 연속 달성 배지 → 포인트+등급 직행
+                const streakRewards = {
+                    100: { pts:1200, msg:'🏔️ 100일 연속! 인생2막러 등급 직행!' },
+                    200: { pts:1850, msg:'☁️ 200일 연속! 라디오스타 등급 직행!' },
+                    365: { pts:2390, msg:'✨ 365일 연속! 인생챔피언 직행!' },
+                };
+                if(streakRewards[ne.target]){
+                    const rw = streakRewards[ne.target];
+                    const cur = getPoints();
+                    if(cur < rw.pts){
+                        const diff = rw.pts - cur;
+                        setPoints(rw.pts);
+                        if(typeof renderPointBar==='function') renderPointBar();
+                        setTimeout(()=>{ showToast(rw.msg+` +${diff}PT 지급!`); launchConfetti(); }, 500);
+                    }
+                }
                 if(ne.target===365){switchView('completion');}
                 else{
                     document.getElementById('badge-modal-icon').innerText=ne.icon;
                     document.getElementById('badge-modal-title').innerText=`${ne.target}일 스트릭 달성!`;
                     document.getElementById('badge-modal-desc').innerText=`"${ne.name}"\n진심으로 축하합니다!`;
                     document.getElementById('badge-modal').style.display='flex';
-                    // ★ 7일 배지 달성 시 구독 유도
                     if(ne.target===7) { setTimeout(showSubscribeNudge,600); }
                 }
             }
@@ -2983,7 +3879,7 @@
             let earned=safeGetJSON('earned_badges',[]),html='';
             for(let b of BADGES){let ie=earned.includes('streak_'+b.target),cls=ie?'badge-item earned':'badge-item locked';if(b.target===365)cls+=' full-width';html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.target}일 연속 달성</div><div class="badge-name">${b.name}</div></div>`;}
             // ★ 긍정 변화 배지
-            html += '<div style="grid-column:1/-1;font-size:17px;font-weight:bold;color:var(--primary-color);margin-top:16px;margin-bottom:4px;">💚 기분 상승 배지</div>';
+            html += '<div style="grid-column:1/-1;font-size:0.95em;font-weight:700;color:var(--primary-color);margin-top:14px;margin-bottom:4px;">😊 기분 상승 배지 (30일 연속 달성 시 +10PT!)</div>';
             for(let b of MOOD_RISE_BADGES){
                 let ie=earned.includes(`mood_rise_${b.days}`),cls=ie?'badge-item earned':'badge-item locked';
                 html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.days}일 연속 상승</div><div class="badge-name" style="font-size:14px;">${b.label.replace(/\d+일 연속 /,'')}</div></div>`;
@@ -3105,6 +4001,7 @@
         const input = document.getElementById('memo-input');
         const text = input.value.trim();
         if(!text){ showToast('내용을 입력해주세요!'); return; }
+        addPoint(1,'필사','memo');
         const memos = safeGetJSON('memos', []);
         memos.unshift({ date: getTodayStr(), text: text, ts: Date.now() });
         safeSetJSON('memos', memos);
@@ -3444,6 +4341,7 @@
         const input = document.getElementById('diary-input');
         const targetDate = input.dataset.targetDate || getTodayStr();
         safeSetItem(`diary_${targetDate}`, input.value);
+        addPoint(1,'일기','diary');
         showToast('일기가 저장됐어요');
         renderDiaryCal(); // 달력에 점 업데이트
     }
@@ -3686,12 +4584,20 @@
     window.addEventListener('beforeinstallprompt', (e)=>{
         e.preventDefault();
         pwaInstallPrompt = e;
-        // 팝업이 이미 떠있으면 버튼 즉시 활성화
+        // 첫 방문 설치 팝업 버튼 업데이트
         const btn = document.getElementById('install-pwa-btn');
         if(btn){
             btn.textContent = '📲 홈화면에 앱 설치하기';
             btn.style.background = '#1B4332';
             btn.onclick = installFromPrompt;
+        }
+        // 공유 모달이 열려있으면 즉시 설치 버튼 표시
+        const modal = document.getElementById('share-app-modal');
+        if(modal && modal.style.display !== 'none'){
+            const pwaSec = document.getElementById('pwa-install-section');
+            const androidSec = document.getElementById('android-manual-section');
+            if(androidSec) androidSec.style.display = 'none';
+            if(pwaSec) pwaSec.style.display = 'block';
         }
     });
 
@@ -3709,11 +4615,14 @@
         if(androidSec) androidSec.style.display = 'none';
 
         if(pwaInstallPrompt){
-            pwaSec.style.display = 'block';
+            // 안드로이드 자동 설치 버튼
+            if(pwaSec) pwaSec.style.display = 'block';
         } else if(isIOS){
-            iosSec.style.display = 'block';
-        } else if(isAndroid){
-            androidSec.style.display = 'block';
+            // 아이폰 단계 안내
+            if(iosSec) iosSec.style.display = 'block';
+        } else {
+            // 안드로이드 수동 or PC - 항상 안내 표시
+            if(androidSec) androidSec.style.display = 'block';
         }
     }
 
@@ -3729,6 +4638,7 @@
     }
 
     const APP_URL = 'https://life2radio.github.io/affirmation/';
+    const KAKAO_1ON1_URL = 'https://open.kakao.com/o/sKUKl3pi';
 
     window.shareAppFile = function(){
         document.getElementById('share-app-modal').style.display = 'none';
@@ -3767,6 +4677,7 @@
     }
 
     window.shareAppMessage = function(){
+        addPoint(2,'앱소개공유','share_app');
         const msg = `🌿 인생2막라디오 365일 확언 앱
 
 오늘 하루, 나를 위한 한 문장을 읽는 것부터 시작해보세요.
@@ -3938,24 +4849,99 @@ https://life2radio.github.io/affirmation/
     /* ===== 가족에게 보내기 ===== */
     window.shareToFamily = function(){
         const affirmEl = document.getElementById('affirmation-text');
-        const dayEl    = document.getElementById('day-label');
         if(!affirmEl || !affirmEl.innerText.trim()){
             showToast('먼저 기분을 선택해 확언을 열어주세요!'); return;
         }
-        const affirmText = affirmEl.innerText.trim();
-        const dayText    = dayEl ? dayEl.innerText : '';
-        const msg = `🌿 오늘 아침 엄마(아빠)의 확언이에요\n\n"${affirmText}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n오늘도 힘내렴! 사랑해 💚\n\n— 인생2막라디오 365일 확언 앱`;
+        // 모달 열기
+        const modal = document.getElementById('family-share-modal');
+        modal.style.display = 'flex';
+        // 배경 클릭 시 닫기
+        modal.onclick = function(e){ if(e.target===modal) modal.style.display='none'; };
+        // 이전 선택값 복원
+        const savedSender   = safeGetItem('family_sender','');
+        const savedReceiver = safeGetItem('family_receiver','');
+        document.getElementById('fs-sender').value   = savedSender;
+        document.getElementById('fs-receiver').value = savedReceiver;
+        if(savedSender)   highlightChip('s', savedSender);
+        if(savedReceiver) highlightChip('r', savedReceiver);
+        updateFamilyPreview();
+    }
+
+    window.setFamilySender = function(val){
+        document.getElementById('fs-sender').value = val;
+        highlightChip('s', val);
+        updateFamilyPreview();
+    }
+    window.setFamilyReceiver = function(val){
+        document.getElementById('fs-receiver').value = val;
+        highlightChip('r', val);
+        updateFamilyPreview();
+    }
+
+    function highlightChip(type, val){
+        document.querySelectorAll(`.fam-chip[id^="chip-${type}-"]`).forEach(el => {
+            el.classList.toggle('active', el.id === `chip-${type}-${val}`);
+        });
+    }
+
+    window.updateFamilyPreview = function(){
+        const sender   = document.getElementById('fs-sender').value.trim()   || '나';
+        const receiver = document.getElementById('fs-receiver').value.trim() || '가족';
+        const affirmEl = document.getElementById('affirmation-text');
+        const affirmText = affirmEl ? affirmEl.innerText.trim() : '';
+        const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+
+        // 맺음말 카테고리별 자동 결정
+        const parentWords  = ['엄마','아빠','부모님','어머니','아버지','할머니','할아버지'];
+        const partnerWords = ['남편','아내','여보','자기','오빠','언니'];
+        const isToParent  = parentWords.some(w => receiver.includes(w));
+        const isToPartner = partnerWords.some(w => receiver.includes(w));
+        const closing = isToParent  ? `오늘도 건강하세요! 사랑해요 💚`
+                      : isToPartner ? `오늘도 수고해요! 사랑해 💚`
+                      :               `오늘도 힘내렴! 사랑해 💚`;
+
+        const msg = `🌿 ${today} ${receiver}에게 보내는 ${sender}의 확언이에요\n\n"${affirmText}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n${receiver}, ${closing}\n\n— ${sender}\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
+        const preview = document.getElementById('family-preview');
+        if(preview) preview.value = msg;
+    }
+
+    window.sendFamilyMessage = function(){
+        const sender   = document.getElementById('fs-sender').value.trim();
+        const receiver = document.getElementById('fs-receiver').value.trim();
+        if(!sender)  { showToast('보내는 분을 입력해주세요'); return; }
+        if(!receiver){ showToast('받는 분을 입력해주세요');   return; }
+        safeSetItem('family_sender',   sender);
+        safeSetItem('family_receiver', receiver);
+        // textarea에서 직접 편집된 내용 그대로 사용
+        const msg = document.getElementById('family-preview').value.trim();
+        if(!msg){ showToast('문구를 입력해주세요'); return; }
+        document.getElementById('family-share-modal').style.display = 'none';
+        addPoint(2,'가족공유','share_family');
         if(navigator.share){
-            navigator.share({ title:'오늘 엄마(아빠)의 확언', text: msg })
-                .catch(()=> copyToClipboard(msg));
-        } else { copyToClipboard(msg); }
+            navigator.share({ title:`${sender}의 확언`, text: msg })
+                .catch(()=>{ copyToClipboard(msg); showToast('클립보드에 복사됐어요 📋'); });
+        } else {
+            copyToClipboard(msg);
+            showToast('클립보드에 복사됐어요 📋');
+        }
         trackEvent('share_to_family');
     }
 
     window.shareToFamilyFromCard = function(){
+        addPoint(2,'가족카드공유','share_family_card');
         const canvas = document.getElementById('share-canvas');
         const affirmEl = document.getElementById('affirmation-text');
-        const msg = `🌿 오늘 아침 엄마(아빠)의 확언이에요\n\n"${affirmEl?affirmEl.innerText.trim():''}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n오늘도 힘내렴! 사랑해 💚\n\n— 인생2막라디오 365일 확언 앱`;
+        const sender   = safeGetItem('family_sender','엄마') || '엄마';
+        const receiver = safeGetItem('family_receiver','우리 딸') || '우리 딸';
+        const today    = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+        const parentWords  = ['엄마','아빠','부모님','어머니','아버지','할머니','할아버지'];
+        const partnerWords = ['남편','아내','여보','자기','오빠','언니'];
+        const isToParent  = parentWords.some(w => receiver.includes(w));
+        const isToPartner = partnerWords.some(w => receiver.includes(w));
+        const closing = isToParent  ? `오늘도 건강하세요! 사랑해요 💚`
+                      : isToPartner ? `오늘도 수고해요! 사랑해 💚`
+                      :               `오늘도 힘내렴! 사랑해 💚`;
+        const msg = `🌿 ${today} ${receiver}에게 보내는 ${sender}의 확언이에요\n\n"${affirmEl?affirmEl.innerText.trim():''}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n${receiver}, ${closing}\n\n— ${sender}\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
         if(canvas && navigator.share && navigator.canShare){
             canvas.toBlob(async blob=>{
                 const file = new File([blob],'아침인사카드.png',{type:'image/png'});
@@ -4038,57 +5024,406 @@ https://life2radio.github.io/affirmation/
         },2000);
     }
 
-    /* ===== ④ 1년 후 나에게 편지 ===== */
+    /* ===== ④ 미래편지 (무제한) ===== */
+
+    let _letterOpenDate = null; // 선택된 개봉일
+
     function initLetterView(){
-        const saved=safeGetItem('future_letter',null);
-        const input=document.getElementById('letter-input');
-        if(input) input.addEventListener('input',()=>{ document.getElementById('letter-char-count').textContent=input.value.length+'자'; });
-        if(saved&&saved!==''){
-            try{ showSealedLetter(JSON.parse(saved)); }catch(e){ document.getElementById('letter-write-section').style.display='block'; }
-        } else {
-            document.getElementById('letter-write-section').style.display='block';
-            document.getElementById('letter-sealed-section').style.display='none';
+        migrateLetter(); // 기존 데이터 마이그레이션
+        const input = document.getElementById('letter-input');
+        if(input) input.addEventListener('input', ()=>{
+            document.getElementById('letter-char-count').textContent = input.value.length + '자';
+        });
+        // 기본 개봉일: 1년 후
+        setLetterDate(1,'year');
+        showLetterList();
+    }
+
+    let _letterIsNextDay = false;
+    window.setLetterDate = function(amount, unit){
+        _letterIsNextDay = (unit === 'day' && amount === 1);
+        const d = new Date(todayObj);
+        if(unit === 'day')        d.setDate(d.getDate() + amount);
+        else if(unit === 'month') d.setMonth(d.getMonth() + amount);
+        else                      d.setFullYear(d.getFullYear() + amount);
+        _letterOpenDate = getFormatDate(d);
+        document.getElementById('letter-open-date-input').value = _letterOpenDate;
+        ['ldbtn-1d','ldbtn-1m','ldbtn-3m','ldbtn-6m','ldbtn-1y'].forEach(id=>{
+            document.getElementById(id)?.classList.remove('active');
+        });
+        const map = {'1day':'ldbtn-1d','1month':'ldbtn-1m','3month':'ldbtn-3m','6month':'ldbtn-6m','1year':'ldbtn-1y'};
+        const key = amount+unit;
+        if(map[key]) document.getElementById(map[key])?.classList.add('active');
+    }
+
+    window.onLetterDateChange = function(){
+        const v = document.getElementById('letter-open-date-input').value;
+        if(v) {
+            _letterOpenDate = v;
+            ['ldbtn-1m','ldbtn-3m','ldbtn-6m','ldbtn-1y'].forEach(id=>{
+                document.getElementById(id)?.classList.remove('active');
+            });
         }
     }
-    function showSealedLetter(data){
-        document.getElementById('letter-write-section').style.display='none';
-        document.getElementById('letter-sealed-section').style.display='block';
-        const openDate=new Date(data.openDate);
-        const daysLeft=Math.ceil((openDate-todayObj)/86400000);
-        const p=data.openDate.split('-');
-        document.getElementById('letter-open-date').textContent=`${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일에 열립니다`;
-        document.getElementById('letter-days-left').textContent=daysLeft>0?daysLeft+'일':'D-DAY 🎉';
-        document.getElementById('letter-open-btn').style.display=daysLeft<=0?'block':'none';
-        document.getElementById('letter-content-box').style.display='none';
+
+    window.showLetterWrite = function(){
+        document.getElementById('letter-write-section').style.display = 'block';
+        document.getElementById('letter-list-section').style.display = 'none';
+        document.getElementById('letter-detail-section').style.display = 'none';
+        document.getElementById('letter-input').value = '';
+        document.getElementById('letter-char-count').textContent = '0자';
+        setLetterDate(1,'year');
     }
-    window.saveLetter=function(){
-        const text=document.getElementById('letter-input').value.trim();
-        if(!text){showToast('편지 내용을 써주세요');return;}
-        const od=new Date(todayObj);od.setFullYear(od.getFullYear()+1);
-        safeSetItem('future_letter',JSON.stringify({text,writtenDate:getTodayStr(),openDate:getFormatDate(od)}));
-        showSealedLetter({text,openDate:getFormatDate(od)});
-        showToast('💌 편지가 봉인됐어요! 1년 후에 열립니다');
+
+    window.showLetterList = function(){
+        document.getElementById('letter-write-section').style.display = 'none';
+        document.getElementById('letter-list-section').style.display = 'block';
+        document.getElementById('letter-detail-section').style.display = 'none';
+        renderLetterList();
+    }
+
+    window.closeLetterDetail = function(){
+        showLetterList();
+    }
+
+    function renderLetterList(){
+        const letters = safeGetJSON('future_letters', []);
+        const container = document.getElementById('letter-list-container');
+        if(!container) return;
+
+        // D-day 알림 배너 - 봉인 기간별 맞춤 알림
+        const alerts = [];
+        letters.forEach((lt, idx) => {
+            if(lt.opened) return;
+            const daysLeft = Math.ceil((new Date(lt.openDate) - todayObj) / 86400000);
+            const writtenDate = new Date(lt.writtenDate || getTodayStr());
+            const totalDays = Math.ceil((new Date(lt.openDate) - writtenDate) / 86400000);
+
+            // 봉인 기간에 따라 알림 시점 결정
+            let milestones, labels;
+            if(totalDays <= 2){
+                // 내일 봉인: 당일 D-DAY만
+                milestones = [];
+                labels = [];
+            } else if(totalDays <= 35){
+                // 1개월 봉인: 7일 전, 하루 전
+                milestones = [7, 1];
+                labels = ['일주일', '하루'];
+            } else if(totalDays <= 100){
+                // 3개월 봉인: 한 달 전, 7일 전, 하루 전
+                milestones = [30, 7, 1];
+                labels = ['한 달', '일주일', '하루'];
+            } else if(totalDays <= 200){
+                // 6개월 봉인: 3개월 전, 7일 전, 하루 전
+                milestones = [91, 7, 1];
+                labels = ['3개월', '일주일', '하루'];
+            } else {
+                // 1년 봉인: 9개월, 6개월, 3개월, 한 달, 7일, 하루 전
+                milestones = [273, 182, 91, 30, 7, 1];
+                labels = ['9개월', '6개월', '3개월', '한 달', '일주일', '하루'];
+            }
+
+            milestones.forEach((m, mi) => {
+                if(daysLeft === m) alerts.push({label: labels[mi], idx, daysLeft, openDate: lt.openDate});
+            });
+            if(daysLeft <= 0) alerts.push({label: 'D-DAY', idx, daysLeft, openDate: lt.openDate});
+        });
+
+        let html = '';
+        alerts.forEach(a => {
+            const color = a.daysLeft <= 0 ? '#C9A84C' : '#1B4332';
+            html += `<div style="background:${a.daysLeft<=0?'#FFF8E8':'#F0F7F4'};border-radius:12px;padding:12px 16px;margin-bottom:10px;border-left:4px solid ${color};">
+                <div style="font-size:0.82em;font-weight:700;color:${color};">${a.daysLeft<=0?'🎉 지금 열 수 있어요!':'⏰ '+a.label+' 전 알림'}</div>
+                <div style="font-size:0.8em;color:#666;margin-top:2px;">${a.openDate} 개봉 예정</div>
+                ${a.daysLeft<=0?`<button onclick="openLetterById(${a.idx})" style="margin-top:8px;background:#C9A84C;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82em;font-weight:700;cursor:pointer;">📬 편지 열어보기</button>`:''}
+            </div>`;
+        });
+
+        if(letters.length === 0){
+            html += `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+                <div style="font-size:48px;margin-bottom:12px;">✉️</div>
+                <div style="font-size:0.9em;">아직 편지가 없어요<br>미래의 나에게 첫 편지를 써보세요!</div>
+            </div>`;
+        } else {
+            letters.slice().reverse().forEach((lt, ri) => {
+                const idx = letters.length - 1 - ri;
+                const daysLeft = Math.ceil((new Date(lt.openDate) - todayObj) / 86400000);
+                const isOpen = lt.opened || (lt.openTimestamp ? Date.now() >= lt.openTimestamp : daysLeft <= 0);
+                const p = lt.openDate.split('-');
+                const dateStr = `${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일`;
+                const preview = lt.text.substring(0, 30) + (lt.text.length > 30 ? '...' : '');
+                html += `<div onclick="viewLetter(${idx})" style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:10px;border:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;gap:14px;">
+                    <div style="font-size:36px;">${isOpen ? '📬' : '📮'}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);">${dateStr} 개봉</div>
+                        <div style="font-size:0.8em;color:var(--text-muted);margin-top:2px;">${lt.opened ? preview : '🔒 봉인됨'}</div>
+                        <div style="font-size:0.78em;margin-top:4px;color:${daysLeft<=0?'#C9A84C':daysLeft<=7?'#E07000':'var(--text-muted)'};">
+                            ${daysLeft<=0 ? '📬 열 수 있어요!' : 'D-'+daysLeft}
+                        </div>
+                    </div>
+                    <div style="font-size:0.75em;color:var(--text-muted);">${lt.writtenDate}</div>
+                </div>`;
+            });
+        }
+        container.innerHTML = html;
+    }
+
+    window.viewLetter = function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+        const daysLeft = Math.ceil((new Date(lt.openDate) - todayObj) / 86400000);
+        const canOpen = lt.openTimestamp ? Date.now() >= lt.openTimestamp : daysLeft <= 0;
+        const p = lt.openDate.split('-');
+        const dateStr = `${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일`;
+
+        document.getElementById('letter-list-section').style.display = 'none';
+        document.getElementById('letter-detail-section').style.display = 'block';
+
+        const box = document.getElementById('letter-detail-box');
+        if(lt.opened || canOpen){
+            if(!lt.opened){ letters[idx].opened = true; safeSetJSON('future_letters', letters); launchConfetti(); showToast('💌 미래의 나에게 보낸 편지예요!'); }
+            box.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:48px;">💌</div>
+                <div style="font-size:0.82em;color:var(--text-muted);margin-top:6px;">${lt.writtenDate} 작성 → ${dateStr} 개봉</div>
+            </div>
+            <div style="background:var(--card-bg);border-radius:14px;padding:20px;border:1px solid var(--border-color);margin-bottom:16px;">
+                <div style="font-size:0.78em;color:var(--accent-color);font-weight:700;margin-bottom:12px;">과거의 나로부터 온 편지</div>
+                <div id="letter-text-content-${idx}" style="font-size:0.95em;color:var(--text-color);line-height:1.8;white-space:pre-wrap;">${lt.text}</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button onclick="shareLetter(${idx})" style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📮 편지지로 공유</button>
+                <button onclick="downloadLetterTxt(${idx})" style="flex:1;min-height:48px;background:var(--card-bg);color:var(--primary-color);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">💾 텍스트 저장</button>
+            </div>
+            <canvas id="letter-canvas-${idx}" style="display:none;"></canvas>`;
+        } else {
+            box.innerHTML = `<div style="text-align:center;padding:30px 0;">
+                <div style="font-size:64px;margin-bottom:14px;">📮</div>
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">봉인된 편지</div>
+                <div style="font-size:0.88em;color:var(--text-muted);margin-bottom:20px;">${dateStr}에 열립니다</div>
+                <div style="background:var(--card-bg);border-radius:14px;padding:20px;margin-bottom:16px;">
+                    <div style="font-size:0.8em;color:var(--text-muted);margin-bottom:6px;">개봉까지</div>
+                    <div style="font-size:3em;font-weight:700;color:var(--primary-color);">${lt.openTimestamp ? Math.max(0,Math.ceil((lt.openTimestamp-Date.now())/3600000))+'시간' : 'D-'+daysLeft}</div>
+                </div>
+                <button onclick="deleteLetterById(${idx})" style="background:none;border:none;font-size:0.82em;color:#999;cursor:pointer;text-decoration:underline;">편지 삭제하기</button>
+            </div>`;
+        }
+    }
+
+    window.shareLetter = async function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+
+        showToast('편지지 만드는 중... 잠깐만요 💌');
+
+        // 폰트 로드
+        await document.fonts.load('20px "Nanum Pen Script"').catch(()=>{});
+
+        const canvas = document.getElementById('letter-canvas-' + idx);
+        if(!canvas) return;
+
+        const W = 800, PADDING = 60, LINE_H = 44, FONT_SIZE = 22;
+        const text = lt.text;
+
+        // 텍스트 줄 나누기
+        const ctx0 = canvas.getContext('2d');
+        ctx0.font = FONT_SIZE + 'px "Nanum Pen Script", serif';
+        const maxW = W - PADDING * 2;
+        const rawLines = text.split('\n');
+        const lines = [];
+        rawLines.forEach(raw => {
+            const words = raw.split('');
+            let line = '';
+            for(let ch of words){
+                const test = line + ch;
+                if(ctx0.measureText(test).width > maxW){ lines.push(line); line = ch; }
+                else line = test;
+            }
+            lines.push(line);
+        });
+
+        const H = PADDING * 2 + 120 + lines.length * LINE_H + 80;
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // 배경 - 크림색 편지지
+        ctx.fillStyle = '#FDF6E3';
+        ctx.fillRect(0, 0, W, H);
+
+        // 왼쪽 빨간 선 (편지지 여백선)
+        ctx.strokeStyle = '#F0C0C0';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(PADDING - 10, 0); ctx.lineTo(PADDING - 10, H); ctx.stroke();
+
+        // 가로 줄
+        ctx.strokeStyle = '#E8DCC8';
+        ctx.lineWidth = 0.8;
+        for(let y = 140; y < H - 60; y += LINE_H){
+            ctx.beginPath(); ctx.moveTo(PADDING - 10, y); ctx.lineTo(W - PADDING + 10, y); ctx.stroke();
+        }
+
+        // 상단 장식 - 인생2막라디오
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('인생2막라디오 · 미래의 나에게 쓰는 편지', W/2, 40);
+
+        // 날짜
+        ctx.fillStyle = '#888';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(lt.writtenDate + ' 작성', W - PADDING + 10, 40);
+        ctx.textAlign = 'left';
+
+        // 구분선
+        ctx.strokeStyle = '#C9A84C';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PADDING - 10, 55); ctx.lineTo(W - PADDING + 10, 55); ctx.stroke();
+
+        // 수신인
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'bold 18px "Nanum Pen Script", serif';
+        ctx.fillText('미래의 나에게,', PADDING, 90);
+
+        // 본문
+        ctx.fillStyle = '#2C2C2C';
+        ctx.font = FONT_SIZE + 'px "Nanum Pen Script", serif';
+        let y = 130;
+        lines.forEach(line => {
+            ctx.fillText(line, PADDING, y);
+            y += LINE_H;
+        });
+
+        // 마무리
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'italic 16px "Nanum Pen Script", serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('과거의 나로부터  💚', W - PADDING + 10, H - 30);
+
+        // 하단 워터마크
+        ctx.fillStyle = '#C9A84C';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('인생2막라디오 365일 확언 앱', W/2, H - 10);
+
+        // 공유 또는 다운로드
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], '미래의나에게_편지.png', {type: 'image/png'});
+            if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+                try{
+                    await navigator.share({ files:[file], title:'미래의 나에게 쓴 편지', text:'인생2막라디오 365일 확언 앱에서 작성한 편지예요 💌' });
+                } catch(e){
+                    downloadCanvasImage(canvas);
+                }
+            } else {
+                downloadCanvasImage(canvas);
+            }
+        }, 'image/png');
+    }
+
+    function downloadCanvasImage(canvas){
+        const a = document.createElement('a');
+        a.download = '미래의나에게_편지.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        showToast('편지 이미지가 저장됐어요! 📮');
+    }
+
+    window.downloadLetterTxt = function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+        const content = '미래의 나에게,\n\n' + lt.text + '\n\n' + lt.writtenDate + ' 과거의 나로부터\n--- 인생2막라디오 365일 확언 앱 ---';
+        const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+        const a = document.createElement('a');
+        a.download = '미래의나에게_편지_' + lt.writtenDate + '.txt';
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        showToast('텍스트 파일이 저장됐어요! 💾');
+    }
+
+    window.deleteLetterById = function(idx){
+        if(!confirm('이 편지를 삭제할까요?')) return;
+        const letters = safeGetJSON('future_letters', []);
+        letters.splice(idx, 1);
+        safeSetJSON('future_letters', letters);
+        showLetterList();
+        showToast('편지가 삭제됐어요');
+    }
+
+    window.saveLetter = function(){
+        const text = document.getElementById('letter-input').value.trim();
+        if(!text){ showToast('편지 내용을 써주세요'); return; }
+        if(!_letterOpenDate){ showToast('개봉일을 선택해주세요'); return; }
+        if(!_letterIsNextDay && _letterOpenDate <= getTodayStr()){ showToast('개봉일은 오늘 이후로 설정해주세요'); return; }
+
+        const letters = safeGetJSON('future_letters', []);
+        const isNextDay = _letterIsNextDay || false;
+        const entry = { text, writtenDate: getTodayStr(), openDate: _letterOpenDate, opened: false };
+        if(isNextDay) entry.openTimestamp = Date.now() + 24*60*60*1000; // 24시간 후
+        letters.push(entry);
+        safeSetJSON('future_letters', letters);
+
+        showToast('💌 편지가 봉인됐어요!');
         launchConfetti();
+        addPoint(1,'미래편지','letter');
+        showLetterList();
     }
-    window.openLetter=function(){
-        const saved=safeGetItem('future_letter',null);
-        if(!saved) return;
-        const data=JSON.parse(saved);
-        document.getElementById('letter-content-text').textContent=data.text;
-        document.getElementById('letter-content-box').style.display='block';
-        document.getElementById('letter-open-btn').style.display='none';
-        launchConfetti();
-        showToast('💌 1년 전의 당신이 보낸 편지예요');
-    }
-    window.writeLetter2=function(){
-        safeSetItem('future_letter','');
-        document.getElementById('letter-write-section').style.display='block';
-        document.getElementById('letter-sealed-section').style.display='none';
-        document.getElementById('letter-input').value='';
-        document.getElementById('letter-char-count').textContent='0자';
+
+    // 기존 데이터 마이그레이션 (future_letter → future_letters)
+    function migrateLetter(){
+        const old = safeGetItem('future_letter', null);
+        if(old && old !== '' && old !== 'null'){
+            try{
+                const d = JSON.parse(old);
+                if(d && d.text){
+                    const letters = safeGetJSON('future_letters', []);
+                    if(!letters.find(l => l.writtenDate === d.writtenDate)){
+                        letters.push({ text: d.text, writtenDate: d.writtenDate||getTodayStr(), openDate: d.openDate, opened: false });
+                        safeSetJSON('future_letters', letters);
+                    }
+                    safeSetItem('future_letter', '');
+                }
+            } catch(e){}
+        }
     }
 
     /* ===== ⑤ 행동 지침 완료 체크 ===== */
+    window.openActionPhoto = function(){
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'camera';
+        input.style.display = 'none';
+        input.onchange = function(e){
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev){
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.innerHTML =
+                    '<div style="font-size:0.88em;color:#C9A84C;font-weight:700;margin-bottom:12px;">📸 오늘의 실천 인증</div>' +
+                    '<img src="' + ev.target.result + '" style="max-width:100%;max-height:50vh;border-radius:12px;object-fit:contain;">' +
+                    '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);margin-top:8px;">이미지는 저장되지 않아요 · 카톡에서 직접 첨부해주세요</div>' +
+                    '<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;width:100%;max-width:360px;">' +
+                    '<a id="action-send-btn" href="https://open.kakao.com/o/sKUKl3pi" target="_blank" ' +
+                    'onclick="setTimeout(function(){ var btn=document.getElementById(\'action-complete-btn\'); if(btn){ btn.style.display=\'flex\'; } }, 300);" ' +
+                    'style="min-height:52px;background:#FEE500;color:#3C1E1E;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px;">💌 인생2막♡라디오에 인증 보내기<span style="font-size:0.75em;font-weight:600;margin-top:2px;">누르면 +5PT 적립!</span></a>' +
+                    '<button id="action-complete-btn" ' +
+                    (photoDone ? 'onclick="this.closest(\'[style*=fixed]\').remove(); renderScreen();" style="display:none;min-height:52px;background:#888;color:#fff;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;">✅ 오늘 이미 인증 완료!</button>' : 'onclick="addPoint(5,\'행동지침사진\',\'action_photo\'); this.closest(\'[style*=fixed]\').remove(); renderScreen(); showToast(\'🎉 +5PT 실천 인증 완료!\'); launchConfetti();" style="display:none;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;">✅ 실천 완료! (+5PT)</button>') +
+                    '</div>' +
+                    '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.85em;cursor:pointer;">닫기</button>';
+                document.body.appendChild(modal);
+            };
+            reader.readAsDataURL(file);
+        };
+        document.body.appendChild(input);
+        input.click();
+    }
+
     window.toggleActionDone=function(){
         const key=`action_done_${getFormatDate(selectedDateObj)}`;
         const isDone=safeGetItem(key,'')!=='1';
@@ -4224,11 +5559,18 @@ https://life2radio.github.io/affirmation/
         if(safeGetItem(usedKey, null)){
             result.textContent = '✅ 오늘은 이미 코드를 입력하셨어요!'; return;
         }
+        // 동일 코드 중복 입력 방지
+        const usedCodes = safeGetJSON('used_secret_codes', []);
+        if(usedCodes.includes(input)){
+            result.textContent = '⚠️ 이미 사용한 코드예요. 새 영상의 코드를 찾아보세요! 🎬'; return;
+        }
         if(!correct){
             result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
         }
         if(input === correct){
             safeSetItem(usedKey, '1');
+            // 사용한 코드 목록에 저장
+            usedCodes.push(input); safeSetJSON('used_secret_codes', usedCodes);
 
             // 누적 코드 카운트 증가
             const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
@@ -4243,9 +5585,17 @@ https://life2radio.github.io/affirmation/
             document.getElementById('secret-code-input').value = '';
             launchConfetti();
 
+            // ★ 코드 포인트 지급
+            addPoint(10, '시크릿코드', `secret_pt_${today}`);
+            // 누적 보너스
+            if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
+            if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
+            if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
+
             // 오늘의 특별 콘텐츠 가져오기
             const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
             showSecretSuccess(totalCodes, todayContent);
+            checkLevelRecovery(); // 등급 하락 상태면 회복
         } else {
             result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
         }
@@ -4355,7 +5705,6 @@ https://life2radio.github.io/affirmation/
                 </div>
                 <div style="display:flex;gap:8px;">
                     <button onclick="shareAfterComplete()" style="flex:1;min-height:44px;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">오늘 확언 공유하기</button>
-                    <button onclick="setTomorrowRemind()" style="flex:1;min-height:44px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:none;border-radius:10px;font-size:0.85em;font-weight:600;cursor:pointer;">내일 알림 받기 🔔</button>
                 </div>
                 <button onclick="document.getElementById('complete-reward-modal').remove()" style="width:100%;min-height:38px;background:none;border:none;font-size:0.8em;color:rgba(255,255,255,0.45);cursor:pointer;margin-top:8px;">닫기</button>
             </div>`;
@@ -4378,17 +5727,159 @@ https://life2radio.github.io/affirmation/
 
 
     window.shareAfterComplete = function(){
-        const affirmEl=document.getElementById('affirmation-text');
-        const dayEl=document.getElementById('day-label');
+        addPoint(2,'공유','share_aff');
+        const affirmEl = document.getElementById('affirmation-text');
         if(!affirmEl) return;
-        const text=`🌿 오늘의 확언 (${dayEl?dayEl.innerText:''})\n\n"${affirmEl.innerText}"\n\n— 인생2막라디오 365일 확언 앱`;
-        if(navigator.share){ navigator.share({title:'오늘의 확언',text}).catch(()=>copyToClipboard(text)); }
+        const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+        const text = `🌿 ${today} 오늘의 확언\n\n"${affirmEl.innerText.trim()}"\n\n매일 아침 나를 위한 확언 한 문장 💚\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
+        if(navigator.share){ navigator.share({title:'오늘의 확언 💚', text}).catch(()=>copyToClipboard(text)); }
         else { copyToClipboard(text); }
         document.getElementById('complete-reward-modal')?.remove();
         trackEvent('share_after_complete');
     }
 
-        window.setTomorrowRemind = function(){
+        
+
+    function renderShortsPointSummary(){
+        try{
+            const today = getTodayStr();
+            function isDone(key){ return safeGetItem('pt_daily_'+key+'_'+today,'') === '1'; }
+            const ITEMS = [
+                {icon:'☑️', label:'확언 완료', key:'complete', pt:1, action:"goToHomeElement('btn-complete')"},
+                {icon:'🔊', label:'소리 듣기', key:'listen', pt:1, action:"goToHomeElement('btn-listen')"},
+                {icon:'🎙', label:'따라읽기', key:'stt', pt:1, action:"goToHomeElement('btn-stt')"},
+                {icon:'😊', label:'기분 체크', key:'mood_check', pt:1, action:"goToHomeElement('affirmation-view')"},
+                {icon:'📸', label:'실천 인증', key:'action_photo', pt:5, action:"goToHomeElement('btn-action-photo')"},
+                {icon:'✏️', label:'필사', key:'memo', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('write'),100)"},
+                {icon:'📔', label:'일기', key:'diary', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('diary'),100)"},
+                {icon:'📤', label:'확언 공유', key:'share_aff', pt:2, action:"switchView('home');setTimeout(shareAfterComplete,300)"},
+                {icon:'🌅', label:'카드 공유', key:'share_card', pt:2, action:"switchView('home');setTimeout(openShareCard,300)"},
+                {icon:'💚', label:'가족 공유', key:'share_family', pt:2, action:"switchView('home');setTimeout(shareToFamily,300)"},
+                {icon:'✨', label:'한마디 공유', key:'share_oracle', pt:2, action:"switchView('home');setTimeout(openOracle,300)"},
+                {icon:'📺', label:'쇼츠 보기', key:'shorts_visit', pt:2, action:"addPoint(2,'쇼츠클릭','shorts_visit');window.open('https://www.youtube.com/@SecondActRadio/shorts','_blank')"},
+                {icon:'🎬', label:'영상 보기', key:'episode_visit', pt:2, action:"addPoint(2,'영상클릭','episode_visit');var _ep=document.getElementById('btn-episode');var _href=_ep?_ep.getAttribute('href'):'';var _url=(_href&&_href!=='#'&&_href.indexOf('youtube')>-1)?_ep.href:'https://www.youtube.com/@SecondActRadio';window.open(_url,'_blank')"},
+            ];
+            let earned = 0, done = 0;
+            ITEMS.forEach(item => {
+                if(isDone(item.key)){ earned += item.pt; done++; }
+            });
+            earned = Math.min(earned, 23);
+            const pct = Math.round(earned/23*100);
+
+            const bar = document.getElementById('shorts-pt-bar');
+            const doneEl = document.getElementById('shorts-pt-done');
+            const scoreEl = document.getElementById('shorts-pt-score');
+            const itemsEl = document.getElementById('shorts-pt-items');
+            if(!bar) return;
+
+            bar.style.width = pct + '%';
+            bar.style.background = pct >= 100 ? '#1B4332' : pct >= 60 ? '#C9A84C' : 'var(--primary-color)';
+            doneEl.textContent = '✓ ' + done + ' / ' + ITEMS.length + '개 항목';
+            scoreEl.textContent = earned + ' / 23 PT';
+            scoreEl.style.color = pct >= 100 ? '#1B4332' : '#C9A84C';
+
+            itemsEl.innerHTML = ITEMS.map(item => {
+                const d = isDone(item.key);
+                return '<div onclick="' + item.action + '" style="display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;background:' +
+                    (d ? '#F0F7F4' : 'var(--card-bg)') + ';border:1px solid ' + (d ? '#C8DDD2' : 'var(--border-color)') + ';cursor:pointer;">' +
+                    '<span style="font-size:14px;">' + item.icon + '</span>' +
+                    '<span style="font-size:0.75em;flex:1;color:' + (d ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (d ? '700' : '400') + ';">' + item.label + '</span>' +
+                    '<span style="font-size:0.72em;font-weight:700;color:' + (d ? '#1B4332' : '#C9A84C') + ';">' + (d ? '✓' : '+' + item.pt + 'P') + '</span>' +
+                    '</div>';
+            }).join('');
+        }catch(e){}
+    }
+
+
+    window.openKakaoWithConsent = function(){
+        const old = document.getElementById('kakao-consent-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'kakao-consent-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-sizing:border-box;';
+        inner.innerHTML =
+            '<div style="text-align:center;margin-bottom:16px;">' +
+            '<div style="font-size:28px;margin-bottom:6px;">💬</div>' +
+            '<div style="font-size:1em;font-weight:700;color:var(--primary-color);">카카오 오픈채팅으로 연결해요</div>' +
+            '<div style="font-size:0.8em;color:var(--text-muted);margin-top:4px;line-height:1.6;">이메일을 남겨주시면 답변과 채널 소식을<br>직접 보내드릴 수 있어요</div></div>' +
+            '<input id="kakao-consent-email" type="email" placeholder="이메일 주소 (예: abc@gmail.com)" ' +
+            'style="width:100%;box-sizing:border-box;font-size:0.9em;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--bg-color);color:var(--text-color);outline:none;margin-bottom:10px;">' +
+            '<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:0.8em;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">' +
+            '<input type="checkbox" id="kakao-consent-check" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary-color);">' +
+            '<span>인생2막라디오 소식과 채널 정보를 이메일로 받는 것에 동의합니다. <span style="opacity:0.7;">(언제든 철회 가능)</span></span></label>' +
+            '<button id="kakao-go-btn" style="width:100%;min-height:48px;background:#FEE500;color:#3A1D1D;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:8px;">✅ 이메일 등록 후 카카오로 연결</button>' +
+            '<button id="kakao-skip-btn" style="width:100%;min-height:40px;background:none;border:none;font-size:0.82em;color:var(--text-muted);cursor:pointer;">이메일 없이 그냥 연결할게요</button>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        document.getElementById('kakao-go-btn').onclick = function(){
+            const email = document.getElementById('kakao-consent-email').value.trim();
+            const agreed = document.getElementById('kakao-consent-check').checked;
+            // 이메일 필수
+            if(!email){ showToast('이메일 주소를 입력해주세요 📧'); return; }
+            if(!email.includes('@')){ showToast('올바른 이메일 주소를 입력해주세요'); return; }
+            // 체크박스 필수
+            if(!agreed){ showToast('소식 수신 동의를 체크해주세요 ☑️'); return; }
+            if(email){
+                const emails = safeGetJSON('marketing_emails',[]);
+                if(!emails.includes(email)){ emails.push(email); safeSetJSON('marketing_emails',emails); }
+                fetch('https://formspree.io/f/xqewzqqg',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({유형:'카카오_마케팅동의',이메일:email,동의:'동의'})}).catch(()=>{});
+                showToast('✅ 이메일이 등록됐어요!');
+            }
+            modal.remove();
+            onStoryKakaoClick();
+            setTimeout(function(){ window.open('https://open.kakao.com/o/sKUKl3pi','_blank'); }, 300);
+        };
+        document.getElementById('kakao-skip-btn').onclick = function(){
+            modal.remove();
+            // 이메일 없이 그냥 연결 → 외부 링크 열기
+            window.open('https://open.kakao.com/o/sKUKl3pi','_blank');
+        };
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    // ★ 사연 카카오 오픈채팅 관련
+    function getStoryKakaoKey(){
+        return 'story_kakao_' + todayObj.getFullYear() + '_' + (todayObj.getMonth()+1);
+    }
+    window.onStoryKakaoClick = function(){
+        var key = getStoryKakaoKey();
+        var done = safeGetItem(key,'') === '1';
+        if(!done){
+            setTimeout(function(){
+                var btn = document.getElementById('story-kakao-done-btn');
+                if(btn) btn.style.display = 'flex';
+            }, 600);
+        }
+    };
+    window.onStoryKakaoDone = function(){
+        var key = getStoryKakaoKey();
+        addPoint(10,'사연보내기_카카오', key);
+        safeSetItem(key,'1');
+        showToast('💛 +10PT 적립! 사연 감사해요 😊');
+        launchConfetti();
+        var btn = document.getElementById('story-kakao-done-btn');
+        if(btn) btn.style.display = 'none';
+        var msg = document.getElementById('story-kakao-done-msg');
+        if(msg) msg.style.display = 'block';
+    };
+    function initStoryKakaoUI(){
+        var key = getStoryKakaoKey();
+        var done = safeGetItem(key,'') === '1';
+        var btn = document.getElementById('story-kakao-done-btn');
+        var msg = document.getElementById('story-kakao-done-msg');
+        if(!btn || !msg) return;
+        if(done){
+            btn.style.display = 'none';
+            msg.style.display = 'block';
+        } else {
+            btn.style.display = 'none';
+            msg.style.display = 'none';
+        }
+    }
+
+    window.setTomorrowRemind = function(){
         if(!('Notification' in window)){
             showToast('이 브라우저는 알림을 지원하지 않아요');
             return;
@@ -4519,6 +6010,44 @@ https://life2radio.github.io/affirmation/
         }
     };
 
+
+    // ★ 에피소드 DB - 키워드 매핑
+    const EPISODE_DB = [
+        {
+            title: 'EP.01 왜 나는 이토록 외로운가',
+            url: 'https://www.youtube.com/watch?v=s0qKW925BVM&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O',
+            keywords: ['외로움','헌신','번아웃','도파민','자존감','우울','위로','거절못함','배려']
+        },
+        {
+            title: 'EP.02 사과할수록 관계가 망가지는 이유',
+            url: 'https://www.youtube.com/watch?v=TFnCIwvYAe0&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O',
+            keywords: ['거절','인간관계','자존감','가짜인연','관계정리','착한사람','거절못함','배려']
+        },
+        {
+            title: 'EP.03 거절당한 기억이 10년을 가는 이유',
+            url: 'https://www.youtube.com/watch?v=tCwEbLm9vtg&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O',
+            keywords: ['거절당함','상처','자존감','감정회복','마음치유','우울','위로','트라우마']
+        },
+        {
+            title: 'EP.04 변하려 하면 가까운 사람이 멀어지는 이유',
+            url: 'https://www.youtube.com/watch?v=t7QbS_CJJso&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O',
+            keywords: ['가족관계','변화','성장','인간관계','분리불안','위로','인생변화','편도체']
+        }
+    ];
+
+    // 키워드 선택 → 매칭 영상 찾기 (점수 기반)
+    function findMatchingEpisode(selectedKeywords){
+        if(!selectedKeywords.length) return null;
+        let scored = EPISODE_DB.map(ep => {
+            const score = selectedKeywords.filter(k => ep.keywords.includes(k)).length;
+            return { ...ep, score };
+        }).filter(ep => ep.score > 0);
+        if(!scored.length) return EPISODE_DB[EPISODE_DB.length-1]; // 최신 에피소드 fallback
+        const maxScore = Math.max(...scored.map(e => e.score));
+        const top = scored.filter(e => e.score === maxScore);
+        return top[Math.floor(Math.random() * top.length)]; // 동점이면 랜덤
+    }
+
     function renderKeyQuestion(){
         const box = document.getElementById('key-question-box');
         if(!box) return;
@@ -4544,9 +6073,6 @@ https://life2radio.github.io/affirmation/
 
         // ③ Shorts vs 롱폼 문구 구분
         const isShorts = matched.type === 'shorts';
-        document.getElementById('key-question-cta').textContent =
-            isShorts ? '1분이면 충분해요 — 답이 여기 있어요 🎬'
-                     : '이 이야기에서 이유를 알 수 있어요 🎬';
         document.getElementById('key-question-duration').textContent =
             isShorts ? '📱 Shorts · 1분 이내'
                      : '🎙 인생2막라디오 에피소드';
@@ -4554,15 +6080,88 @@ https://life2radio.github.io/affirmation/
         // 링크 연결 (에피소드 있으면 해당 URL, 없으면 채널)
         const link = document.getElementById('key-question-link');
         if(data.episode && data.episode.trim()){
+            // 실제 에피소드 있을 때 → 약속 유지
             link.href = data.episode;
+            document.getElementById('key-question-cta').textContent =
+                isShorts ? '1분이면 충분해요 — 답이 여기 있어요 🎬'
+                         : '이 이야기에서 이유를 알 수 있어요 🎬';
         } else if(latestEpisode && latestEpisode.url){
+            // 최신 에피소드만 있을 때 → 부드러운 초대
             link.href = latestEpisode.url;
+            document.getElementById('key-question-cta').textContent = '비슷한 감정, 함께 이야기해요 🎙';
         } else {
-            link.href = 'https://www.youtube.com/@SecondActRadio';
+            // 채널만 있을 때 → 박스 숨김 (약속 불이행 방지)
+            box.style.display = 'none';
+            return;
         }
 
         box.style.display = 'block';
+        renderKeywordChips();
     }
+
+
+    // ★ 키워드 칩 UI
+    const ALL_KEYWORDS = [
+        {label:'💔 상처', key:'상처'},
+        {label:'😔 외로움', key:'외로움'},
+        {label:'🌱 자존감', key:'자존감'},
+        {label:'😰 거절당함', key:'거절당함'},
+        {label:'🤝 인간관계', key:'인간관계'},
+        {label:'👨‍👩‍👧 가족관계', key:'가족관계'},
+        {label:'😴 번아웃', key:'번아웃'},
+        {label:'😶 우울', key:'우울'},
+        {label:'🫶 위로', key:'위로'},
+        {label:'💚 감정회복', key:'감정회복'},
+        {label:'🙅 거절못함', key:'거절못함'},
+        {label:'🌀 마음치유', key:'마음치유'},
+        {label:'🚀 변화/성장', key:'변화'},
+        {label:'🎭 가짜인연', key:'가짜인연'},
+        {label:'💛 착한사람', key:'착한사람'},
+        {label:'🔗 헌신/배려', key:'헌신'},
+    ];
+    let selectedKeywords = [];
+
+    function renderKeywordChips(){
+        const container = document.getElementById('keyword-chips');
+        if(!container) return;
+        selectedKeywords = [];
+        container.innerHTML = '';
+        ALL_KEYWORDS.forEach(function(kw){
+            const btn = document.createElement('button');
+            btn.textContent = kw.label;
+            btn.dataset.key = kw.key;
+            btn.style.cssText = 'padding:5px 12px;border-radius:20px;border:1.5px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);font-size:0.78em;cursor:pointer;transition:all 0.2s;';
+            btn.addEventListener('click', function(){ toggleKeyword(btn, kw.key); });
+            container.appendChild(btn);
+        });
+        const findBtn = document.getElementById('keyword-find-btn');
+        if(findBtn) findBtn.style.display = 'none';
+    }
+
+    window.toggleKeyword = function(el, key){
+        const idx = selectedKeywords.indexOf(key);
+        if(idx > -1){
+            selectedKeywords.splice(idx, 1);
+            el.style.background = 'var(--card-bg)';
+            el.style.color = 'var(--text-muted)';
+            el.style.borderColor = 'var(--border-color)';
+        } else {
+            selectedKeywords.push(key);
+            el.style.background = 'var(--primary-color)';
+            el.style.color = '#fff';
+            el.style.borderColor = 'var(--primary-color)';
+        }
+        const btn = document.getElementById('keyword-find-btn');
+        if(btn) btn.style.display = selectedKeywords.length > 0 ? 'block' : 'none';
+    };
+
+    window.openKeywordEpisode = function(){
+        const ep = findMatchingEpisode(selectedKeywords);
+        if(!ep){ showToast('매칭되는 영상이 없어요'); return; }
+        showToast('🎬 ' + ep.title);
+        setTimeout(()=>{ window.open(ep.url, '_blank'); }, 300);
+    };
+
 
     /* ===== ③ Shorts/롱폼 문구 구분 (홈 추천 카드) ===== */
     function renderHomeYTRecommend(){
@@ -4571,7 +6170,17 @@ https://life2radio.github.io/affirmation/
         const availableShorts = (typeof SHORTS_DATA !== 'undefined')
             ? SHORTS_DATA.filter(s=>s.url&&s.url.trim()!=='') : [];
         const hasContent = (latestEpisode&&latestEpisode.title) || availableShorts.length>0;
-        if(!hasContent){ box.style.display='none'; return; }
+        if(!hasContent){
+            // fallback: 최신 에피소드 하드코딩
+            document.getElementById('home-yt-title').textContent = '좋게 변하려 하면 가까운 사람이 멀어지는 이유';
+            document.getElementById('home-yt-hook').textContent = '오늘 당신에게 꼭 필요한 이야기예요 🎬';
+            const lnk = document.getElementById('home-yt-link');
+            if(lnk) lnk.href = 'https://www.youtube.com/watch?v=t7QbS_CJJso&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O';
+            const durEl = document.getElementById('home-yt-duration');
+            if(durEl) durEl.textContent = '🎙 에피소드 · 인생2막라디오';
+            box.style.display = 'block';
+            return;
+        }
 
         const pattern = analyzeRecentMood();
         // 감정별 훅 (Shorts/롱폼 구분)
@@ -4773,7 +6382,16 @@ https://life2radio.github.io/affirmation/
         document.getElementById('stt-wave').style.display = 'none';
         box.style.display = 'block';
         launchConfetti();
-        if(!safeGetJSON('completed_dates',[]).includes(getFormatDate(selectedDateObj))) completeToday();
+        // 완료 처리 + 팝업 (이미 완료돼도 팝업은 항상 표시)
+        const cd = safeGetJSON('completed_dates',[]);
+        addPoint(1,'따라읽기','stt');
+        if(!cd.includes(getFormatDate(selectedDateObj))){
+            completeToday(); // 완료 처리 (팝업 포함)
+        } else {
+            // 이미 완료됐어도 따라읽기 성공 팝업은 표시
+            const streak = calcCurrentStreak(cd);
+            showCompleteReward(cd.length, streak);
+        }
         setTimeout(()=>{ box.style.display='none'; document.getElementById('stt-wave').style.display='flex'; }, 3500);
     }
 
@@ -4860,6 +6478,500 @@ https://life2radio.github.io/affirmation/
         showToast('📧 이메일 앱이 열렸어요! 전송해주세요 😊');
     }
 
+    /* ===== ★ 포인트 시스템 ===== */
+    const LEVELS = [
+        {name:'씨앗',             emoji:'🌱', min:0},
+        {name:'새싹',             emoji:'🌿', min:50},
+        {name:'풀잎',             emoji:'🍀', min:150},
+        {name:'확언러 (나무)',    emoji:'🌳', min:350},
+        {name:'실천가 (숲)',      emoji:'🌲', min:700},
+        {name:'인생2막러 (산)',   emoji:'🏔️', min:1200},
+        {name:'라디오스타 (구름)',emoji:'☁️', min:1850},
+        {name:'인생챔피언 (빛)', emoji:'✨', min:2390},
+    ];
+
+    function getPoints(){ return parseInt(safeGetItem('user_points','0'))||0; }
+    function setPoints(p){ safeSetItem('user_points', String(Math.max(0,p))); }
+
+    function getLevel(pts){
+        let lv = 0;
+        for(let i=0;i<LEVELS.length;i++){ if(pts>=LEVELS[i].min) lv=i; }
+        return lv;
+    }
+
+    // 포인트 지급 (하루 1회 제한 있는 항목은 key 전달)
+    const DAILY_MAX_PT = 23;
+
+    window.addPoint = function(amount, reason, dailyKey){
+        if(dailyKey){
+            const k = `pt_daily_${dailyKey}_${getTodayStr()}`;
+            if(safeGetItem(k,'') === '1') return; // 오늘 이미 지급
+            safeSetItem(k,'1');
+        }
+
+        // 하루 최대 25점 한도 체크 (첫방문 30pt는 예외)
+        if(reason !== '첫 방문 기념'){
+            const todayKey = `pt_today_total_${getTodayStr()}`;
+            const todayTotal = parseInt(safeGetItem(todayKey,'0'))||0;
+            if(todayTotal >= DAILY_MAX_PT) return; // 한도 초과
+            const actual = Math.min(amount, DAILY_MAX_PT - todayTotal);
+            safeSetItem(todayKey, String(todayTotal + actual));
+            amount = actual;
+            if(amount <= 0) return;
+        }
+
+        const before = getPoints();
+        const after  = before + amount;
+        setPoints(after);
+
+        const lvBefore = getLevel(before);
+        const lvAfter  = getLevel(after);
+
+        // 포인트 애니메이션
+        showPointAnim(amount);
+
+        // 포인트 바 업데이트
+        renderPointBar();
+
+        // 레벨업 체크
+        if(lvAfter > lvBefore){
+            setTimeout(()=> showLevelUp(lvAfter), 800);
+        }
+
+        // 점수 삭감 타이머 갱신
+        safeSetItem('last_activity_date', getTodayStr());
+    }
+
+    // 포인트 떠오르는 애니메이션
+    function showPointAnim(amount){
+        const el = document.createElement('div');
+        const size  = amount >= 50 ? 28 : amount >= 10 ? 22 : 16;
+        const icon  = amount >= 50 ? '💫' : amount >= 10 ? '🌟' : '✨';
+        el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:120px;z-index:99999;font-size:'+size+'px;font-weight:700;color:#C9A84C;pointer-events:none;animation:ptFloat 1.6s ease forwards;white-space:nowrap;';
+        el.textContent = icon + ' +' + amount + 'PT';
+        document.body.appendChild(el);
+        setTimeout(function(){ if(el.parentNode) el.remove(); }, 1700);
+    }
+
+    // 레벨업 팝업
+    function showLevelUp(lvIdx){
+        const lv = LEVELS[lvIdx];
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                <div style="font-size:64px;margin-bottom:8px;">${lv.emoji}</div>
+                <div style="font-size:0.85em;color:#C9A84C;font-weight:700;letter-spacing:1px;margin-bottom:6px;">LEVEL UP!</div>
+                <div style="font-size:1.4em;font-weight:700;color:#1B4332;margin-bottom:8px;">${lv.name} 등급 달성!</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    꾸준히 함께해주셔서 감사해요 🌿<br>앞으로도 매일 함께해요!
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">감사해요! 🎉</button>
+            </div>`;
+        document.body.appendChild(modal);
+        launchConfetti();
+    }
+
+    // 점수 삭감 (7일 이상 결석)
+    function checkPointDeduction(){
+        const last = safeGetItem('last_activity_date','');
+        if(!last) return;
+        const diff = Math.floor((todayObj - new Date(last)) / 86400000);
+        if(diff === 0) return;
+
+        // ① 포인트 삭감 (3일째부터 하루 1점)
+        if(diff >= 3){
+            const deduct = diff - 2; // 3일째부터 1점씩
+            const alreadyKey = `pt_deduct_${getTodayStr()}`;
+            if(safeGetItem(alreadyKey,'') !== '1'){
+                safeSetItem(alreadyKey,'1');
+                const before = getPoints();
+                setPoints(before - deduct);
+            }
+        }
+
+        // ② 등급 하락 (15일째)
+        if(diff >= 15){
+            const alreadyDrop = `pt_lvdrop_${safeGetItem('last_activity_date','')}`;
+            if(safeGetItem(alreadyDrop,'') !== '1'){
+                safeSetItem(alreadyDrop,'1');
+                const curLv = parseInt(safeGetItem('user_level_override','-1'));
+                const calcLv = getLevel(getPoints());
+                const baseLv = curLv >= 0 ? curLv : calcLv;
+                if(baseLv > 0){
+                    const newLv = baseLv - 1;
+                    safeSetItem('user_level_override', String(newLv));
+                    showLevelDrop(newLv);
+                }
+            }
+        }
+
+        // ③ 경고 배너 표시
+        renderAbsenceBanner(diff);
+    }
+
+    // 등급 하락 팝업
+    function showLevelDrop(lvIdx){
+        const lv = LEVELS[lvIdx];
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                <div style="font-size:52px;margin-bottom:8px;">😔</div>
+                <div style="font-size:1.1em;font-weight:700;color:#C0392B;margin-bottom:8px;">등급이 하락했어요</div>
+                <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:12px;">${lv.emoji} ${lv.name}</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    15일 이상 자리를 비우셨군요.<br>
+                    오늘 유튜브 쇼츠를 보고<br>
+                    <b style="color:#1B4332;">시크릿 코드를 입력하면<br>등급이 즉시 회복돼요! 📺</b>
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">확인했어요</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    // 결석 경고 배너 렌더링
+    function renderAbsenceBanner(diff){
+        const existing = document.getElementById('absence-banner');
+        if(existing) existing.remove();
+        if(diff === null || diff === undefined){
+            const last = safeGetItem('last_activity_date','');
+            if(!last) return;
+            diff = Math.floor((todayObj - new Date(last)) / 86400000);
+        }
+        if(diff < 7) return;
+        let msg = '', color = '', bg = '';
+        if(diff >= 14){
+            msg = '🔴 내일이면 등급이 하락해요!! 지금 확언 완료하세요!';
+            color = '#C0392B'; bg = '#FFF0EE';
+        } else if(diff >= 10){
+            msg = '🚨 ' + diff + '일째예요! ' + (15-diff) + '일 후 등급이 하락해요!';
+            color = '#E07000'; bg = '#FFF8EE';
+        } else {
+            msg = '⚠️ ' + diff + '일째예요! 오늘 확언 완료하면 등급 유지!';
+            color = '#1B4332'; bg = '#FFFBE6';
+        }
+        const banner = document.createElement('div');
+        banner.id = 'absence-banner';
+        banner.style.cssText = 'background:'+bg+';border-left:4px solid '+color+';padding:12px 16px;margin-bottom:12px;border-radius:10px;font-size:0.88em;font-weight:700;color:'+color+';line-height:1.5;';
+        banner.textContent = msg;
+        const affView = document.getElementById('affirmation-view');
+        if(affView) affView.insertBefore(banner, affView.firstChild);
+    }
+
+    // 시크릿 코드 성공 시 등급 회복
+    function checkLevelRecovery(){
+        const dropped = safeGetItem('user_level_override','-1');
+        if(dropped === '-1') return; // 하락 없음
+        const calcLv = getLevel(getPoints());
+        const droppedLv = parseInt(dropped);
+        if(droppedLv < calcLv){
+            // 포인트 기준 등급이 더 높으면 override 제거
+            safeSetItem('user_level_override','-1');
+            return;
+        }
+        // 코드 입력으로 회복
+        const recovered = droppedLv + 1;
+        safeSetItem('user_level_override', String(Math.min(recovered, LEVELS.length-1)));
+        showToast(`🎉 등급이 회복됐어요! ${LEVELS[Math.min(recovered, LEVELS.length-1)].emoji}`);
+        launchConfetti();
+        // override가 calcLv 이상이면 제거
+        if(recovered >= calcLv) safeSetItem('user_level_override','-1');
+    }
+
+    // 첫 방문 포인트
+    function checkFirstVisit(){
+        if(safeGetItem('pt_first_visit','') === '1') return;
+        safeSetItem('pt_first_visit','1');
+        setTimeout(()=>{
+            addPoint(30, '첫 방문 기념');
+            showToast('🎉 첫 방문 기념 +30PT! 오늘 새싹 달성 가능해요!');
+        }, 2000);
+    }
+
+    // 연속 달성 보너스
+    function checkStreakBonus(streak){
+        const key = `pt_streak_bonus_${streak}`;
+        if(safeGetItem(key,'') === '1') return;
+        const bonuses = {7:10, 30:50, 100:200, 365:500};
+        if(bonuses[streak]){
+            safeSetItem(key,'1');
+            addPoint(bonuses[streak], `${streak}일 연속 보너스`);
+            showToast(`🔥 ${streak}일 연속 달성! +${bonuses[streak]}PT 보너스!`);
+        }
+    }
+
+    function renderPointBar(){
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const lv = LEVELS[lvIdx];
+        const nextLv = LEVELS[lvIdx + 1];
+
+        document.getElementById('point-bar-emoji').textContent = lv.emoji;
+        document.getElementById('point-bar-level').textContent = lv.name;
+        document.getElementById('point-bar-pts').textContent = pts + ' PT';
+
+        let pct = 100;
+        if(nextLv){
+            const range = nextLv.min - lv.min;
+            const prog  = pts - lv.min;
+            pct = Math.min(100, Math.round((prog / range) * 100));
+        }
+        document.getElementById('point-bar-progress').style.width = pct + '%';
+    }
+
+    window.openLevelGuide = function(){
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const lv = LEVELS[lvIdx];
+        const nextLv = LEVELS[lvIdx + 1];
+
+        document.getElementById('lg-emoji').textContent = lv.emoji;
+        document.getElementById('lg-name').textContent = lv.name + ' 등급';
+        document.getElementById('lg-pts').textContent = pts + ' PT';
+
+        let pct = 100, nextTxt = '최고 등급 달성! 🎉';
+        if(nextLv){
+            const range = nextLv.min - lv.min;
+            const prog  = pts - lv.min;
+            pct = Math.min(100, Math.round((prog / range) * 100));
+            nextTxt = '다음 등급 ' + nextLv.emoji + ' ' + nextLv.name + '까지 ' + (nextLv.min - pts) + ' PT';
+        }
+        document.getElementById('lg-bar').style.width = pct + '%';
+        document.getElementById('lg-next').textContent = nextTxt;
+
+        // 등급별 혜택 + PDF URL
+        const BENEFITS = [
+            { text: '앱 기본 기능 전체 이용', pdf: null, diary: false },
+            { text: '🔓 오늘의 한마디 해금!', pdf: null, diary: false },
+            { text: '🧪 확언 처방전 오픈! (오늘의 선언 탭)', pdf: null, diary: false },
+            { text: '📄 1~3월 확언 PDF 해금', pdf: 'pdf_url_1', diary: false },
+            { text: '📄 4~6월 확언 PDF 해금', pdf: 'pdf_url_2', diary: false },
+            { text: '📄 7~9월 확언 PDF 해금', pdf: 'pdf_url_3', diary: false },
+            { text: '📄 10~12월 확언 PDF 해금', pdf: 'pdf_url_4', diary: false },
+            { text: '🎁 365일 완전판 확언 다이어리 선물', pdf: null, diary: true },
+        ];
+
+        // 등급 목록 렌더링
+        let html = '';
+        LEVELS.forEach((l, i) => {
+            const isCur = i === lvIdx;
+            const isDone = pts >= l.min;
+            const b = BENEFITS[i];
+            const pdfUrl = b.pdf ? safeGetItem(b.pdf, '') : '';
+            const canDownload = isDone && b.pdf && pdfUrl;
+            const canDiary = isDone && b.diary;
+
+            // 우측 버튼 (잠금/PDF/다이어리)
+            let rightBtn = '';
+            if(b.pdf){
+                if(canDownload){
+                    rightBtn = `<a href="${pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:#C9A84C;color:#fff;border-radius:10px;padding:8px 10px;font-size:0.7em;font-weight:700;text-decoration:none;text-align:center;min-width:52px;line-height:1.3;">📄<br>PDF</a>`;
+                } else {
+                    rightBtn = `<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(201,168,76,0.12);border:1px dashed #C9A84C;border-radius:10px;padding:8px 10px;font-size:0.68em;color:#C9A84C;text-align:center;min-width:52px;line-height:1.4;">🔒<br>PDF<br>대기중</div>`;
+                }
+            } else if(b.diary){
+                if(canDiary){
+                    rightBtn = `<button onclick="openDiaryApplyForm()" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:#C9A84C;color:#fff;border:none;border-radius:10px;padding:8px 10px;font-size:0.7em;font-weight:700;cursor:pointer;text-align:center;min-width:52px;line-height:1.3;">🎁<br>신청</button>`;
+                } else {
+                    rightBtn = `<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(201,168,76,0.12);border:1px dashed #C9A84C;border-radius:10px;padding:8px 10px;font-size:0.68em;color:#C9A84C;text-align:center;min-width:52px;line-height:1.4;">🔒<br>다이어리<br>대기중</div>`;
+                }
+            } else {
+                rightBtn = isDone ? `<span style="color:#C9A84C;font-size:1.1em;">✓</span>` : '';
+            }
+
+            html += `<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;margin-bottom:8px;background:${isCur?'linear-gradient(135deg,#1B4332,#2D6A4F)':isDone?'#F0F7F4':'var(--card-bg)'};border:1px solid ${isCur?'transparent':isDone?'#C8DDD2':'var(--border-color)'};">
+                <span style="font-size:28px;">${l.emoji}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.9em;font-weight:700;color:${isCur?'#C9A84C':isDone?'#1B4332':'var(--text-muted)'};">${l.name} ${isCur?'← 현재':''}</div>
+                    <div style="font-size:0.75em;color:${isCur?'rgba(255,255,255,0.6)':'var(--text-muted)'};">${l.min.toLocaleString()} PT 이상</div>
+                    <div style="font-size:0.78em;margin-top:3px;color:${isCur?'rgba(255,255,255,0.85)':isDone?'#1B4332':'var(--text-muted)'};">혜택: ${b.text}</div>
+                </div>
+                ${rightBtn}
+            </div>`;
+        });
+        document.getElementById('lg-level-list').innerHTML = html;
+        document.getElementById('level-guide-modal').style.display = 'block';
+    }
+
+    window.openPointGuide = function(){
+        const pts = getPoints();
+        const today = getTodayStr();
+        document.getElementById('pg-pts').textContent = pts + ' PT';
+
+        // 오늘 적립 완료 여부 확인 함수
+        function isDone(key){ return safeGetItem('pt_daily_'+key+'_'+today,'') === '1'; }
+
+        // 항목 행 생성
+        function row(icon, label, pt, key, action, desc){
+            const done = isDone(key);
+            return `<div onclick="${action}" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-color);cursor:pointer;background:${done?'#F0F7F4':'transparent'};">
+                <span style="font-size:18px;">${icon}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.88em;font-weight:600;color:var(--text-color);">${label}</div>
+                    <div style="font-size:0.73em;color:var(--text-muted);">${desc} →</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:0.88em;font-weight:700;color:#C9A84C;">+${pt}PT</span>
+                    ${done ? '<span style="font-size:1em;color:#1B4332;">✓</span>' : '<span style="font-size:0.75em;color:#ccc;">○</span>'}
+                </div>
+            </div>`;
+        }
+
+        const closeAndGo = (action) => `document.getElementById('point-guide-modal').style.display='none'; ${action}`;
+
+        // 오늘 적립 현황 계산
+        const DAILY_ITEMS = [
+            {key:'complete',pt:1}, {key:'listen',pt:1}, {key:'stt',pt:1},
+            {key:'mood_check',pt:1}, {key:'action_photo',pt:5},
+            {key:'memo',pt:1}, {key:'diary',pt:1},
+            {key:'share_aff',pt:2}, {key:'share_card',pt:2},
+            {key:'share_family',pt:2}, {key:'share_oracle',pt:2},
+            {key:'shorts_visit',pt:2}, {key:'episode_visit',pt:2},
+        ];
+        const DAILY_MAX = 23;
+        let todayEarned = 0, todayDone = 0;
+        DAILY_ITEMS.forEach(item => {
+            if(isDone(item.key)){ todayEarned += item.pt; todayDone++; }
+        });
+        todayEarned = Math.min(todayEarned, DAILY_MAX);
+        const todayLeft = Math.max(0, DAILY_MAX - todayEarned);
+        const pct = Math.round((todayEarned / DAILY_MAX) * 100);
+        const barColor = pct >= 100 ? '#1B4332' : pct >= 60 ? '#C9A84C' : '#888';
+        const todayStatus = pct >= 100
+            ? `🎉 오늘 최대 적립 완료! (${DAILY_MAX}PT)`
+            : todayLeft > 0
+                ? `${todayLeft}PT만 더 하면 오늘 100% 달성!`
+                : `오늘 ${todayEarned}PT 적립 중`;
+
+        const progressHtml = `
+            <div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border-color);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);">📊 오늘의 적립 현황</div>
+                    <div style="font-size:0.88em;font-weight:700;color:${barColor};">${todayEarned} / ${DAILY_MAX} PT</div>
+                </div>
+                <div style="background:#E8E5E0;border-radius:20px;height:10px;overflow:hidden;margin-bottom:8px;">
+                    <div style="height:100%;width:${pct}%;background:${barColor};border-radius:20px;transition:width 0.4s ease;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:0.78em;color:var(--text-muted);">✓ ${todayDone} / ${DAILY_ITEMS.length}개 항목 완료</div>
+                    <div style="font-size:0.78em;font-weight:700;color:${pct>=100?'#1B4332':'#C9A84C'};">${todayStatus}</div>
+                </div>
+            </div>`;
+
+        const html = `
+            <div style="background:var(--card-bg);border-radius:14px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border-color);">
+                ${row('☑️','확언 완료 체크',1,'complete', closeAndGo("goToHomeElement('btn-complete')"),'홈 화면 완료 버튼')}
+                ${row('🔊','소리 듣기',1,'listen', closeAndGo("goToHomeElement('btn-listen')"),'홈 화면 → 소리 듣기 버튼')}
+                ${row('🎙','따라읽기 완료',1,'stt', closeAndGo("goToHomeElement('btn-stt')"),'홈 화면 따라읽기 버튼')}
+                ${row('😊','확언 후 기분 체크',1,'mood_check', closeAndGo("goToHomeElement('affirmation-view')"),'홈 화면 → 기분 이모지 선택')}
+                ${row('📸','오늘의 실천 인증',5,'action_photo', closeAndGo("goToHomeElement('btn-action-photo')"),'홈 화면 → 실천 인증 버튼')}
+                ${row('✏️','필사 저장',1,'memo', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('write'),100)"),'메모장 → 필사 탭')}
+                ${row('📔','일기 저장',1,'diary', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('diary'),100)"),'메모장 → 일기장 탭')}
+                ${row('📤','오늘 확언 공유',2,'share_aff', closeAndGo("shareAfterComplete()"),'홈 → 완료 후 공유 버튼')}
+                ${row('🌅','아침 인사 카드 공유',2,'share_card', closeAndGo("openShareCard()"),'홈 화면 → 아침 인사 카드')}
+                ${row('💚','가족에게 보내기',2,'share_family', closeAndGo("goToHomeElement('affirmation-view'); setTimeout(()=>shareToFamily(),300)"),'홈 화면 → 가족에게 보내기')}
+                ${getLevel(pts) >= 1
+                    ? row('✨','오늘의 한마디 공유',2,'share_oracle', closeAndGo("openOracle()"),'홈 화면 → 오늘의 한마디')
+                    : `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-color);background:#F8F8F8;opacity:0.6;">
+                        <span style="font-size:18px;">🔒</span>
+                        <div style="flex:1;">
+                            <div style="font-size:0.88em;font-weight:600;color:#999;">오늘의 한마디 공유</div>
+                            <div style="font-size:0.73em;color:#bbb;">🌿 새싹 달성 후 이용 가능해요</div>
+                        </div>
+                        <span style="font-size:0.88em;font-weight:700;color:#ccc;">+2PT</span>
+                    </div>`
+                }
+                ${row('📺','쇼츠 보러가기',2,'shorts_visit', "addPoint(2,'쇼츠클릭','shorts_visit'); window.open('https://www.youtube.com/@SecondActRadio/shorts','_blank'); setTimeout(()=>openPointGuide(),300)",'유튜브 쇼츠 채널')}
+                ${row('🎬','오늘의 영상 보기',2,'episode_visit', "addPoint(2,'영상클릭','episode_visit'); document.getElementById('point-guide-modal').style.display='none'; var _ep=document.getElementById('btn-episode'); var _href=_ep?_ep.getAttribute('href'):''; var _url=(_href&&_href!=='#'&&_href.indexOf('youtube')>-1)?_ep.href:'https://www.youtube.com/@SecondActRadio'; window.open(_url,'_blank');",'홈 화면 → 이야기 들어보기 버튼')}
+            </div>
+            <div style="font-size:0.78em;color:var(--text-muted);text-align:center;margin-bottom:4px;">✓ 표시는 오늘 이미 적립한 항목이에요. 자정에 초기화돼요.</div>`;
+
+        document.getElementById('pg-items').innerHTML = progressHtml + html;
+        document.getElementById('point-guide-modal').style.display = 'block';
+    }
+
+    // 오늘의 한마디 버튼 잠금/해금
+    function renderOracleBtn(){
+        const wrap = document.getElementById('oracle-btn-wrap');
+        if(!wrap) return;
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const unlocked = lvIdx >= 1; // 새싹(1) 이상
+        const needed = 50 - pts;
+
+        if(unlocked){
+            wrap.innerHTML = `<button class="btn-oracle" onclick="openOracle()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>오늘의 한마디</button>`;
+        } else {
+            wrap.innerHTML = `
+                <button onclick="openPointGuide()" style="width:100%;min-height:52px;background:#E8E5E0;color:#888;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.85em;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    🔒 오늘의 한마디
+                    <span style="background:#C9A84C;color:#fff;border-radius:20px;padding:2px 10px;font-size:0.78em;">🌿 새싹 달성 시 오픈</span>
+                </button>
+                <div style="text-align:center;font-size:0.78em;color:#C9A84C;font-weight:600;margin-top:-10px;margin-bottom:14px;">
+                    ${needed > 0 ? `🌱 ${needed}PT만 더 모으면 새싹이 돼요!` : '오늘 확언 완료하면 새싹이 돼요! 🌿'}
+                </div>`;
+        }
+    }
+
+    window.shareOracle = function(){
+        addPoint(2,'한마디공유','share_oracle');
+        const text = document.getElementById('oracle-affirmation-text')?.innerText || '';
+        const theme = document.getElementById('oracle-theme-text')?.innerText || '';
+        const msg = `✨ 오늘의 한마디\n\n${theme}\n"${text}"\n\n— 인생2막라디오 365일 확언 앱\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 채널: https://www.youtube.com/@SecondActRadio`;
+        if(navigator.share){
+            navigator.share({title:'오늘의 한마디', text:msg}).catch(()=>copyToClipboard(msg));
+        } else {
+            copyToClipboard(msg);
+        }
+    }
+
+    window.openDiaryApplyForm = function(){
+        document.getElementById('level-guide-modal').style.display = 'none';
+        document.getElementById('diary-apply-form-modal').style.display = 'block';
+    }
+
+    window.submitDiaryApply = function(){
+        const name    = document.getElementById('diary-form-name').value.trim();
+        const phone   = document.getElementById('diary-form-phone').value.trim();
+        const address = document.getElementById('diary-form-address').value.trim();
+        const agreed  = document.getElementById('diary-form-agree').checked;
+
+        if(!name)    { showToast('성함을 입력해주세요'); return; }
+        if(!phone)   { showToast('연락처를 입력해주세요'); return; }
+        if(!address) { showToast('배송 주소를 입력해주세요'); return; }
+        if(!agreed)  { showToast('개인정보 수집 및 이용에 동의해주세요'); return; }
+
+        // 이메일로 신청 정보 전송
+        const subject = encodeURIComponent('[365일 확언 다이어리 신청] ' + name);
+        const body    = encodeURIComponent(
+            '성함: ' + name + '\n' +
+            '연락처: ' + phone + '\n' +
+            '주소: ' + address + '\n\n' +
+            '--- 앱 정보 ---\n' +
+            '닉네임: ' + (safeGetItem('my_nickname','미설정')) + '\n' +
+            '포인트: ' + getPoints() + ' PT\n' +
+            '신청일: ' + getTodayStr()
+        );
+        window.open('mailto:life2radio@gmail.com?subject=' + subject + '&body=' + body);
+
+        // 신청 완료 표시
+        safeSetItem('diary_365_applied', '1');
+        document.getElementById('diary-apply-form-modal').style.display = 'none';
+        launchConfetti();
+        showToast('🎉 신청이 완료됐어요! 이메일로 확인해드릴게요 😊');
+    }
+
+    // 홈화면 특정 요소로 스크롤 이동
+    window.goToHomeElement = function(elementId){
+        document.getElementById('point-guide-modal').style.display = 'none';
+        switchView('home');
+        setTimeout(()=>{
+            const el = document.getElementById(elementId);
+            if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); }
+        }, 400);
+    }
+
     /* ===== ② 가상 연대감 카운터 ===== */
     function initSolidarity(){
         const el=document.getElementById('solidarity-count');
@@ -4873,7 +6985,7 @@ https://life2radio.github.io/affirmation/
 
     /* ===== ③ Formspree 사연 전송 ===== */
     // ★ https://formspree.io 에서 무료 폼 생성 후 ID 교체
-    const FORMSPREE_ID = 'YOUR_FORM_ID';
+    const FORMSPREE_ID = 'xqewzqqg';
 
     window.sendStory = async function(){
         const title=document.getElementById('story-title').value.trim();
@@ -4892,10 +7004,11 @@ https://life2radio.github.io/affirmation/
             try{
                 const res=await fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
                     method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
-                    body:JSON.stringify({닉네임:name||'익명', 제목:title, 사연:emailBody})
+                    body:JSON.stringify({닉네임:name||'익명', 제목:title, 사연:emailBody, 이메일:document.getElementById('story-email')?.value.trim()||'', 마케팅동의:document.getElementById('story-marketing')?.checked?'동의':'미동의'})
                 });
                 if(res.ok){
-                    showToast('💌 사연이 전송됐어요! 감사해요 😊');
+                    showToast('💌 사연이 전송됐어요! +10PT 적립됐어요 😊');
+                    addPoint(10,'사연보내기',`story_send_${todayObj.getFullYear()}_${todayObj.getMonth()+1}`);
                     ['story-title','story-body','story-name'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
                     document.getElementById('story-char-count').textContent='0자';
                 } else throw new Error();
@@ -4918,8 +7031,25 @@ https://life2radio.github.io/affirmation/
         else { copyToClipboard(text); }
     }
     function copyToClipboard(text){
-        if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=> showToast('클립보드에 복사됐어요!')); }
-        else { const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('복사됐어요!'); }
+        if(navigator.clipboard){
+            navigator.clipboard.writeText(text)
+                .then(()=> showToast('📋 클립보드에 복사됐어요!'))
+                .catch(()=>{
+                    const ta=document.createElement('textarea');
+                    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('📋 복사됐어요!');
+                });
+        } else {
+            const ta=document.createElement('textarea');
+            ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('📋 복사됐어요!');
+        }
     }
     window.shareDiaryEntry = function(){
         const input=document.getElementById('diary-input');
@@ -5034,7 +7164,9 @@ https://life2radio.github.io/affirmation/
             const btn = document.getElementById('mode-btn-'+m);
             if(btn) btn.className = 'setting-mode-btn' + (mode===m?' active':'');
         });
-        showToast('기본 모드가 변경됐어요');
+        currentMode = mode;
+        switchMode(mode);
+        showToast('기본 모드가 변경됐어요. 홈 화면에 반영됐어요!');
     }
 
     window.toggleBgmAuto = function(){
@@ -5087,6 +7219,15 @@ https://life2radio.github.io/affirmation/
     function applyStoredSettings(){
         applyFontSize(safeGetItem('setting_fontsize','normal'));
         if(safeGetItem('setting_dark','off')==='on') document.body.classList.add('dark-mode');
+        const nick = safeGetItem('my_nickname','');
+        const ni = document.getElementById('nickname-input');
+        if(ni && nick) ni.value = nick;
+        const sender = safeGetItem('family_sender','');
+        const si = document.getElementById('family-sender-input');
+        if(si) si.value = sender || '';
+        const receiver = safeGetItem('family_receiver','');
+        const ri = document.getElementById('family-receiver-input');
+        if(ri) ri.value = receiver || '';
     }
     let affirmInclude = true;
 
@@ -5341,16 +7482,16 @@ https://life2radio.github.io/affirmation/
             <div style="flex:1;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${epBadge}${badge}</div>
                 <div style="font-size:18px;font-weight:bold;color:var(--primary-color);line-height:1.4;">${s.title}</div>
-            </div>
-            ${btn}
+              </div>
+            <div style="flex-shrink:0;">${btn}</div>
         </div>`;
     }
 
-    if(document.readyState === 'loading'){
-        document.addEventListener('DOMContentLoaded', initApp);
-    } else {
-        initApp();
-    }
+    // ===== 앱 시작 =====
+    document.addEventListener('DOMContentLoaded', function(){
+        window.initApp();
+    });
+
 </script>
 </body>
 </html>
