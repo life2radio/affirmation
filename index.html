@@ -3079,7 +3079,6 @@
         document.getElementById('k-chrome').onclick=function(){
             var h=location.host+location.pathname+location.search;
             location.href='intent://'+h+'#Intent;scheme=https;action=android.intent.action.VIEW;package=com.android.chrome;end';
-            setTimeout(function(){ location.href='intent://'+h+'#Intent;scheme=https;action=android.intent.action.VIEW;package=com.sec.android.app.sbrowser;end'; },1500);
         };
         document.getElementById('k-skip').onclick=function(){ o.remove(); };
         return true;
