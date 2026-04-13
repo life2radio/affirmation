@@ -26,14 +26,14 @@
     <meta property="og:type"        content="website">
     <meta property="og:site_name"   content="인생2막라디오">
     <meta property="og:title"       content="365일 오늘의 확언 | 인생2막라디오">
-    <meta property="og:description" content="새로운 나를 만나는 365일의 여정. 설치 없이 바로 사용하는 무료 확언 앱.">
+    <meta property="og:description" content="새로운 나를 만나는 365일의 여정. 홈화면에 설치하면 앱처럼 매일 열 수 있어요.">
     <meta property="og:image"       content="https://life2radio.github.io/affirmation/og-image.png">
     <meta property="og:url"         content="https://life2radio.github.io/affirmation">
     <meta property="og:locale"      content="ko_KR">
     <!-- 트위터/X -->
     <meta name="twitter:card"        content="summary_large_image">
     <meta name="twitter:title"       content="365일 오늘의 확언 | 인생2막라디오">
-    <meta name="twitter:description" content="새로운 나를 만나는 365일의 여정. 설치 없이 바로 사용하세요.">
+    <meta name="twitter:description" content="새로운 나를 만나는 365일의 여정. 홈화면에 추가하면 매일 바로 열려요.">
     <meta name="twitter:image"       content="https://life2radio.github.io/affirmation/og-image.png">
     <!-- 카카오톡 -->
     <meta property="kakao:title"     content="365일 오늘의 확언">
@@ -53,9 +53,7 @@
         window.addEventListener('load', function(){
             trackEvent('app_open');
         });
-        window.addEventListener('beforeinstallprompt', function(){
-            trackEvent('pwa_install_prompt');
-        });
+        // beforeinstallprompt는 메인 스크립트에서 처리
     </script>
     <style>
         :root {
@@ -970,7 +968,7 @@
             <div style="background:#FFFFFF;border:1px solid #E8E5E0;border-radius:12px;padding:16px;font-size:16px;color:#888;line-height:1.8;">
                 <div style="font-weight:bold;color:#555;margin-bottom:6px;">📌 보내기 전에 알아두세요</div>
                 • 버튼을 누르면 이메일 앱이 열려요<br>
-                • 받는 분: <span style="color:var(--primary-color);font-weight:bold;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5a36333c3f68283b3e33351a3d373b333674393537">[email&#160;protected]</a></span><br>
+                • 받는 분: <span id="story-email-display" style="color:var(--primary-color);font-weight:bold;"></span><br>
                 • 소개된 사연은 채널 콘텐츠에 활용될 수 있어요<br>
                 • 개인 정보는 닉네임 외 포함하지 않아도 돼요
             </div>
@@ -4744,7 +4742,7 @@
     window.shareAppFile = function(){
         document.getElementById('share-app-modal').style.display = 'none';
         // 카카오톡 URL 스킴으로 직접 공유
-        const kakaoUrl = 'kakaotalk://send?text=' + encodeURIComponent('🌿 인생2막라디오 365일 확언 앱\n설치 없이 바로 열려요! 무료!\n\n👉 ' + APP_URL);
+        const kakaoUrl = 'kakaotalk://send?text=' + encodeURIComponent('🌿 인생2막라디오 365일 확언 앱\n홈화면에 추가하면 앱처럼 매일 열려요!\n\n👉 ' + APP_URL);
         const opened = window.open(kakaoUrl, '_blank');
         // 카톡 앱이 없거나 열리지 않으면 네이티브 공유 시트
         setTimeout(()=>{
@@ -4752,7 +4750,7 @@
                 if(navigator.share){
                     navigator.share({
                         title: '365일 오늘의 확언 | 인생2막라디오',
-                        text:  '🌿 매일 나를 위한 한 문장. 설치 없이 바로!',
+                        text:  '🌿 매일 나를 위한 한 문장. 홈화면에 추가해서 매일 열어보세요!',
                         url:   APP_URL
                     }).catch(()=> showShareFallback());
                 } else {
@@ -4782,7 +4780,7 @@
         const msg = `🌿 인생2막라디오 365일 확언 앱
 
 오늘 하루, 나를 위한 한 문장을 읽는 것부터 시작해보세요.
-설치 없이 링크 하나로 바로 열려요. 무료예요.
+홈화면에 추가하면 앱처럼 매일 바로 열려요. 무료예요.
 
 이런 분들께 딱 맞아요 💚
 • 매일 나에게 좋은 말 한마디 해주고 싶은 분
@@ -7261,6 +7259,12 @@ https://life2radio.github.io/affirmation/
     /* ===== ③ Formspree 사연 전송 ===== */
     // ★ https://formspree.io 에서 무료 폼 생성 후 ID 교체
     const FORMSPREE_ID = 'xqewzqqg';
+    // 이메일 CF 마스킹 방지 - JS로 조립
+    const _em = ['life2radio','gmail.com'].join('@');
+    document.addEventListener('DOMContentLoaded', function(){
+        var el = document.getElementById('story-email-display');
+        if(el) el.textContent = _em;
+    });
 
     window.sendStory = async function(){
         const title=document.getElementById('story-title').value.trim();
