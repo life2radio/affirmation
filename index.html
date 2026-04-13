@@ -7863,6 +7863,33 @@ https://life2radio.github.io/affirmation/
             }
         });
 
+        // ★ 등급/포인트 텍스트 자동 클릭 연결
+        function linkLevelAndPoint(){
+            // PT 텍스트 포함 요소 → 포인트 가이드
+            document.querySelectorAll('[id^="shorts-pt"]').forEach(el => {
+                if(!el.onclick) el.style.cursor = 'pointer';
+            });
+            // 등급명 텍스트 포함 span/div → 등급 가이드
+            const levelNames = ['씨앗','새싹','풀잎','확언러','실천가','인생2막러','라디오스타','인생챔피언'];
+            document.querySelectorAll('.affirmation-view, #view-home, #view-calendar, #view-shorts').forEach(view => {
+                view.querySelectorAll('span, div').forEach(el => {
+                    // 직접 텍스트만 있고 자식 없는 요소만
+                    if(el.children.length === 0 && el.onclick === null){
+                        const txt = el.textContent.trim();
+                        if(levelNames.some(n => txt.includes(n) && txt.length < 30)){
+                            el.style.cursor = 'pointer';
+                            el.onclick = openLevelGuide;
+                        }
+                        if(txt.includes('PT') && txt.length < 15 && /\d/.test(txt)){
+                            el.style.cursor = 'pointer';
+                            el.onclick = openPointGuide;
+                        }
+                    }
+                });
+            });
+        }
+        setTimeout(linkLevelAndPoint, 1500);
+
         // ★ 카카오톡 인앱브라우저 감지 (Android) → 크롬으로 열기 안내
         const isKakaoAndroid = /KAKAOTALK/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
         if(isKakaoAndroid){
