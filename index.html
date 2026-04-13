@@ -5945,6 +5945,41 @@ https://life2radio.github.io/affirmation/
     ];
     const REWARD_MSGS = ['당신, 지금 변하고 있어요 🌱','오늘도 해냈어요. 뇌가 기억하고 있어요 💚','꾸준함이 당신을 바꾸고 있어요 🌿','오늘 확언이 마음 깊이 새겨졌어요 ✨'];
 
+
+    function showSTTSuccessPopup(totalDays, streak){
+        var old = document.getElementById('stt-reward-modal');
+        if(old) old.remove();
+        var tomorrow = new Date(todayObj);
+        tomorrow.setDate(tomorrow.getDate()+1);
+        var tomorrowStr = (tomorrow.getMonth()+1)+'월 '+tomorrow.getDate()+'일';
+        var nick = safeGetItem('my_nickname','');
+        var nickTxt = nick ? nick+'님, ' : '';
+        var modal = document.createElement('div');
+        modal.id = 'stt-reward-modal';
+        modal.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;z-index:9000;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;top:0;';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:#1B4332;border-radius:24px 24px 0 0;padding:32px 24px 44px;width:100%;max-width:600px;text-align:center;';
+        box.innerHTML =
+            '<div style="font-size:1.3em;font-weight:700;color:#fff;margin-bottom:8px;">🎉 따라읽기 완료!</div>' +
+            '<div style="font-size:0.9em;color:rgba(255,255,255,0.75);margin-bottom:20px;">' + nickTxt + '뇌에 긍정의 힘이 새겨졌어요!</div>' +
+            '<div style="background:rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:20px;">' +
+            '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin-bottom:4px;">내일도 이어가시겠어요? 🌿</div>' +
+            '<div style="font-size:0.95em;color:#D4A843;font-weight:700;">' + tomorrowStr + ' 확언으로 '+(streak+1)+'일 연속 달성해봐요!</div>' +
+            '</div>' +
+            '<button id="stt-share-btn" style="width:100%;min-height:52px;background:#D4A843;color:#1B4332;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">오늘 확언 공유하기</button>' +
+            '<button id="stt-close-btn" style="width:100%;background:none;border:none;color:rgba(255,255,255,0.5);font-size:0.9em;cursor:pointer;padding:8px;">닫기</button>';
+        modal.appendChild(box);
+        document.body.appendChild(modal);
+        document.getElementById('stt-share-btn').addEventListener('click', function(){
+            shareAfterComplete();
+            modal.remove();
+        });
+        document.getElementById('stt-close-btn').addEventListener('click', function(){
+            modal.remove();
+        });
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    }
+
     function showCompleteReward(totalDays, streak){
         if(safeGetItem(`reward_shown_${getTodayStr()}`,'') === '1') return;
         safeSetItem(`reward_shown_${getTodayStr()}`, '1');
@@ -6729,11 +6764,13 @@ https://life2radio.github.io/affirmation/
         const cd = safeGetJSON('completed_dates',[]);
         addPoint(1,'따라읽기','stt');
         if(!cd.includes(getFormatDate(selectedDateObj))){
-            completeToday(); // 완료 처리 (팝업 포함)
+            completeToday(); // 완료 처리
+            // STT 성공 팝업 (completeToday의 reward_shown 무시하고 항상)
+            setTimeout(function(){ const cd2=safeGetJSON('completed_dates',[]); showSTTSuccessPopup(cd2.length, calcCurrentStreak(cd2)); }, 400);
         } else {
-            // 이미 완료됐어도 따라읽기 성공 팝업은 표시
+            // 이미 완료됐어도 따라읽기 성공 팝업 표시 (reward_shown 무시)
             const streak = calcCurrentStreak(cd);
-            showCompleteReward(cd.length, streak);
+            showSTTSuccessPopup(cd.length, streak);
         }
         setTimeout(()=>{ box.style.display='none'; document.getElementById('stt-wave').style.display='flex'; }, 3500);
     }
