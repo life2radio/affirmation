@@ -3302,10 +3302,18 @@
 
     window.installFromPrompt = async function(){
         if(!pwaInstallPrompt) return;
+        // 버튼 피드백
+        const btn = document.getElementById('install-pwa-btn');
+        if(btn){ btn.textContent = '⏳ 설치 중...'; btn.disabled = true; }
+        // 로딩 토스트
+        showToast('📲 홈화면에 설치 중이에요...');
         document.getElementById('install-first-modal')?.remove();
         pwaInstallPrompt.prompt();
         const result = await pwaInstallPrompt.userChoice;
         pwaInstallPrompt = null;
+        if(result.outcome === 'accepted'){
+            showToast('🎉 설치 완료! 홈화면에서 확인해보세요');
+        }
         initOnboarding();
     }
 
