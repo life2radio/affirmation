@@ -16,7 +16,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="365일 확언">
+    <meta name="apple-mobile-web-app-title" content="인생확언">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1B4332">
     <link rel="preload" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -1282,11 +1282,8 @@
         <canvas id="share-canvas" style="width:100%;border-radius:16px;display:block;margin-bottom:16px;box-shadow:0 4px 15px rgba(0,0,0,0.15);"></canvas>
         <div style="display:flex;gap:10px;margin-bottom:8px;">
             <button class="btn btn-main" onclick="downloadCard()" style="flex:1;">저장하기</button>
-            <button class="btn btn-sub" onclick="shareCard()" style="flex:1;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유</button>
+            <button class="btn btn-sub" onclick="shareCard()" style="flex:1;">📤 확언 카드 공유</button>
         </div>
-        <button onclick="shareToFamilyFromCard()" style="width:100%;min-height:48px;background:#FFF8E7;color:#8B6914;border:1.5px solid var(--accent-color);border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:8px;">
-            💌 사랑하는 가족에게 오늘 확언과 함께 응원 보내기
-        </button>
         <button class="btn btn-sub" onclick="document.getElementById('share-modal').style.display='none'" style="width:100%;">닫기</button>
     </div>
 </div>
@@ -2366,7 +2363,7 @@
         const maxWidth  = W - SIDE_PAD*2 - 20;
 
         // 폰트 크기 자동 조절 (긴 텍스트는 작게)
-        let fontSize = affirmText.length < 40 ? 42 : affirmText.length < 80 ? 36 : affirmText.length < 120 ? 30 : 26;
+        let fontSize = affirmText.length < 25 ? 62 : affirmText.length < 50 ? 54 : affirmText.length < 90 ? 46 : affirmText.length < 130 ? 38 : 32;
         let lineHeight = fontSize * 1.65;
         ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
 
@@ -5169,21 +5166,35 @@ https://life2radio.github.io/affirmation/
         const partnerWords = ['남편','아내','여보','자기','오빠','언니'];
         const isToParent  = parentWords.some(w => receiver.includes(w));
         const isToPartner = partnerWords.some(w => receiver.includes(w));
-        const closing = isToParent  ? `오늘도 건강하세요! 사랑해요 💚`
-                      : isToPartner ? `오늘도 수고해요! 사랑해 💚`
-                      :               `오늘도 힘내렴! 사랑해 💚`;
-        const msg = `🌿 ${today} ${receiver}에게 보내는 ${sender}의 확언이에요\n\n"${affirmEl?affirmEl.innerText.trim():''}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n${receiver}, ${closing}\n\n— ${sender}\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
-        if(canvas && navigator.share && navigator.canShare){
-            canvas.toBlob(async blob=>{
-                const file = new File([blob],'아침인사카드.png',{type:'image/png'});
-                if(navigator.canShare({files:[file]})){
-                    await navigator.share({files:[file], title:'오늘의 확언 아침 인사', text:msg})
-                        .catch(()=> copyToClipboard(msg));
-                } else { copyToClipboard(msg); }
-            },'image/png');
-        } else { copyToClipboard(msg); }
+        const closing = isToParent  ? '오늘도 건강하세요! 사랑해요 💚'
+                      : isToPartner ? '오늘도 수고해요! 사랑해 💚'
+                      :               '오늘도 힘내렴! 사랑해 💚';
+        const msg = '🌿 ' + today + ' ' + receiver + '에게 보내는 ' + sender + '의 확언이에요\n\n"' + (affirmEl?affirmEl.innerText.trim():'') + '"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n' + receiver + ', ' + closing + '\n\n— ' + sender + '\n\n📱 확언 앱: https://life2radio.github.io/affirmation/';
+
         document.getElementById('share-modal').style.display='none';
-        showToast('💌 가족에게 사랑을 전했어요!');
+
+        // ① 카드 이미지 먼저 저장
+        if(canvas){
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = '확언카드.png';
+            a.click();
+        }
+
+        // ② 0.8초 후 응원메시지 공유창
+        setTimeout(function(){
+            if(navigator.share){
+                navigator.share({
+                    title: receiver + '에게 보내는 오늘의 확언 💚',
+                    text: msg
+                }).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(msg); });
+            } else {
+                copyToClipboard(msg);
+                showToast('📋 응원메시지 복사됐어요! 카카오톡에 붙여넣기 하세요');
+            }
+        }, 800);
+
+        showToast('📥 카드 저장 후 응원메시지 공유창이 열려요!');
         trackEvent('share_to_family_card');
     }
     function showPastMe(afterIdx){
@@ -7222,10 +7233,21 @@ https://life2radio.github.io/affirmation/
         const el=document.getElementById('solidarity-count');
         if(!el) return;
         const hour=new Date().getHours();
-        const base=hour>=6&&hour<=9?800:hour>=10&&hour<=12?1200:hour>=18&&hour<=22?1500:600;
-        let count=base+Math.floor(Math.random()*200);
+        // 밤10시(22)~아침8시(7): 30~99명, 나머지: 시간대별
+        const base=( hour>=22 || hour<8 ) ? 30
+                 : hour>=8&&hour<10  ? 300
+                 : hour>=10&&hour<13 ? 1200
+                 : hour>=13&&hour<18 ? 800
+                 : hour>=18&&hour<22 ? 1500 : 600;
+        const max =( hour>=22 || hour<8 ) ? 99 : base+300;
+        let count=base+Math.floor(Math.random()*(max-base));
         el.textContent=count.toLocaleString();
-        setInterval(()=>{ count+=Math.floor(Math.random()*7)-3; if(count<base-100)count=base; el.textContent=count.toLocaleString(); }, 30000);
+        setInterval(()=>{
+            count+=Math.floor(Math.random()*5)-2;
+            if(count<base) count=base;
+            if(count>max)  count=max;
+            el.textContent=count.toLocaleString();
+        }, 30000);
     }
 
     /* ===== ③ Formspree 사연 전송 ===== */
