@@ -3091,7 +3091,7 @@
         // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                           || navigator.standalone === true;
-        if(isStandalone || safeGetItem('install_prompt_shown','') === '1'){
+        if(isStandalone || safeGetItem('install_prompt_v3','') === '1'){
             initOnboarding();
         } else {
             showInstallPrompt();
@@ -3107,7 +3107,7 @@
     }
 
     function showInstallPrompt(){
-        safeSetItem('install_prompt_shown','1');
+        safeSetItem('install_prompt_v3','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
 
@@ -3205,21 +3205,23 @@
         if(pwaInstallPrompt){
             installFromPrompt();
         } else {
-            // pwaInstallPrompt 없으면 버튼 대기 상태로 바꾸고 이벤트 기다림
-            const btn = document.getElementById('install-pwa-btn');
-            if(btn){ btn.textContent = '⏳ 준비 중... 잠시만요'; btn.disabled = true; }
-            window._pendingInstallClick = true;
+            // pwaInstallPrompt 없으면 안내 표시
+            const guide = document.getElementById('install-guide');
+            if(guide) guide.style.display = 'block';
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
         }
     }
 
     window.installFromPrompt = async function(){
         if(!pwaInstallPrompt){
+            // 이벤트 아직 안 왔으면 안내
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
             const guide = document.getElementById('install-guide');
             if(guide) guide.style.display = 'block';
-            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
             return;
         }
-        // ★ 커스텀 팝업 먼저 완전히 닫고 → 네이티브 다이얼로그 실행
+        const btn = document.getElementById('install-pwa-btn');
+        if(btn){ btn.textContent = '⏳ 설치 중...'; btn.disabled = true; }
         document.getElementById('install-first-modal')?.remove();
         try {
             pwaInstallPrompt.prompt();
@@ -3228,7 +3230,9 @@
             if(result.outcome === 'accepted'){
                 showToast('🎉 설치 완료! 홈화면에서 확인해보세요');
             }
-        } catch(e) {}
+        } catch(e) {
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
+        }
         initOnboarding();
     }
 
@@ -4600,12 +4604,6 @@
     window.addEventListener('beforeinstallprompt', (e)=>{
         e.preventDefault();
         pwaInstallPrompt = e;
-        // ★ 사용자가 이미 버튼을 눌렀는데 이벤트가 늦게 왔으면 → 즉시 실행
-        if(window._pendingInstallClick){
-            window._pendingInstallClick = false;
-            installFromPrompt();
-            return;
-        }
         // 첫 방문 설치 팝업 버튼 업데이트
         const btn = document.getElementById('install-pwa-btn');
         if(btn){
