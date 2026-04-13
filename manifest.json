@@ -1,25 +1,37 @@
 {
-  "name": "인생2막 365일 확언",
-  "short_name": "확언앱",
+  "name": "인생확언",
+  "short_name": "인생확언",
   "description": "매일 나를 위한 한 문장. 365일 확언 프로그램.",
   "start_url": "/affirmation/",
   "scope": "/affirmation/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F5F5F0",
+  "background_color": "#1B4332",
   "theme_color": "#1B4332",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
