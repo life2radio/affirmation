@@ -3094,7 +3094,8 @@
         if(isStandalone || safeGetItem('install_prompt_shown','') === '1'){
             initOnboarding();
         } else {
-            showInstallPrompt();
+            // beforeinstallprompt 이벤트 수신 후 팝업 (1초 대기)
+            setTimeout(showInstallPrompt, 1000);
         }
         currentMode=safeGetItem('app_mode','A');
         selectedDateObj=new Date(todayObj);
@@ -3199,102 +3200,16 @@
                 }
             });
         }
-    }function showInstallPrompt(){
-        safeSetItem('install_prompt_shown','1');
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isAndroid = /Android/.test(navigator.userAgent);
-
-        const modal = document.createElement('div');
-        modal.id = 'install-first-modal';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;';
-
-        let installContent = '';
-
-        const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
-
-        if(isIOS){
-            if(isKakao){
-                // 카카오톡 인앱 브라우저 → Safari로 열기 안내
-                installContent = `
-                <div style="background:#FFF3CD;border-radius:14px;padding:14px 16px;margin-bottom:16px;text-align:left;">
-                    <div style="font-size:0.88em;color:#856404;line-height:2.2;font-weight:600;">
-                        카카오톡 브라우저에서는<br>홈화면 추가가 불가해요 😢<br><br>
-                        1️⃣ 오른쪽 하단 <b>···</b> 버튼 탭<br>
-                        2️⃣ <b>"Safari로 열기"</b> 선택<br>
-                        3️⃣ Safari에서 <b>공유 □↑ → 홈 화면에 추가</b>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">일단 시작하기 →</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            } else {
-                installContent = `
-                <div style="background:#F0F7F4;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:left;">
-                    <div style="font-size:0.88em;color:#1B4332;line-height:2.2;font-weight:600;">
-                        1️⃣ 아래 <b>공유 버튼 □↑</b> 탭<br>
-                        2️⃣ <b>"홈 화면에 추가"</b> 선택<br>
-                        3️⃣ 오른쪽 상단 <b>"추가"</b> 탭
-                    </div>
-                </div>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">확인했어요! 앱 시작하기 ✓</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            }
-        } else if(isAndroid){
-            // 안드로이드: 카카오톡 브라우저면 Chrome으로 열기 안내
-            if(isKakao){
-                installContent = `
-                <div style="background:#FFF3CD;border-radius:14px;padding:14px 16px;margin-bottom:16px;text-align:left;">
-                    <div style="font-size:0.88em;color:#856404;line-height:2.2;font-weight:600;">
-                        카카오톡 브라우저에서는<br>홈화면 추가가 불가해요 😢<br><br>
-                        1️⃣ 오른쪽 상단 <b>···</b> 버튼 탭<br>
-                        2️⃣ <b>"다른 브라우저로 열기"</b> 선택<br>
-                        3️⃣ Chrome에서 <b>⋮ → 홈 화면에 추가</b>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">일단 시작하기 →</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            } else if(pwaInstallPrompt){
-                installContent = `
-                    <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                    <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            } else {
-                installContent = `
-                    <button id="install-pwa-btn" onclick="tryInstallOrGuide()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                    <div id="install-guide" style="display:none;background:#F0F7F4;border-radius:12px;padding:14px;margin-bottom:12px;text-align:left;">
-                        <div style="font-size:0.86em;color:#1B4332;line-height:2.2;font-weight:600;">
-                            1️⃣ 브라우저 우측 상단 <b>⋮</b> 탭<br>
-                            2️⃣ <b>"홈 화면에 추가"</b> 선택<br>
-                            3️⃣ <b>"추가"</b> 탭 → 완료!
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            }
-        } else {
-            // PC 또는 기타
-            installFromPromptDone();
-            return;
-        }
-
-        modal.innerHTML = `
-            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
-                <div style="font-size:48px;margin-bottom:10px;">📲</div>
-                <div style="font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:8px;">앱으로 저장하면 더 편해요!</div>
-                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
-                    홈화면에 추가하면<br>
-                    <b style="color:#1B4332;">앱처럼 바로 열 수 있어요.</b><br>
-                    매일 아침 확언을 놓치지 마세요 🌿
-                </div>
-                ${installContent}
-            </div>`;
-        document.body.appendChild(modal);
     }
 
     window.tryInstallOrGuide = function(){
         if(pwaInstallPrompt){
             installFromPrompt();
         } else {
-            // 안내 보여주기
+            // pwaInstallPrompt 없으면 안내 표시
             const guide = document.getElementById('install-guide');
             if(guide) guide.style.display = 'block';
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
         }
     }
 
@@ -6560,9 +6475,6 @@ https://life2radio.github.io/affirmation/
         sttActive = true; sttRetryCount = 0;
         let sessionFinal = ''; // 재시작해도 누적 유지
 
-                // 바로 STT 실행
-        function runSTT(){
-
         const sttBox=document.getElementById('stt-box');
         const sttStatus=document.getElementById('stt-status');
         const sttResult=document.getElementById('stt-result-text');
@@ -6593,7 +6505,7 @@ https://life2radio.github.io/affirmation/
                 const resultEl=document.getElementById('stt-result-text');
                 if(bar) bar.style.width=progress+'%';
                 if(resultEl) resultEl.textContent=progress+'%';
-                if(combined && calcSimilarity(combined,target)>=0.80){
+                if(combined && calcSimilarity(combined,target)>0.75){
                     sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
                 }
             };
@@ -6630,8 +6542,6 @@ https://life2radio.github.io/affirmation/
 
         try{ sttRecognition=createRec(); sttRecognition.start(); }
         catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
-        } // runSTT 끝
-        runSTT();
     }
 
     let sttActive = false;
