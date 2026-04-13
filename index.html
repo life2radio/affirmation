@@ -1399,11 +1399,11 @@
         </div>
 
         <div style="background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:12px;border:1px solid var(--border-color);">
-            <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">지인에게 공유하기</div>
+            <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">지인에게 인생확언 선물하기 🎁</div>
             <div style="font-size:0.82em;color:var(--text-muted);margin-bottom:12px;">파일을 카카오톡·문자로 전송해요</div>
             <div style="display:flex;gap:10px;">
-                <button onclick="shareAppMessage()" style="flex:1;min-height:48px;background:#F0F7F4;color:var(--primary-color);border:1px solid #C8DDD2;border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">카톡으로 보내기</button>
-                <button onclick="shareAppMessage()" style="flex:1;min-height:48px;background:#F0F7F4;color:var(--primary-color);border:1px solid #C8DDD2;border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">앱 소개 전달</button>
+                <button onclick="shareAppLink()" style="flex:1;min-height:48px;background:#F0F7F4;color:var(--primary-color);border:1px solid #C8DDD2;border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">카톡으로 보내기</button>
+                <button onclick="shareAppLink()" style="flex:1;min-height:48px;background:#F0F7F4;color:var(--primary-color);border:1px solid #C8DDD2;border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;">앱 소개 전달</button>
             </div>
         </div>
 
@@ -2354,7 +2354,7 @@
         const maxWidth  = W - SIDE_PAD*2 - 20;
 
         // 폰트 크기 자동 조절 (긴 텍스트는 작게)
-        let fontSize = affirmText.length < 25 ? 62 : affirmText.length < 50 ? 54 : affirmText.length < 90 ? 46 : affirmText.length < 130 ? 38 : 32;
+        let fontSize = affirmText.length < 20 ? 88 : affirmText.length < 35 ? 76 : affirmText.length < 50 ? 66 : affirmText.length < 90 ? 54 : affirmText.length < 130 ? 44 : 36;
         let lineHeight = fontSize * 1.65;
         ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
 
@@ -4685,6 +4685,31 @@
             <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button>
         </div>`;
         document.body.appendChild(g);
+    }
+
+    window.shareAppLink = function(){
+        addPoint(2,'앱소개공유','share_app');
+        const url = 'https://life2radio.github.io/affirmation/';
+        const text = '🌿 인생2막라디오 365일 확언 앱\n매일 나를 위한 한 문장. 무료예요 😊';
+        if(navigator.share){
+            navigator.share({ title:'365일 확언 | 인생2막라디오', text: text, url: url })
+                .catch(()=>{ _copyUrl(url); });
+        } else {
+            _copyUrl(url);
+        }
+        document.getElementById('share-app-modal').style.display='none';
+    }
+
+    function _copyUrl(url){
+        if(navigator.clipboard){
+            navigator.clipboard.writeText(url).then(()=> showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊'));
+        } else {
+            const t = document.createElement('textarea');
+            t.value = url; document.body.appendChild(t);
+            t.select(); document.execCommand('copy');
+            document.body.removeChild(t);
+            showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊');
+        }
     }
 
     window.shareAppMessage = function(){
