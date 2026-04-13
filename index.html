@@ -2290,6 +2290,7 @@
 
     /* ===== ★ 6단계: 확언 카드 공유 ===== */
     window.openShareCard = function(){
+        addPoint(2,'아침카드공유','share_card');
         const affirmEl = document.getElementById('affirmation-text');
         const themeEl  = document.getElementById('theme-text');
         if(!affirmEl || affirmEl.closest('.blurred-content')) {
@@ -2360,7 +2361,7 @@
         const maxWidth  = W - SIDE_PAD*2 - 20;
 
         // 폰트 크기 자동 조절 (긴 텍스트는 작게)
-        let fontSize = affirmText.length < 25 ? 72 : affirmText.length < 50 ? 62 : affirmText.length < 90 ? 52 : affirmText.length < 130 ? 44 : 36;
+        let fontSize = affirmText.length < 25 ? 62 : affirmText.length < 50 ? 54 : affirmText.length < 90 ? 46 : affirmText.length < 130 ? 38 : 32;
         let lineHeight = fontSize * 1.65;
         ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
 
@@ -2496,7 +2497,6 @@
     }
 
     window.shareCard = function(){
-        addPoint(1,'확언카드공유','share_card');
         const canvas = document.getElementById('share-canvas');
         canvas.toBlob(async (blob) => {
             if(navigator.share && navigator.canShare){
@@ -3091,7 +3091,7 @@
         // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                           || navigator.standalone === true;
-        if(isStandalone || safeGetItem('install_prompt_v9','') === '1'){
+        if(isStandalone || safeGetItem('install_prompt_v10','') === '1'){
             initOnboarding();
         } else {
             showInstallPrompt();
@@ -3107,7 +3107,7 @@
     }
 
     function showInstallPrompt(){
-        safeSetItem('install_prompt_v9','1');
+        safeSetItem('install_prompt_v10','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
 
@@ -3155,11 +3155,12 @@
             } else {
                 installContent = `
                     <button id="install-pwa-btn" onclick="tryInstallOrGuide()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                    <div id="install-guide" style="display:none;background:#F0F7F4;border-radius:12px;padding:14px;margin-bottom:12px;text-align:left;">
-                        <div style="font-size:0.86em;color:#1B4332;line-height:2.2;font-weight:600;">
-                            1️⃣ 브라우저 우측 상단 <b>⋮</b> 탭<br>
-                            2️⃣ <b>"홈 화면에 추가"</b> 선택<br>
-                            3️⃣ <b>"추가"</b> 탭 → 완료!
+                    <div id="install-guide" style="display:block;background:#F0F7F4;border-radius:12px;padding:18px;margin-bottom:12px;text-align:left;">
+                        <div style="font-size:1em;color:#1B4332;line-height:2.8;font-weight:700;">
+                            1️⃣ 이 창 닫기<br>
+                            2️⃣ 크롬 오른쪽 위 <b style="font-size:1.2em;">⋮</b> 버튼 누르기<br>
+                            3️⃣ <b>"홈 화면에 추가"</b> 선택<br>
+                            4️⃣ <b>"추가"</b> 누르면 완료! 🎉
                         </div>
                     </div>
                     <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
@@ -7816,6 +7817,13 @@ https://life2radio.github.io/affirmation/
         window.initApp();
     });
 
+</script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/affirmation/sw.js').catch(function(){});
+    });
+  }
 </script>
 </body>
 </html>
