@@ -108,7 +108,7 @@
         .date-nav-btn { font-size:1.3em; cursor:pointer; background:none; border:none; min-width:44px; min-height:44px; color:var(--primary-color); -webkit-tap-highlight-color:transparent; opacity:0.7; }
         .date-nav-btn:disabled { opacity:0.2; cursor:not-allowed; }
         .date-label { font-size:0.9em; color:var(--text-color); text-align:center; margin-bottom:4px; font-weight:500; }
-        .day-label { font-size:1.45em; font-weight:700; color:var(--primary-color); text-align:center; margin-bottom:16px; }
+        .day-label { font-size:1.45em; font-weight:700; color:var(--primary-color); text-align:center; margin-bottom:16px; cursor:pointer; }
         .readonly-banner { background:rgba(211,47,47,0.06); color:#C62828; text-align:center; padding:8px 14px; border-radius:var(--radius-sm); font-size:0.722em; font-weight:600; margin-bottom:14px; border:1px solid rgba(211,47,47,0.15); }
 
         /* ===== 기분 체크 ===== */
@@ -123,10 +123,10 @@
         .blur-overlay-container { position:relative; }
         .blurred-content { filter:blur(8px); pointer-events:none; user-select:none; }
         .unlock-message { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(255,255,255,0.96); padding:18px 28px; border-radius:var(--radius-md); font-size:0.889em; font-weight:700; color:var(--primary-color); box-shadow:var(--shadow-md); z-index:10; text-align:center; border:1px solid var(--accent-color); }
-        .affirmation-box { background:var(--primary-color); color:#FFFFFF; border-radius:var(--radius-lg); padding:36px 26px; text-align:center; margin-bottom:20px; box-shadow:var(--shadow-md); }
+        .affirmation-box { background:var(--primary-color); color:#FFFFFF; border-radius:var(--radius-lg) var(--radius-lg) 0 0; padding:36px 26px; text-align:center; box-shadow:var(--shadow-md); }
         .theme-text { font-size:0.85em; color:var(--accent-color); margin-bottom:14px; font-weight:700; letter-spacing:1px; }
         .affirmation-text { font-size:var(--font-xl); font-weight:700; line-height:1.72;  }
-        .action-box { background:var(--card-bg); border-radius:var(--radius-md); padding:22px 24px; margin-bottom:20px; box-shadow:var(--shadow-sm); border-left:3px solid var(--accent-color); }
+        .action-box { background:var(--card-bg); border-radius:0 0 var(--radius-md) var(--radius-md); padding:22px 24px; margin-bottom:20px; box-shadow:var(--shadow-sm); border:2px solid var(--accent-color); border-top:none; }
         .action-title { font-size:0.9em; font-weight:700; color:var(--accent-color); margin-bottom:10px; letter-spacing:0.5px; }
         .action-text { font-size:1.05em; font-weight:500; color:var(--text-color); line-height:1.75; }
 
@@ -507,11 +507,6 @@
                 </div>
 
                 <!-- ★ 오늘만 볼 수 있는 FOMO 문구 -->
-                <div id="fomo-box" style="text-align:center;padding:6px 0;margin-bottom:16px;">
-                    <div style="display:inline-block;background:#FFF0E8;border-radius:20px;padding:5px 16px;font-size:0.78em;font-weight:700;color:#C25E00;">
-                        ⏰ 오늘의 확언은 오늘만 열립니다
-                    </div>
-                </div>
 
                 <!-- ★ 오늘 추천 영상 1개 (홈) -->
                 <div id="home-yt-recommend" style="display:none;margin-bottom:16px;">
@@ -550,7 +545,6 @@
                     </div>
                     <div id="secret-code-result" style="font-size:0.8em;color:var(--accent-color);text-align:center;min-height:16px;"></div>
                 </div>
-                <button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button>
                 <!-- ★ 6단계: 확언 카드 공유 버튼 -->
                 <div style="background:linear-gradient(135deg,#FFF8E7,#FFF3D0);border-radius:12px;padding:12px 14px;margin-bottom:10px;border:1px solid rgba(201,168,76,0.3);">
                     <div style="font-size:0.75em;color:#8B6914;font-weight:700;margin-bottom:8px;line-height:1.5;">오늘 아침, 소중한 지인들에게<br>품격 있는 확언으로 아침 인사를 건네보세요 🌅</div>
@@ -2290,7 +2284,6 @@
 
     /* ===== ★ 6단계: 확언 카드 공유 ===== */
     window.openShareCard = function(){
-        addPoint(2,'아침카드공유','share_card');
         const affirmEl = document.getElementById('affirmation-text');
         const themeEl  = document.getElementById('theme-text');
         if(!affirmEl || affirmEl.closest('.blurred-content')) {
@@ -2497,6 +2490,7 @@
     }
 
     window.shareCard = function(){
+        addPoint(1,'확언카드공유','share_card');
         const canvas = document.getElementById('share-canvas');
         canvas.toBlob(async (blob) => {
             if(navigator.share && navigator.canShare){
@@ -3615,6 +3609,7 @@
             dayCount=Math.floor((selectedDateObj-minA)/86400000)+1;
             document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
             document.getElementById('day-label').innerText=`365일 중 ${dayCount}일째`;
+            document.getElementById('day-label').onclick=()=>switchView('calendar');
             prev.disabled=(getFormatDate(selectedDateObj)===getFormatDate(minA));
             next.disabled=isToday;
         } else {
@@ -3628,6 +3623,7 @@
             if(dayCount<1)dayCount=1;
             document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
             document.getElementById('day-label').innerText=`${dayCount}일차`;
+            document.getElementById('day-label').onclick=()=>switchView('calendar');
             prev.disabled=(getFormatDate(selectedDateObj)===getFormatDate(minB));
             next.disabled=isToday;
         }
@@ -3640,14 +3636,16 @@
         const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
         const actionBtnHtml = isToday ? `
             <div style="margin-top:14px;border-top:1px solid rgba(201,168,76,0.2);padding-top:14px;">
-                <button id="action-done-btn" onclick="toggleActionDone()" style="width:100%;min-height:44px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.88em;font-weight:700;cursor:pointer;margin-bottom:8px;">
-                    ${actionDone?'✓ 오늘 행동 실천 완료!':'실행 완료 체크하기'}
-                </button>
-                <button onclick="openActionPhoto()" style="width:100%;min-height:44px;background:${photoDone?'#C9A84C':'rgba(201,168,76,0.15)'};color:${photoDone?'#fff':'#C9A84C'};border:1.5px solid #C9A84C;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">
-                    ${photoDone?'📸 오늘 실천 인증 완료! (+5PT)':'📸 사진으로 실천 인증하기 (+5PT)'}
-                </button>
+                <div style="display:flex;gap:8px;">
+                    <button id="action-done-btn" onclick="toggleActionDone()" style="flex:1;min-height:48px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
+                        ${actionDone?'✓ 실천 완료!':'실행 완료 체크'}
+                    </button>
+                    <button onclick="openActionPhoto()" style="flex:1;min-height:48px;background:${photoDone?'#C9A84C':'rgba(201,168,76,0.15)'};color:${photoDone?'#fff':'#C9A84C'};border:1.5px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
+                        ${photoDone?'📸 인증 완료!':'📸 사진 인증 +5PT'}
+                    </button>
+                </div>
             </div>` : '';
-        document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><div class="action-box"><div class="action-title">오늘의 행동 지침</div><div class="action-text" id="action-text">${data.action}</div>${actionBtnHtml}</div></div>`;
+        document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()" style="width:100%;border-radius:0;margin:0;border-left:2px solid var(--accent-color);border-right:2px solid var(--accent-color);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button><div class="action-box"><div class="action-title">오늘의 행동 지침</div><div class="action-text" id="action-text">${data.action}</div>${actionBtnHtml}</div></div>`;
         const ep=document.getElementById('btn-episode');
         if(data.episode&&data.episode.trim()!==''){
             ep.style.display='flex';
@@ -5600,16 +5598,17 @@ https://life2radio.github.io/affirmation/
 
     window.toggleActionDone=function(){
         const key=`action_done_${getFormatDate(selectedDateObj)}`;
-        const isDone=safeGetItem(key,'')!=='1';
-        safeSetItem(key,isDone?'1':'0');
+        if(safeGetItem(key,'') === '1') return; // 이미 완료면 변경 불가
+        safeSetItem(key,'1');
         const btn=document.getElementById('action-done-btn');
         if(btn){
-            btn.style.background=isDone?'var(--primary-color)':'transparent';
-            btn.style.color=isDone?'#FFFFFF':'var(--accent-color)';
-            btn.style.borderColor=isDone?'var(--primary-color)':'var(--accent-color)';
-            btn.textContent=isDone?'✓ 오늘 행동 실천 완료!':'실행 완료 체크하기';
+            btn.style.background='var(--primary-color)';
+            btn.style.color='#FFFFFF';
+            btn.style.borderColor='var(--primary-color)';
+            btn.textContent='✓ 오늘 행동 실천 완료!';
+            btn.style.cursor='default';
         }
-        if(isDone) showToast('🌿 행동을 실천하셨군요! 오늘 하루 대단해요');
+        showToast('🌿 행동을 실천하셨군요! 오늘 하루 대단해요');
     }
 
     const ONBOARDING_STEPS = [
@@ -6773,10 +6772,10 @@ https://life2radio.github.io/affirmation/
         {name:'새싹',             emoji:'🌿', min:50},
         {name:'풀잎',             emoji:'🍀', min:150},
         {name:'확언러 (나무)',    emoji:'🌳', min:350},
-        {name:'실천가 (숲)',      emoji:'🌲', min:700},
-        {name:'인생2막러 (산)',   emoji:'🏔️', min:1200},
-        {name:'라디오스타 (구름)',emoji:'☁️', min:1850},
-        {name:'인생챔피언 (빛)', emoji:'✨', min:2390},
+        {name:'실천가 (숲)',      emoji:'🌲', min:680},
+        {name:'인생2막러 (산)',   emoji:'🏔️', min:1150},
+        {name:'라디오스타 (구름)',emoji:'☁️', min:1780},
+        {name:'인생챔피언 (빛)', emoji:'✨', min:2300},
     ];
 
     function getPoints(){ return parseInt(safeGetItem('user_points','0'))||0; }
@@ -6970,8 +6969,10 @@ https://life2radio.github.io/affirmation/
 
     // 첫 방문 포인트
     function checkFirstVisit(){
-        if(safeGetItem('pt_first_visit','') === '1') return;
-        safeSetItem('pt_first_visit','1');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        const key = isStandalone ? 'pt_first_standalone' : 'pt_first_visit';
+        if(safeGetItem(key,'') === '1') return;
+        safeSetItem(key,'1');
         setTimeout(()=>{
             addPoint(30, '첫 방문 기념');
             showToast('🎉 첫 방문 기념 +30PT! 오늘 새싹 달성 가능해요!');
