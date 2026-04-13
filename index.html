@@ -6493,7 +6493,7 @@ https://life2radio.github.io/affirmation/
             showToast('먼저 기분을 선택해 확언을 열어주세요!'); return;
         }
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!SR){ showToast('음성인식을 지원하지 않아요. 크롬 브라우저를 사용해주세요!'); return; }
+        if(!SR){ showToast('음성인식 미지원 브라우저예요. 안드로이드 Chrome에서 사용해주세요!'); return; }
 
         // file:// 환경에서는 마이크 사용 불가 안내
         if(location.protocol === 'file:'){
@@ -6524,6 +6524,26 @@ https://life2radio.github.io/affirmation/
         if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition = null; }
         sttActive = true; sttRetryCount = 0;
         let sessionFinal = ''; // 재시작해도 누적 유지
+
+        // 마이크 권한 먼저 명시적 요청
+        if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+            navigator.mediaDevices.getUserMedia({audio:true})
+                .then(function(stream){
+                    stream.getTracks().forEach(function(t){ t.stop(); }); // 스트림 닫기
+                    runSTT(); // 권한 허용 후 STT 시작
+                })
+                .catch(function(err){
+                    sttActive = false;
+                    const g=document.createElement('div');
+                    g.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                    g.innerHTML='<div style="background:#fff;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;"><div style="font-size:36px;margin-bottom:10px;">🎤</div><div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">마이크 허용이 필요해요</div><div style="background:#F5F5F5;border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.88em;color:#333;line-height:2.0;">📱 <b>Chrome 주소창 왼쪽</b><br>자물쇠🔒 탭 → <b>마이크</b> → <b>허용</b><br><br>허용 후 새로고침 해주세요</div><button onclick="window.location.reload()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:8px;">🔄 허용 후 새로고침</button><button onclick="this.closest(\'[style*=fixed]\').remove()" style="width:100%;min-height:40px;background:none;border:1px solid #ccc;border-radius:12px;font-size:0.85em;color:#999;cursor:pointer;">닫기</button></div>';
+                    document.body.appendChild(g);
+                });
+            return; // runSTT 안에서 계속 진행
+        }
+        runSTT(); // getUserMedia 없으면 바로 시작
+
+        function runSTT(){
 
         const sttBox=document.getElementById('stt-box');
         const sttStatus=document.getElementById('stt-status');
@@ -6592,6 +6612,7 @@ https://life2radio.github.io/affirmation/
 
         try{ sttRecognition=createRec(); sttRecognition.start(); }
         catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
+        } // runSTT 끝
     }
 
     let sttActive = false;
