@@ -3087,11 +3087,10 @@
         restoreNotifSchedule();
         initSolidarity();
         loadSheetData();
-        // ★ 설치 팝업 → 온보딩 순서
-        // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
+        // 이미 앱으로 설치된 경우(standalone 모드)에만 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                           || navigator.standalone === true;
-        if(isStandalone || safeGetItem('install_prompt_v4','') === '1'){
+        if(isStandalone){
             initOnboarding();
         } else {
             showInstallPrompt();
@@ -3107,7 +3106,7 @@
     }
 
     function showInstallPrompt(){
-        safeSetItem('install_prompt_v4','1');
+        safeSetItem('install_prompt_v5','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
 
@@ -3203,25 +3202,41 @@
 
     window.tryInstallOrGuide = function(){
         if(pwaInstallPrompt){
+            // 자동 설치 가능하면 바로 실행
             installFromPrompt();
         } else {
-            // pwaInstallPrompt 없으면 안내 표시
-            const guide = document.getElementById('install-guide');
-            if(guide) guide.style.display = 'block';
-            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
+            // 아니면 수동 안내창으로 전환
+            _showManualGuide();
         }
+    }
+
+    function _showManualGuide(){
+        const modal = document.getElementById('install-first-modal');
+        if(!modal) return;
+        const inner = modal.querySelector('div');
+        if(!inner) return;
+        inner.innerHTML = `
+            <div style="font-size:40px;margin-bottom:12px;">📲</div>
+            <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:10px;">이렇게 하면 설치돼요!</div>
+            <div style="background:#F0F7F4;border-radius:14px;padding:18px;margin-bottom:20px;text-align:left;">
+                <div style="font-size:1em;color:#1B4332;line-height:2.6;font-weight:700;">
+                    1️⃣ 이 창 닫기<br>
+                    2️⃣ 크롬 우측 상단 <b style="font-size:1.1em;">⋮</b> 탭<br>
+                    3️⃣ <b>"홈 화면에 추가"</b> 선택<br>
+                    4️⃣ <b>"추가"</b> 탭 → 완료! 🎉
+                </div>
+            </div>
+            <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();"
+                style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                확인했어요! 앱 시작하기 ✓
+            </button>`;
     }
 
     window.installFromPrompt = async function(){
         if(!pwaInstallPrompt){
-            // 이벤트 아직 안 왔으면 안내
-            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
-            const guide = document.getElementById('install-guide');
-            if(guide) guide.style.display = 'block';
+            _showManualGuide();
             return;
         }
-        const btn = document.getElementById('install-pwa-btn');
-        if(btn){ btn.textContent = '⏳ 설치 중...'; btn.disabled = true; }
         document.getElementById('install-first-modal')?.remove();
         try {
             pwaInstallPrompt.prompt();
@@ -3230,9 +3245,7 @@
             if(result.outcome === 'accepted'){
                 showToast('🎉 설치 완료! 홈화면에서 확인해보세요');
             }
-        } catch(e) {
-            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
-        }
+        } catch(e) {}
         initOnboarding();
     }
 
@@ -7816,15 +7829,6 @@ https://life2radio.github.io/affirmation/
         window.initApp();
     });
 
-</script>
-<script>
-  if('serviceWorker' in navigator && location.hostname === 'life2radio.github.io'){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('./sw.js')
-        .then(function(){ console.log('SW 등록 완료'); })
-        .catch(function(e){ console.log('SW 등록 실패:', e); });
-    });
-  }
 </script>
 </body>
 </html>
