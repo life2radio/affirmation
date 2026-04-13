@@ -727,11 +727,11 @@
             <!-- 필사 탭 -->
             <div id="memo-write-view">
                 <div style="background-color:var(--primary-color);border-radius:14px;padding:18px 16px;margin-bottom:16px;">
-                    <div style="font-size:15px;color:var(--accent-color);font-weight:bold;margin-bottom:6px;">오늘의 확언 — 따라 써보세요</div>
-                    <div style="font-size:19px;color:#FFFFFF;font-weight:bold;line-height:1.6;" id="memo-today-affirmation">확언을 불러오는 중...</div>
+                    <div style="font-size:var(--font-sm);color:var(--accent-color);font-weight:bold;margin-bottom:6px;">오늘의 확언 — 따라 써보세요</div>
+                    <div style="font-size:var(--font-xl);color:#FFFFFF;font-weight:bold;line-height:1.6;" id="memo-today-affirmation">확언을 불러오는 중...</div>
                 </div>
-                <textarea id="memo-input" placeholder="여기에 확언을 직접 써보세요. 손으로 쓰는 것처럼 천천히..." style="width:100%;min-height:160px;font-size:20px;font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;border:2px solid #E8E5E0;border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:#333;background:#FDFBF7;outline:none;"></textarea>
-                <div style="text-align:right;font-size:15px;color:#aaa;margin:6px 4px 14px;" id="memo-char-count">0자</div>
+                <textarea id="memo-input" placeholder="여기에 확언을 직접 써보세요. 손으로 쓰는 것처럼 천천히..." style="width:100%;min-height:160px;font-size:var(--font-xl);font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;border:2px solid #E8E5E0;border-radius:14px;padding:16px;box-sizing:border-box;resize:none;line-height:1.7;color:#333;background:#FDFBF7;outline:none;"></textarea>
+                <div style="text-align:right;font-size:var(--font-sm);color:#aaa;margin:6px 4px 14px;" id="memo-char-count">0자</div>
                 <button class="btn btn-main" onclick="saveMemo()" style="font-size:20px;margin-bottom:24px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>저장</button>
                 <!-- 과거 필사 목록 -->
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><div style="font-size:1em;font-weight:bold;color:var(--primary-color);">필사 기록</div><button class="btn btn-sub" style="font-size:0.8em;min-height:38px;padding:0 14px;" onclick="downloadAllMemo()">전체 다운로드</button></div>
@@ -4006,6 +4006,18 @@
         const input = document.getElementById('memo-input');
         const text = input.value.trim();
         if(!text){ showToast('내용을 입력해주세요!'); return; }
+
+        // 확언 글자 수의 80% 이상 입력해야 완료
+        const affirmEl = document.getElementById('memo-today-affirmation');
+        if(affirmEl && affirmEl.textContent && affirmEl.textContent !== '확언을 불러오는 중...'){
+            const affirmLen = affirmEl.textContent.replace(/\s/g,'').length;
+            const inputLen  = text.replace(/\s/g,'').length;
+            const required  = Math.floor(affirmLen * 0.8);
+            if(inputLen < required){
+                showToast(`조금 더 써보세요! 확언의 80% 이상 써야 저장돼요 (${inputLen}/${affirmLen}자)`);
+                return;
+            }
+        }
         addPoint(1,'필사','memo');
         const memos = safeGetJSON('memos', []);
         memos.unshift({ date: getTodayStr(), text: text, ts: Date.now() });
@@ -6726,19 +6738,26 @@ https://life2radio.github.io/affirmation/
         if(!box) return;
         if(!nick){ box.style.display='none'; return; }
 
-        const cd       = safeGetJSON('completed_dates', []);
-        const streak   = calcCurrentStreak(cd);
-        const lastDate = safeGetItem('last_complete_date', '');
-        const today    = getTodayStr();
-        const yesterday= (()=>{ const d=new Date(todayObj); d.setDate(d.getDate()-1); return getFormatDate(d); })();
-        const daysDiff = lastDate ? Math.floor((new Date(today) - new Date(lastDate)) / 86400000) : 999;
+        const today     = getTodayStr();
+        const lastVisit = safeGetItem('last_visit_date', '');
+        const cd        = safeGetJSON('completed_dates', []);
+        const isFirstEver = cd.length === 0 && !lastVisit;
+
+        // 방문일 기록 (오늘 처음 열었을 때만)
+        if(lastVisit !== today){
+            safeSetItem('last_visit_date', today);
+        }
+
+        const yesterday = (()=>{ const d=new Date(todayObj); d.setDate(d.getDate()-1); return getFormatDate(d); })();
+        const daysDiff  = lastVisit ? Math.floor((new Date(today) - new Date(lastVisit)) / 86400000) : 999;
 
         let msg = '';
-        if(cd.length === 0){
+        if(isFirstEver){
             msg = `처음 오셨군요! 반가워요 😊`;
-        } else if(lastDate === today){
+        } else if(lastVisit === today){
+            // 오늘 이미 방문 기록 있음 → 재접속
             msg = `오늘도 오셨군요! 대단해요 🌿`;
-        } else if(daysDiff === 1){
+        } else if(daysDiff <= 1){
             msg = `어제에 이어 오늘도! 연속 중이에요 💚`;
         } else if(daysDiff <= 3){
             msg = `며칠 만이에요! 잘 오셨어요 🌿`;
@@ -6748,8 +6767,7 @@ https://life2radio.github.io/affirmation/
             msg = `오랜만이에요! 오늘부터 다시 함께해요 🌱`;
         }
 
-        document.getElementById('nickname-greeting-text').textContent =
-            `${nick}님, ${msg}`;
+        document.getElementById('nickname-greeting-text').textContent = `${nick}님, ${msg}`;
         box.style.display = 'block';
     }
 
