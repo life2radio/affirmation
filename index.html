@@ -3091,7 +3091,7 @@
         // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                           || navigator.standalone === true;
-        if(isStandalone || safeGetItem('install_prompt_v10','') === '1'){
+        if(isStandalone){
             initOnboarding();
         } else {
             showInstallPrompt();
@@ -3148,23 +3148,9 @@
                 <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
             }
         } else if(isAndroid){
-            if(pwaInstallPrompt){
-                installContent = `
-                    <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                    <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            } else {
-                installContent = `
-                    <button id="install-pwa-btn" onclick="tryInstallOrGuide()" style="width:100%;min-height:56px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                    <div id="install-guide" style="display:block;background:#F0F7F4;border-radius:12px;padding:18px;margin-bottom:12px;text-align:left;">
-                        <div style="font-size:1em;color:#1B4332;line-height:2.8;font-weight:700;">
-                            1️⃣ 이 창 닫기<br>
-                            2️⃣ 크롬 오른쪽 위 <b style="font-size:1.2em;">⋮</b> 버튼 누르기<br>
-                            3️⃣ <b>"홈 화면에 추가"</b> 선택<br>
-                            4️⃣ <b>"추가"</b> 누르면 완료! 🎉
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
-            }
+            installContent = `
+                <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:60px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.1em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
         } else {
             installFromPromptDone();
             return;
@@ -3215,10 +3201,10 @@
 
     window.installFromPrompt = async function(){
         if(!pwaInstallPrompt){
-            // 이벤트 아직 안 왔으면 안내
-            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
-            const guide = document.getElementById('install-guide');
-            if(guide) guide.style.display = 'block';
+            // 이벤트 아직 안 왔으면 버튼 대기 상태로
+            const btn = document.getElementById('install-pwa-btn');
+            if(btn){ btn.textContent = '⏳ 잠시만요...'; btn.disabled = true; }
+            window._pendingInstallClick = true;
             return;
         }
         const btn = document.getElementById('install-pwa-btn');
@@ -4605,6 +4591,12 @@
     window.addEventListener('beforeinstallprompt', (e)=>{
         e.preventDefault();
         pwaInstallPrompt = e;
+        // 버튼을 이미 눌렀는데 이벤트가 늦게 왔으면 즉시 설치창 실행
+        if(window._pendingInstallClick){
+            window._pendingInstallClick = false;
+            installFromPrompt();
+            return;
+        }
         // 첫 방문 설치 팝업 버튼 업데이트
         const btn = document.getElementById('install-pwa-btn');
         if(btn){
