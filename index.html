@@ -6001,7 +6001,7 @@ https://life2radio.github.io/affirmation/
                 {icon:'🔊', label:'소리 듣기', key:'listen', pt:1, action:"goToHomeElement('btn-listen')"},
                 {icon:'🎙', label:'따라읽기', key:'stt', pt:1, action:"goToHomeElement('btn-stt')"},
                 {icon:'😊', label:'기분 체크', key:'mood_check', pt:1, action:"goToHomeElement('affirmation-view')"},
-                {icon:'📸', label:'실천 인증', key:'action_photo', pt:5, action:"goToHomeElement('btn-action-photo')"},
+                {icon:'📸', label:'실천 인증', key:'action_photo', pt:5, action:"switchView('home');setTimeout(()=>openActionPhoto(),400)"},
                 {icon:'✏️', label:'필사', key:'memo', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('write'),100)"},
                 {icon:'📔', label:'일기', key:'diary', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('diary'),100)"},
                 {icon:'📤', label:'확언 공유', key:'share_aff', pt:2, action:"switchView('home');setTimeout(shareAfterComplete,300)"},
@@ -7203,7 +7203,7 @@ https://life2radio.github.io/affirmation/
                 ${row('🔊','소리 듣기',1,'listen', closeAndGo("goToHomeElement('btn-listen')"),'홈 화면 → 소리 듣기 버튼')}
                 ${row('🎙','따라읽기 완료',1,'stt', closeAndGo("goToHomeElement('btn-stt')"),'홈 화면 따라읽기 버튼')}
                 ${row('😊','확언 후 기분 체크',1,'mood_check', closeAndGo("goToHomeElement('affirmation-view')"),'홈 화면 → 기분 이모지 선택')}
-                ${row('📸','오늘의 실천 인증',5,'action_photo', closeAndGo("goToHomeElement('btn-action-photo')"),'홈 화면 → 실천 인증 버튼')}
+                ${row('📸','오늘의 실천 인증',5,'action_photo', closeAndGo("switchView('home');setTimeout(()=>openActionPhoto(),400)"),'홈 화면 → 실천 인증 버튼')}
                 ${row('✏️','필사 저장',1,'memo', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('write'),100)"),'메모장 → 필사 탭')}
                 ${row('📔','일기 저장',1,'diary', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('diary'),100)"),'메모장 → 일기장 탭')}
                 ${row('📤','오늘 확언 공유',2,'share_aff', closeAndGo("shareAfterComplete()"),'홈 → 완료 후 공유 버튼')}
