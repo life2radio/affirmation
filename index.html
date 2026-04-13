@@ -76,7 +76,9 @@
             --font-xl: 22px;
         }
         * { box-sizing: border-box; }
-        body { margin:0; padding:0; background-color:var(--bg-color); color:var(--text-color); font-size:var(--font-base); font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif; line-height:1.7; word-break:keep-all; -webkit-font-smoothing:antialiased; }
+        body { margin:0; padding:0; background-color:var(--bg-color); color:var(--text-color); font-size:var(--font-base); font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif; line-height:1.7; word-break:keep-all; -webkit-font-smoothing:antialiased; user-select:none; -webkit-user-select:none; -ms-user-select:none; }
+        /* 일반 입력창은 타이핑 허용 (붙여넣기는 JS로 차단) */
+        input, textarea { user-select:text !important; -webkit-user-select:text !important; }
         #app-container { max-width:600px; margin:0 auto; min-height:100vh; background-color:var(--bg-color); position:relative; padding-bottom:80px; }
         
         /* ===== 헤더 ===== */
@@ -3257,6 +3259,7 @@
             showPastMe(idx); // ★ 과거의 나
             checkRandomGift(); // ★ 랜덤 선물
             renderKeyQuestion(); // ★ 기분 후 선택 시 핵심질문 표시
+            setTimeout(renderShortsPointSummary, 200); // ★ 실천 탭 갱신
         }
     }
 
@@ -3592,6 +3595,7 @@
         checkStoryCard(completed.length);
         showCompleteReward(completed.length, streak); // ★ 감정 보상 + 공유 유도
         addPoint(1,'확언완료','complete'); checkStreakBonus(streak);
+        setTimeout(renderShortsPointSummary, 200);
     }}catch(e){}}
 
     function updateCompleteButton(){const btn=document.getElementById('btn-complete');if(!btn)return;const icon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';if(!isToday){btn.style.display='none';}else{btn.style.display='flex';const completed=safeGetJSON('completed_dates',[]);if(completed.includes(getFormatDate(selectedDateObj))){btn.innerHTML=icon+'완료됨';btn.disabled=true;}else{btn.innerHTML=icon+'오늘 완료 체크';btn.disabled=false;}}}
@@ -4019,6 +4023,7 @@
             }
         }
         addPoint(1,'필사','memo');
+        setTimeout(renderShortsPointSummary, 200);
         const memos = safeGetJSON('memos', []);
         memos.unshift({ date: getTodayStr(), text: text, ts: Date.now() });
         safeSetJSON('memos', memos);
@@ -7850,6 +7855,14 @@ https://life2radio.github.io/affirmation/
 
     // ===== 앱 시작 =====
     document.addEventListener('DOMContentLoaded', function(){
+        // ★ 필사 입력창 붙여넣기 차단
+        document.addEventListener('paste', function(e){
+            if(e.target && e.target.id === 'memo-input'){
+                e.preventDefault();
+                showToast('붙여넣기는 안 돼요! 직접 손으로 써보세요 ✏️');
+            }
+        });
+
         // ★ 카카오톡 인앱브라우저 감지 (Android) → 크롬으로 열기 안내
         const isKakaoAndroid = /KAKAOTALK/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
         if(isKakaoAndroid){
