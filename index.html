@@ -2290,7 +2290,6 @@
 
     /* ===== ★ 6단계: 확언 카드 공유 ===== */
     window.openShareCard = function(){
-        addPoint(2,'아침카드공유','share_card');
         const affirmEl = document.getElementById('affirmation-text');
         const themeEl  = document.getElementById('theme-text');
         if(!affirmEl || affirmEl.closest('.blurred-content')) {
@@ -2361,7 +2360,7 @@
         const maxWidth  = W - SIDE_PAD*2 - 20;
 
         // 폰트 크기 자동 조절 (긴 텍스트는 작게)
-        let fontSize = affirmText.length < 25 ? 62 : affirmText.length < 50 ? 54 : affirmText.length < 90 ? 46 : affirmText.length < 130 ? 38 : 32;
+        let fontSize = affirmText.length < 25 ? 72 : affirmText.length < 50 ? 62 : affirmText.length < 90 ? 52 : affirmText.length < 130 ? 44 : 36;
         let lineHeight = fontSize * 1.65;
         ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
 
@@ -2497,6 +2496,7 @@
     }
 
     window.shareCard = function(){
+        addPoint(1,'확언카드공유','share_card');
         const canvas = document.getElementById('share-canvas');
         canvas.toBlob(async (blob) => {
             if(navigator.share && navigator.canShare){
