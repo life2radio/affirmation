@@ -7818,9 +7818,9 @@ https://life2radio.github.io/affirmation/
 
 </script>
 <script>
-  if('serviceWorker' in navigator){
+  if('serviceWorker' in navigator && location.hostname === 'life2radio.github.io'){
     window.addEventListener('load', function(){
-      navigator.serviceWorker.register('/affirmation/sw.js')
+      navigator.serviceWorker.register('./sw.js')
         .then(function(){ console.log('SW 등록 완료'); })
         .catch(function(e){ console.log('SW 등록 실패:', e); });
     });
