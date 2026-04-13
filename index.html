@@ -6533,6 +6533,8 @@ https://life2radio.github.io/affirmation/
                     runSTT(); // 권한 허용 후 STT 시작
                 })
                 .catch(function(err){
+                    // getUserMedia 실패해도 STT 자체 권한요청으로 시도
+                    runSTT(); return;
                     sttActive = false;
                     const g=document.createElement('div');
                     g.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
@@ -6575,7 +6577,7 @@ https://life2radio.github.io/affirmation/
                 const resultEl=document.getElementById('stt-result-text');
                 if(bar) bar.style.width=progress+'%';
                 if(resultEl) resultEl.textContent=progress+'%';
-                if(combined && calcSimilarity(combined,target)>0.75){
+                if(combined && calcSimilarity(combined,target)>=0.80){
                     sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
                 }
             };
