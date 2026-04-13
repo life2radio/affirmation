@@ -3091,7 +3091,7 @@
         // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                           || navigator.standalone === true;
-        if(isStandalone || safeGetItem('install_prompt_v3','') === '1'){
+        if(isStandalone || safeGetItem('install_prompt_v4','') === '1'){
             initOnboarding();
         } else {
             showInstallPrompt();
@@ -3107,7 +3107,7 @@
     }
 
     function showInstallPrompt(){
-        safeSetItem('install_prompt_v3','1');
+        safeSetItem('install_prompt_v4','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
 
@@ -7816,6 +7816,15 @@ https://life2radio.github.io/affirmation/
         window.initApp();
     });
 
+</script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/affirmation/sw.js')
+        .then(function(){ console.log('SW 등록 완료'); })
+        .catch(function(e){ console.log('SW 등록 실패:', e); });
+    });
+  }
 </script>
 </body>
 </html>
