@@ -191,8 +191,8 @@
         .badge-item.locked { opacity:0.3; }
         .badge-item.full-width { grid-column:1/-1; }
         .badge-icon { font-size:2.0em; margin-bottom:6px; }
-        .badge-days { font-size:0.889em; font-weight:700; color:var(--primary-color); }
-        .badge-name { font-size:0.722em; color:var(--text-muted); font-weight:500; word-break:keep-all; line-height:1.4; margin-top:2px; }
+        .badge-days { font-size:14px; font-weight:700; color:var(--primary-color); white-space:nowrap; }
+        .badge-name { font-size:11px; color:var(--text-muted); font-weight:500; line-height:1.4; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
         /* ===== 즐겨찾기 ===== */
         .fav-page-title { font-size:1.111em; font-weight:700; color:var(--primary-color); margin:0 0 16px; text-align:center;  }
@@ -297,6 +297,7 @@
     
         @keyframes ptFloat{0%{opacity:1;transform:translateX(-50%) translateY(0);}100%{opacity:0;transform:translateX(-50%) translateY(-80px);}}
     </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div id="app-container">
@@ -630,23 +631,23 @@
 
                 <!-- 연속 달성 등급 직행 홍보 -->
                 <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:14px;padding:16px;margin-bottom:14px;">
-                    <div style="font-size:0.9em;font-weight:700;color:#C9A84C;margin-bottom:8px;text-align:center;">🏆 연속 달성하면 등급이 직행해요!</div>
+                    <div style="font-size:14px;font-weight:700;color:#C9A84C;margin-bottom:8px;text-align:center;">🏆 연속 달성하면 등급이 직행해요!</div>
                     <div style="display:flex;flex-direction:column;gap:6px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;">
-                            <span style="font-size:0.82em;color:rgba(255,255,255,0.9);">🌳 100일 연속 확언 완료</span>
-                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">🏔️ 인생2막러 직행!</span>
+                            <span style="font-size:13px;color:rgba(255,255,255,0.9);white-space:nowrap;">🌳 100일 연속 확언 완료</span>
+                            <span style="font-size:13px;font-weight:700;color:#C9A84C;white-space:nowrap;">🏔️ 인생2막러 직행!</span>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;">
-                            <span style="font-size:0.82em;color:rgba(255,255,255,0.9);">🌟 200일 연속 확언 완료</span>
-                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">☁️ 라디오스타 직행!</span>
+                            <span style="font-size:13px;color:rgba(255,255,255,0.9);white-space:nowrap;">🌟 200일 연속 확언 완료</span>
+                            <span style="font-size:13px;font-weight:700;color:#C9A84C;white-space:nowrap;">☁️ 라디오스타 직행!</span>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(201,168,76,0.3);border-radius:8px;padding:8px 12px;border:1px solid #C9A84C;">
-                            <span style="font-size:0.82em;color:#fff;font-weight:700;">✨ 300일 연속 확언 완료</span>
-                            <span style="font-size:0.82em;font-weight:700;color:#C9A84C;">인생챔피언 직행!!</span>
+                            <span style="font-size:13px;color:#fff;font-weight:700;white-space:nowrap;">✨ 300일 연속 확언 완료</span>
+                            <span style="font-size:13px;font-weight:700;color:#C9A84C;white-space:nowrap;">인생챔피언 직행!!</span>
                         </div>
                     </div>
-                    <div style="font-size:0.73em;color:rgba(255,255,255,0.5);margin-top:8px;text-align:center;">매일 하루도 빠지지 않고 확언을 완료한 날 기준이에요</div>
-                    <button onclick="openPointGuide()" style="width:100%;margin-top:10px;min-height:40px;background:rgba(201,168,76,0.3);color:#C9A84C;border:1px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">📊 포인트 & 등급 상세 보기 →</button>
+                    <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:8px;text-align:center;">매일 하루도 빠지지 않고 확언을 완료한 날 기준이에요</div>
+                    <button onclick="openPointGuide()" style="width:100%;margin-top:10px;min-height:40px;background:rgba(201,168,76,0.3);color:#C9A84C;border:1px solid #C9A84C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">📊 포인트 & 등급 상세 보기 →</button>
                 </div>
             </div>
 
@@ -1029,15 +1030,24 @@
                 <button onclick="shareApp()" style="width:100%;min-height:54px;background:var(--primary-color);color:#FFFFFF;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">이 앱 선물하기</button>
             </div>
 
-            <!-- 닉네임 설정 (명예의 전당용) -->
+            <!-- 개인정보 설정 -->
             <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid var(--border-color);">
-                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🏅 나의 닉네임</div>
-                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">100일 달성 시 명예의 전당에 올라가는 이름이에요</div>
-                <div style="display:flex;gap:10px;">
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:16px;">👤 나의 개인정보</div>
+
+                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:6px;">🏅 닉네임</div>
+                <div style="display:flex;gap:10px;margin-bottom:14px;">
                     <input id="nickname-input" type="text" placeholder="예: 전주의 60대 주부" maxlength="20"
                         style="flex:1;font-size:0.95em;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--bg-color);color:var(--text-color);outline:none;">
-                    <button onclick="saveNickname()" style="background:var(--primary-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:0.9em;font-weight:700;cursor:pointer;">저장</button>
+                    <button onclick="saveNickname()" style="background:var(--primary-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:0.9em;font-weight:700;cursor:pointer;">수정</button>
                 </div>
+
+                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:6px;">📧 이메일</div>
+                <div style="display:flex;gap:10px;">
+                    <input id="user-email-input" type="email" placeholder="이메일 주소"
+                        style="flex:1;font-size:0.95em;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--bg-color);color:var(--text-color);outline:none;">
+                    <button onclick="saveUserEmail()" style="background:var(--primary-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:0.9em;font-weight:700;cursor:pointer;">수정</button>
+                </div>
+                <div style="font-size:0.75em;color:var(--text-muted);margin-top:8px;">사연 보내기에 자동으로 사용돼요</div>
             </div>
 
             
@@ -1810,7 +1820,7 @@
        ========================================================= */
     // ★★★ 구글 스프레드시트 연동 설정 ★★★
     // 스프레드시트 배포 후 아래 URL을 교체하세요
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwaacDnfTuhiO_QCpHzPmex_ZFkr1RGsX1_Nmprp3CzIRjBINfa8tmC7gsCZkQNniz9/exec';
+    const SHEET_API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
 
     async function loadSheetData(){
         if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
@@ -3060,11 +3070,55 @@
         window.scrollTo(0,0);
     }
 
+    // ★ Google One Tap - 이메일만 가져오기
+    const GOOGLE_CLIENT_ID = '960491976015-2d0jequkprvnp5g267i16q4mrgd96qr3.apps.googleusercontent.com';
+
+    window._googleOneTap = function(){
+        if(typeof google === 'undefined'){
+            showToast('구글 연결 중... 잠시 후 다시 눌러주세요');
+            return;
+        }
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: function(response){
+                try {
+                    // JWT 디코딩 (이메일만 추출)
+                    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                    const email = payload.email;
+                    const name  = payload.name;
+                    if(email){
+                        const emailInput = document.getElementById('ob-email-input');
+                        if(emailInput) emailInput.value = email;
+                        // 닉네임 비어있으면 구글 이름으로 채우기
+                        const nickInput = document.getElementById('ob-nick-input');
+                        if(nickInput && !nickInput.value) nickInput.value = name || '';
+                        showToast('✅ 이메일이 입력됐어요!');
+                    }
+                } catch(e) {
+                    showToast('다시 시도해주세요');
+                }
+            },
+            use_fedcm_for_prompt: true
+        });
+        google.accounts.id.prompt();
+    }
+
     window.saveNickname = function(){
         const val = document.getElementById('nickname-input').value.trim();
         if(!val){ showToast('닉네임을 입력해주세요'); return; }
         safeSetItem('my_nickname', val);
         showToast('🏅 닉네임이 저장됐어요!');
+        window._sendUserUpdate();
+    }
+
+    window.saveUserEmail = function(){
+        const val = document.getElementById('user-email-input').value.trim();
+        safeSetItem('my_email', val);
+        // 사연 보내기에도 반영
+        const se = document.getElementById('story-email');
+        if(se) se.value = val;
+        showToast('📧 이메일이 저장됐어요!');
+        window._sendUserUpdate();
     }
 
     window.saveFamilySender = function(){
@@ -3600,6 +3654,7 @@
         showCompleteReward(completed.length, streak); // ★ 감정 보상 + 공유 유도
         addPoint(1,'확언완료','complete'); checkStreakBonus(streak);
         setTimeout(renderShortsPointSummary, 200);
+        window._sendUserUpdate(); // ★ 시트 전송
     }}catch(e){}}
 
     function updateCompleteButton(){const btn=document.getElementById('btn-complete');if(!btn)return;const icon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';if(!isToday){btn.style.display='none';}else{btn.style.display='flex';const completed=safeGetJSON('completed_dates',[]);if(completed.includes(getFormatDate(selectedDateObj))){btn.innerHTML=icon+'완료됨';btn.disabled=true;}else{btn.innerHTML=icon+'오늘 완료 체크';btn.disabled=false;}}}
@@ -3892,10 +3947,10 @@
             let earned=safeGetJSON('earned_badges',[]),html='';
             for(let b of BADGES){let ie=earned.includes('streak_'+b.target),cls=ie?'badge-item earned':'badge-item locked';if(b.target===365)cls+=' full-width';html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.target}일 연속 달성</div><div class="badge-name">${b.name}</div></div>`;}
             // ★ 긍정 변화 배지
-            html += '<div style="grid-column:1/-1;font-size:0.95em;font-weight:700;color:var(--primary-color);margin-top:14px;margin-bottom:4px;">😊 기분 상승 배지 (30일 연속 달성 시 +10PT!)</div>';
+            html += '<div style="grid-column:1/-1;font-size:14px;font-weight:700;color:var(--primary-color);margin-top:14px;margin-bottom:4px;white-space:nowrap;">😊 기분 상승 배지 <span style="font-weight:500;font-size:12px;">(30일 연속 달성 시 +10PT!)</span></div>';
             for(let b of MOOD_RISE_BADGES){
                 let ie=earned.includes(`mood_rise_${b.days}`),cls=ie?'badge-item earned':'badge-item locked';
-                html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.days}일 연속 상승</div><div class="badge-name" style="font-size:14px;">${b.label.replace(/\d+일 연속 /,'')}</div></div>`;
+                html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.days}일 연속 상승</div><div class="badge-name">${b.label.replace(/\d+일 연속 /,'')}</div></div>`;
             }
             let ms=`${todayObj.getFullYear()}_${todayObj.getMonth()+1}`;
             if(earned.includes(`mission_${ms}`))html+=`<div class="badge-item earned full-width" style="margin-top:10px;"><div class="badge-icon">🏅</div><div class="badge-days">이달의 미션 클리어</div><div class="badge-name">이번 달을 훌륭하게 보내셨습니다!</div></div>`;
@@ -5659,22 +5714,29 @@ https://life2radio.github.io/affirmation/
 
     const ONBOARDING_STEPS = [
         {
-            finger:'👇', badge:'1 / 3',
+            finger:'👇', badge:'1 / 4',
             title:'오늘 기분을 먼저 체크해요',
             desc:'이모지를 누르면 오늘의 확언이 열려요.\n매일 기분을 기록하면 나중에 변화를 볼 수 있어요 😊',
             highlight: null
         },
         {
-            finger:'👇', badge:'2 / 3',
+            finger:'👇', badge:'2 / 4',
             title:'확언을 소리내어 읽어보세요',
             desc:'"따라 읽기" 버튼을 누르고 확언을 소리내어 읽으면\n뇌에 더 깊이 새겨진다는 걸 알고 계셨나요?',
             highlight: null
         },
         {
-            finger:'☑️', badge:'3 / 3',
+            finger:'☑️', badge:'3 / 4',
             title:'오늘 완료 체크로 하루를 마무리해요',
             desc:'매일 체크하면 달력에 기록이 남아요.\n365일을 채우는 그날까지 함께할게요! 🌿',
             highlight: null
+        },
+        {
+            finger:'🏅', badge:'4 / 4',
+            title:'나만의 닉네임과 이메일을 등록해요',
+            desc:'사연 보내기, 명예의 전당에 자동으로 사용돼요 😊',
+            highlight: null,
+            isNickname: true
         }
     ];
     let obStep = 0;
@@ -5694,9 +5756,37 @@ https://life2radio.github.io/affirmation/
         document.getElementById('onboarding-title').textContent   = s.title;
         document.getElementById('onboarding-desc').textContent    = s.desc;
         document.getElementById('onboarding-next').textContent    = step < ONBOARDING_STEPS.length-1 ? '다음 →' : '시작하기 🌿';
+
+        // 닉네임+이메일 입력창
+        let nickArea = document.getElementById('ob-nickname-area');
+        if(s.isNickname){
+            if(!nickArea){
+                nickArea = document.createElement('div');
+                nickArea.id = 'ob-nickname-area';
+                nickArea.style.cssText = 'margin:14px 0 4px;';
+                nickArea.innerHTML = `
+                    <input id="ob-nick-input" type="text" maxlength="15" placeholder="닉네임 (예: 전주 60대 주부)"
+                        style="width:100%;padding:12px 14px;font-size:1em;border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:8px;">
+                    <button onclick="window._googleOneTap()" style="width:100%;padding:11px 14px;font-size:0.95em;border:1.5px solid #4285F4;border-radius:10px;box-sizing:border-box;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
+                        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+                        구글 계정에서 이메일 가져오기
+                    </button>
+                    <input id="ob-email-input" type="email" placeholder="또는 직접 입력"
+                        style="width:100%;padding:12px 14px;font-size:0.95em;border:1.5px solid #C8DDD2;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;">
+                    <div style="font-size:11px;color:#aaa;margin-top:6px;text-align:center;">닉네임 필수 · 이메일 필수</div>`;
+                document.getElementById('onboarding-next').parentNode.insertBefore(nickArea, document.getElementById('onboarding-next'));
+            }
+            nickArea.style.display = 'block';
+            const existing = safeGetItem('my_nickname','');
+            const existingEmail = safeGetItem('my_email','');
+            if(existing) document.getElementById('ob-nick-input').value = existing;
+            if(existingEmail) document.getElementById('ob-email-input').value = existingEmail;
+        } else {
+            if(nickArea) nickArea.style.display = 'none';
+        }
+
         // 점 업데이트
         document.querySelectorAll('.ob-dot').forEach((d,i)=> d.classList.toggle('active', i===step));
-        // 카드 위치 — 항상 중앙
         const card = document.getElementById('onboarding-card');
         card.style.top  = '50%';
         card.style.left = '50%';
@@ -5707,6 +5797,23 @@ https://life2radio.github.io/affirmation/
         if(obStep < ONBOARDING_STEPS.length - 1){
             showOnboardingStep(obStep + 1);
         } else {
+            const nickInput  = document.getElementById('ob-nick-input');
+            const emailInput = document.getElementById('ob-email-input');
+            if(!nickInput || !nickInput.value.trim()){
+                showToast('닉네임을 입력해주세요!'); return;
+            }
+            if(!emailInput || !emailInput.value.trim()){
+                showToast('이메일을 입력해주세요!'); return;
+            }
+            safeSetItem('my_nickname', nickInput.value.trim());
+            safeSetItem('my_email', emailInput.value.trim());
+            const ni = document.getElementById('nickname-input');
+            if(ni) ni.value = nickInput.value.trim();
+            const ei = document.getElementById('user-email-input');
+            if(ei) ei.value = emailInput.value.trim();
+            const se = document.getElementById('story-email');
+            if(se) se.value = emailInput.value.trim();
+            window._sendUserUpdate();
             skipOnboarding();
         }
     }
@@ -5773,23 +5880,17 @@ https://life2radio.github.io/affirmation/
 
         const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
         const correct = SECRET_CODES[today];
-        const usedKey = `secret_used_${today}`;
+        // ★ 오늘 날짜+코드 조합으로 중복 체크 (날짜별로 다른 코드면 여러 번 가능)
+        const usedKey = `secret_used_${today}_${input}`;
 
         if(safeGetItem(usedKey, null)){
-            result.textContent = '✅ 오늘은 이미 코드를 입력하셨어요!'; return;
-        }
-        // 동일 코드 중복 입력 방지
-        const usedCodes = safeGetJSON('used_secret_codes', []);
-        if(usedCodes.includes(input)){
-            result.textContent = '⚠️ 이미 사용한 코드예요. 새 영상의 코드를 찾아보세요! 🎬'; return;
+            result.textContent = '✅ 이 코드는 이미 입력하셨어요!'; return;
         }
         if(!correct){
             result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
         }
         if(input === correct){
             safeSetItem(usedKey, '1');
-            // 사용한 코드 목록에 저장
-            usedCodes.push(input); safeSetJSON('used_secret_codes', usedCodes);
             // 패자부활: 결석 1일 삭제
             var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
@@ -6038,9 +6139,9 @@ https://life2radio.github.io/affirmation/
                 const d = isDone(item.key);
                 return '<div onclick="' + item.action + '" style="display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;background:' +
                     (d ? '#F0F7F4' : 'var(--card-bg)') + ';border:1px solid ' + (d ? '#C8DDD2' : 'var(--border-color)') + ';cursor:pointer;">' +
-                    '<span style="font-size:14px;">' + item.icon + '</span>' +
-                    '<span style="font-size:0.75em;flex:1;color:' + (d ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (d ? '700' : '400') + ';">' + item.label + '</span>' +
-                    '<span style="font-size:0.72em;font-weight:700;color:' + (d ? '#1B4332' : '#C9A84C') + ';">' + (d ? '✓' : '+' + item.pt + 'P') + '</span>' +
+                    '<span style="font-size:14px;flex-shrink:0;">' + item.icon + '</span>' +
+                    '<span style="font-size:12px;flex:1;color:' + (d ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (d ? '700' : '400') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.label + '</span>' +
+                    '<span style="font-size:12px;font-weight:700;color:' + (d ? '#1B4332' : '#C9A84C') + ';flex-shrink:0;">' + (d ? '✓' : '+' + item.pt + 'P') + '</span>' +
                     '</div>';
             }).join('');
         }catch(e){}
@@ -7029,6 +7130,47 @@ https://life2radio.github.io/affirmation/
             addPoint(30, '첫 방문 기념');
             showToast('🎉 첫 방문 기념 +30PT! 오늘 새싹 달성 가능해요!');
         }, 2000);
+        // ★ 첫 방문 시 구글 시트에 사용자 등록
+        setTimeout(sendUserDataToSheet, 3000);
+    }
+
+    // ★ 사용자 데이터 구글 시트 전송
+    function sendUserDataToSheet(){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        try {
+            const cd = safeGetJSON('completed_dates', []);
+            const pts = getPoints();
+            const lvIdx = getLevel(pts);
+            const nick = safeGetItem('my_nickname', '');
+            const today = getTodayStr();
+            const startDate = safeGetItem('start_date_B', '') || safeGetItem('app_install_date', today);
+            // 앱 설치일 기록
+            if(!safeGetItem('app_install_date','')) safeSetItem('app_install_date', today);
+            const streak = calcCurrentStreak(cd);
+            const userData = {
+                action: 'user_log',
+                nickname:   nick || '미설정',
+                date:       today,
+                installDate: startDate,
+                totalDays:  cd.length,
+                streak:     streak,
+                points:     pts,
+                level:      LEVELS[lvIdx].name,
+                lastVisit:  today,
+                device:     /Android/i.test(navigator.userAgent) ? '안드로이드' : /iPhone|iPad/i.test(navigator.userAgent) ? '아이폰' : 'PC'
+            };
+            fetch(SHEET_API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(userData)
+            }).catch(()=>{});
+        } catch(e) {}
+    }
+
+    // ★ 매일 접속 시 업데이트 (닉네임 설정 후, 완료 체크 후)
+    window._sendUserUpdate = function(){
+        setTimeout(sendUserDataToSheet, 1000);
     }
 
     // 연속 달성 보너스
@@ -7592,6 +7734,12 @@ https://life2radio.github.io/affirmation/
         const nick = safeGetItem('my_nickname','');
         const ni = document.getElementById('nickname-input');
         if(ni && nick) ni.value = nick;
+        // 이메일 로딩
+        const email = safeGetItem('my_email','');
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        const se = document.getElementById('story-email');
+        if(se && email) se.value = email;
         const sender = safeGetItem('family_sender','');
         const si = document.getElementById('family-sender-input');
         if(si) si.value = sender || '';
@@ -7611,6 +7759,14 @@ https://life2radio.github.io/affirmation/
     }
 
     function initStoryView(){
+        // 닉네임/이메일 자동 입력
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        const nameEl = document.getElementById('story-name');
+        const emailEl = document.getElementById('story-email');
+        if(nameEl && nick && !nameEl.value) nameEl.value = nick;
+        if(emailEl && email && !emailEl.value) emailEl.value = email;
+
         // 글자수 카운터
         const body = document.getElementById('story-body');
         if(body){
