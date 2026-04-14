@@ -4155,7 +4155,7 @@ ${desc}
 🔤 MBTI 연관: ${r.animal.mbti}
 
 너는 어떤 유형이야? 🧠
-👉 https://life2radio.github.io/affirmation/#psych`;
+👉 https://life2radio.github.io/affirmation/?psych=1`;
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 결과가 복사됐어요!')); }
     }
@@ -4174,7 +4174,7 @@ ${desc}
 무료 · 5분 소요 · 16가지 동물 유형 중 나는?
 
 👇 아래 링크에서 바로 시작하세요
-https://life2radio.github.io/affirmation/#psych`;
+https://life2radio.github.io/affirmation/?psych=1`;
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요')); }
     }
@@ -9415,14 +9415,14 @@ https://life2radio.github.io/affirmation/
         setTimeout(linkLevelAndPoint, 1500);
 
         // ★ #psych 해시 & 카카오톡 처리 — 가장 먼저 실행
-        const _hasPsychHash = window.location.hash === '#psych';
+        const _hasPsychParam = new URLSearchParams(window.location.search).get('psych')==='1';
         const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
         const _isAndroid = /Android/i.test(navigator.userAgent);
 
-        if(_hasPsychHash && _isKakao){
+        if(_hasPsychParam && _isKakao){
             // #psych 링크 + 카톡 → 심리테스트 전용 크롬 이동 팝업
             history.replaceState(null, '', window.location.pathname);
-            const psychUrl = 'https://life2radio.github.io/affirmation/#psych';
+            const psychUrl = 'https://life2radio.github.io/affirmation/?psych=1';
             const pm = document.createElement('div');
             pm.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
             pm.innerHTML = `
@@ -9449,17 +9449,15 @@ https://life2radio.github.io/affirmation/
                 t.value = psychUrl; document.body.appendChild(t);
                 t.select(); document.execCommand('copy'); document.body.removeChild(t);
                 if(navigator.clipboard) navigator.clipboard.writeText(psychUrl).catch(()=>{});
-                // ★ 크롬에서 열릴 때 바로 심리테스트 열도록 플래그 저장
-                try{ localStorage.setItem('pending_psych','1'); } catch(e){}
                 this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
-                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                    window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
                 }, 400);
             });
             // initApp은 "그냥 여기서" 버튼 클릭 시에만 실행
 
-        } else if(_isKakao && _isAndroid && !_hasPsychHash){
+        } else if(_isKakao && _isAndroid && !_hasPsychParam){
             // 일반 카톡 → 기존 설치 안내 팝업
             const appUrl = 'https://life2radio.github.io/affirmation/';
             const modal = document.createElement('div');
@@ -9490,36 +9488,21 @@ https://life2radio.github.io/affirmation/
                 this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
-                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                    window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
                 }, 400);
             });
             window.initApp();
 
         } else {
             // 일반 크롬/사파리
-            // ★ pending_psych 플래그 확인 (카톡에서 크롬으로 넘어온 경우)
-            let _pendingPsych = false;
-            try{
-                if(localStorage.getItem('pending_psych')==='1'){
-                    _pendingPsych = true;
-                    localStorage.removeItem('pending_psych');
-                }
-            }catch(e){}
-
-            if(_pendingPsych){
-                // 설치팝업 건너뛰고 바로 심리테스트
-                window.initApp();
-                // 혹시 뜬 팝업 닫고 심리테스트 오픈
+            window.initApp();
+            if(_hasPsychParam){
+                history.replaceState(null, '', window.location.pathname);
+                // 설치팝업 닫고 바로 심리테스트
                 setTimeout(()=>{
                     document.querySelectorAll('div[style*="z-index:999999"]').forEach(el=>el.remove());
                     startPsychTest();
                 }, 1500);
-            } else {
-                window.initApp();
-                if(_hasPsychHash){
-                    history.replaceState(null, '', window.location.pathname);
-                    setTimeout(()=>{ startPsychTest(); }, 1200);
-                }
             }
         }
 
