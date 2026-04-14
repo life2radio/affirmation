@@ -304,6 +304,7 @@
     <header>
         <a onclick="switchView('settings')" class="header-icon-btn" style="left:16px;" title="설정">⚙️</a>
         <a onclick="shareApp()" class="header-icon-btn" style="left:62px;" title="앱 공유">🔗</a>
+        <a onclick="switchView('favorites')" class="header-icon-btn" style="left:108px;" title="즐겨찾기">❤️</a>
         <span id="main-header-title">오늘의 확언</span>
         <a onclick="openSearch()" class="header-icon-btn" style="right:110px;" title="검색">🔍</a>
         <a id="header-bgm-btn" onclick="isBgmOn?(pauseBGM(),updateBgmUI()):openBgmSelector()" class="header-icon-btn" style="right:64px;font-size:1em;" title="배경음악">🎵</a>
@@ -719,6 +720,33 @@
                 <button class="btn btn-sub" onclick="window.speechSynthesis&&window.speechSynthesis.cancel();showToast('⏹ 재생 중지')" style="background:#FFE8E8;color:#C0392B;">⏹ 중지</button>
             </div>
             <div id="fav-list"></div>
+
+            <!-- 심리테스트 섹션 -->
+            <div id="psych-section-in-fav" style="margin:24px 0 16px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                    <div style="flex:1;height:1px;background:var(--border-color);"></div>
+                    <span style="font-size:0.8em;color:var(--text-muted);white-space:nowrap;">나를 더 알고 싶다면</span>
+                    <div style="flex:1;height:1px;background:var(--border-color);"></div>
+                </div>
+                <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px 20px;text-align:center;">
+                    <div style="font-size:36px;margin-bottom:10px;">🧠</div>
+                    <div style="font-size:1.1em;font-weight:900;color:#fff;margin-bottom:6px;">나는 어떤 확언 유형일까?</div>
+                    <div style="font-size:0.82em;color:rgba(255,255,255,0.75);line-height:1.8;margin-bottom:16px;">
+                        Big 5 성격이론 기반 · 12문항<br>
+                        16가지 동물 유형 중 나는?
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;">
+                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦉 올빼미</div>
+                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦊 여우</div>
+                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦁 사자</div>
+                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🐬 돌고래</div>
+                    </div>
+                    <button onclick="startPsychTest()" style="width:100%;min-height:48px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                        🧠 테스트 시작하기 →
+                    </button>
+                    <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:10px;">출처: Big 5 (Costa & McCrae, 1992)</div>
+                </div>
+            </div>
         </div>
 
         <!-- ★ 7단계: 메모(필사) + 일기장 -->
@@ -891,6 +919,31 @@
             </div>
         </div>
 
+        <!-- ★ 심리테스트 -->
+        <div id="view-psych" class="view-section">
+            <div style="padding:24px 20px;text-align:center;">
+                <div style="font-size:48px;margin-bottom:12px;">🧠</div>
+                <div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:8px;">나는 어떤 확언 유형일까?</div>
+                <div style="font-size:0.9em;color:var(--text-muted);line-height:1.8;margin-bottom:24px;">
+                    Big 5 성격 이론 기반<br>
+                    12문항으로 알아보는 나의 확언 동물 유형
+                </div>
+                <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:20px;border:1px solid var(--border-color);text-align:left;">
+                    <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:12px;">🐾 16가지 동물 유형 중 나는?</div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;font-size:0.78em;color:var(--text-muted);">
+                        <div>🦉 올빼미</div><div>🐢 거북이</div><div>🦌 사슴</div><div>🐱 고양이</div>
+                        <div>🐋 고래</div><div>🐺 늑대</div><div>🦊 여우</div><div>🐆 표범</div>
+                        <div>🐘 코끼리</div><div>🐬 돌고래</div><div>🦢 백조</div><div>🐝 꿀벌</div>
+                        <div>🦁 사자</div><div>🦅 독수리</div><div>🦋 나비</div><div>🐯 호랑이</div>
+                    </div>
+                </div>
+                <button onclick="startPsychTest()" style="width:100%;min-height:56px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1.05em;font-weight:700;cursor:pointer;">
+                    🧠 테스트 시작하기 →
+                </button>
+                <div style="font-size:0.78em;color:var(--text-muted);margin-top:12px;">약 5분 소요 · 출처: Big 5 (Costa & McCrae, 1992)</div>
+            </div>
+        </div>
+
         <!-- ★ 8단계: 사연 보내기 -->
         <div id="view-story" class="view-section">
             <!-- 헤더 배너 -->
@@ -1052,11 +1105,44 @@
 
             
 
-            <!-- 앱 초기화 -->
-            <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #E8E5E0;">
-                <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:6px;">🗑️ 앱 데이터 초기화</div>
-                <div style="font-size:16px;color:#888;margin-bottom:16px;line-height:1.6;">모든 기록(완료 체크, 기분, 메모, 일기 등)이 삭제됩니다. 되돌릴 수 없어요.</div>
-                <button onclick="resetAppData()" style="background:#FFF0F0;color:#D32F2F;border:2px solid #D32F2F;border-radius:12px;padding:12px 24px;font-size:18px;font-weight:bold;cursor:pointer;width:100%;">⚠️ 모든 데이터 초기화</button>
+            <!-- 개인정보 설문 -->
+            <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid var(--border-color);">
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">📋 나에 대해 알려주세요</div>
+                <div style="font-size:0.82em;color:var(--text-muted);margin-bottom:16px;">선택 사항이에요. 더 맞춤화된 확언을 준비하는 데 도움이 돼요 😊</div>
+
+                <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">나이대</div>
+                <div id="survey-age" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">앱을 알게 된 경로</div>
+                <div id="survey-route" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">나는 어떤 사람인가요?</div>
+                <div id="survey-type" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">평상시 기분은요?</div>
+                <div id="survey-mood" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">뭐할 때 기분이 좋아요?</div>
+                <div id="survey-happy" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <button onclick="saveSurvey()" style="width:100%;min-height:44px;background:var(--primary-color);color:#fff;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;">저장하기</button>
+            </div>
+
+            <!-- 심리테스트 -->
+            <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid var(--border-color);">
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🧠 나의 확언 동물 유형 테스트</div>
+                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Big 5 성격이론 기반 · 16가지 동물 유형 중 나는 어떤 유형일까요?</div>
+                <button onclick="switchView('favorites'); setTimeout(()=>{document.getElementById('psych-section-in-fav').scrollIntoView({behavior:'smooth'});},400);"
+                    style="width:100%;min-height:48px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                    🧠 심리테스트 하러 가기 →
+                </button>
+            </div>
+
+            <!-- 앱 초기화 (맨 아래) -->
+            <div style="background:#FFF5F5;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #FFCDD2;">
+                <div style="font-size:16px;font-weight:bold;color:#C0392B;margin-bottom:6px;">🗑️ 앱 데이터 초기화</div>
+                <div style="font-size:14px;color:#888;margin-bottom:16px;line-height:1.6;">모든 기록(완료 체크, 기분, 메모, 일기 등)이 삭제됩니다. 되돌릴 수 없어요.</div>
+                <button onclick="confirmReset()" style="background:#FFF0F0;color:#D32F2F;border:2px solid #D32F2F;border-radius:12px;padding:12px 24px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">⚠️ 모든 데이터 초기화</button>
             </div>
 
             <!-- 버전 -->
@@ -3014,6 +3100,9 @@
             document.getElementById('nav-memo').classList.add('active');
             // ★ 필사 탭으로 초기화
             switchMemoTab('write');
+        } else if(viewName==='psych'){
+            document.getElementById('view-psych').classList.add('active');
+            document.getElementById('nav-psych').classList.add('active');
         } else if(viewName==='story'){
             setTimeout(initStoryKakaoUI, 100);
             document.getElementById('view-story').classList.add('active');
@@ -3070,37 +3159,465 @@
         window.scrollTo(0,0);
     }
 
+    // ====================================================
+    // ★ 심리테스트 전체 시스템
+    // ====================================================
+    const PSYCH_TYPES = {
+        '🌙🌱🤝💭': { animal:'🦉', name:'올빼미형', title:'조용한 치유자',
+            desc:'말보다 깊은 눈빛으로 상대를 이해하는 당신. 혼자만의 시간 속에서 진짜 힘을 얻고, 천천히 그러나 확실하게 주변을 치유합니다. 무리하지 않고 자신의 리듬을 지키는 것이 당신의 가장 큰 강점이에요.',
+            mbti:'INFJ/ISFJ 성향', strength:'깊은 공감력, 신중함', growth:'자기표현 늘리기',
+            affirmation:'나는 천천히, 그러나 확실히 나아가고 있다' },
+        '🌙🌱🤝⚡': { animal:'🐢', name:'거북이형', title:'묵묵한 동반자',
+            desc:'느리지만 절대 포기하지 않는 당신. 꾸준함이 최고의 전략임을 몸으로 아는 사람이에요. 가까운 사람을 위해서라면 어떤 어려움도 묵묵히 감당하는 따뜻한 힘이 있습니다.',
+            mbti:'ISFJ/ISTJ 성향', strength:'꾸준함, 신뢰감', growth:'변화 유연하게 받아들이기',
+            affirmation:'나는 오늘도 한 걸음씩, 충분히 나아가고 있다' },
+        '🌙🌱🦋💭': { animal:'🦌', name:'사슴형', title:'섬세한 몽상가',
+            desc:'남들이 보지 못하는 아름다움을 발견하는 당신. 내면 세계가 풍부하고 감수성이 뛰어나 예술적 영감이 넘칩니다. 혼자만의 사색 속에서 세상을 이해하는 깊이가 남다릅니다.',
+            mbti:'INFP/INTP 성향', strength:'창의성, 섬세한 감수성', growth:'현실적 실행력 키우기',
+            affirmation:'나의 내면은 풍요롭고 아름답다' },
+        '🌙🌱🦋⚡': { animal:'🐱', name:'고양이형', title:'독립적 치유자',
+            desc:'자유로운 영혼, 그러나 필요할 때 누구보다 깊이 연결되는 당신. 독립적이면서도 자신만의 방식으로 조용히 세상을 변화시킵니다. 감정을 행동으로 표현하는 직관적인 사람이에요.',
+            mbti:'ISTP/ISFP 성향', strength:'독립심, 직관적 행동력', growth:'관계 더 열어두기',
+            affirmation:'나는 나답게 살기로 한다' },
+        '🌙🔥🤝💭': { animal:'🐋', name:'고래형', title:'깊은 공감자',
+            desc:'바다처럼 깊고 넓은 마음을 가진 당신. 조용하지만 존재만으로도 주변을 안정시키는 힘이 있어요. 변화를 두려워하지 않고, 깊은 사유를 통해 세상을 이해합니다.',
+            mbti:'INFJ/INTJ 성향', strength:'깊은 통찰, 강한 공감력', growth:'자신의 필요도 돌보기',
+            affirmation:'나는 깊이 느끼고, 깊이 사랑한다' },
+        '🌙🔥🤝⚡': { animal:'🐺', name:'늑대형', title:'본능의 리더',
+            desc:'무리를 지키는 강한 본능과 카리스마를 가진 당신. 조용하지만 결정적인 순간에 누구보다 빠르게 행동합니다. 의리와 신뢰를 가장 중요한 가치로 여기는 진정한 리더예요.',
+            mbti:'INTJ/INFJ 성향', strength:'결단력, 강한 의리', growth:'부드러운 소통 연습',
+            affirmation:'나는 내 길을 알고 있다' },
+        '🌙🔥🦋💭': { animal:'🦊', name:'여우형', title:'직관의 탐험가',
+            desc:'번뜩이는 직관과 날카로운 통찰력을 가진 당신. 남들이 놓치는 것을 포착하고, 혼자서도 새로운 길을 개척합니다. 겉으로 조용해 보이지만 내면엔 끊임없이 탐험 중인 지적 호기심이 있어요.',
+            mbti:'INTP/INTJ 성향', strength:'분석력, 창의적 문제해결', growth:'실행으로 연결하기',
+            affirmation:'나는 새로운 가능성을 열린 마음으로 탐험한다' },
+        '🌙🔥🦋⚡': { animal:'🐆', name:'표범형', title:'은밀한 혁신가',
+            desc:'조용하지만 폭발적인 에너지를 품고 있는 당신. 자신만의 방식으로 변화를 만들어내고, 목표를 향해 거침없이 질주합니다. 준비가 됐을 때 누구도 막을 수 없는 사람이에요.',
+            mbti:'ISTP/INTJ 성향', strength:'집중력, 독보적 추진력', growth:'과정도 즐기기',
+            affirmation:'나는 나만의 속도로 세상을 바꾼다' },
+        '☀️🌱🤝💭': { animal:'🐘', name:'코끼리형', title:'따뜻한 수호자',
+            desc:'기억력과 공감력이 탁월한 당신. 주변 모두를 품어주는 포용력과 안정감이 최고의 강점이에요. 천천히 성장하지만 한 번 만든 관계는 평생 소중히 지킵니다.',
+            mbti:'ENFJ/ESFJ 성향', strength:'포용력, 뛰어난 기억력', growth:'자신의 경계 지키기',
+            affirmation:'나는 나를 사랑하는 만큼 세상을 사랑한다' },
+        '☀️🌱🤝⚡': { animal:'🐬', name:'돌고래형', title:'밝은 연결자',
+            desc:'어디서든 웃음꽃을 피우는 당신. 사람과 사람을 이어주는 천부적인 재능이 있고, 에너지가 넘쳐 주변을 활기차게 만듭니다. 꾸준함과 긍정으로 세상을 밝히는 존재예요.',
+            mbti:'ESFJ/ENFJ 성향', strength:'친화력, 밝은 에너지', growth:'깊이 있는 사색 시간 갖기',
+            affirmation:'나는 오늘도 세상에 밝은 빛을 전한다' },
+        '☀️🌱🦋💭': { animal:'🦢', name:'백조형', title:'우아한 성장자',
+            desc:'겉으로 우아해 보이지만 내면에서 끊임없이 노력하는 당신. 자신만의 기준과 미적 감각이 뛰어나고, 조용하지만 인상 깊은 존재감을 가집니다.',
+            mbti:'INFP/ENFP 성향', strength:'심미안, 자기발전 의지', growth:'완벽주의 내려놓기',
+            affirmation:'나는 지금 이 순간에도 충분히 아름답다' },
+        '☀️🌱🦋⚡': { animal:'🐝', name:'꿀벌형', title:'부지런한 실천가',
+            desc:'말보다 행동으로 증명하는 당신. 작은 것도 꼼꼼히 챙기고, 꾸준한 노력으로 달콤한 결실을 만들어냅니다. 혼자서도 묵묵히 자신의 역할을 다하는 진정한 실천가예요.',
+            mbti:'ISTJ/ESTJ 성향', strength:'성실함, 꼼꼼함', growth:'휴식도 생산성임을 기억',
+            affirmation:'나의 작은 노력이 매일 쌓여 큰 변화를 만든다' },
+        '☀️🔥🤝💭': { animal:'🦁', name:'사자형', title:'카리스마 치유자',
+            desc:'강하고 따뜻한 두 가지를 동시에 가진 당신. 리더십과 공감력을 모두 갖춰 사람들이 자연스럽게 따르게 됩니다. 변화를 두려워하지 않고 당당하게 앞장서는 존재예요.',
+            mbti:'ENFJ/ENTJ 성향', strength:'리더십, 강한 공감력', growth:'혼자만의 시간 챙기기',
+            affirmation:'나는 강하고 따뜻하다' },
+        '☀️🔥🤝⚡': { animal:'🦅', name:'독수리형', title:'비전의 선구자',
+            desc:'높은 곳에서 큰 그림을 보는 당신. 미래를 향한 명확한 비전과 추진력으로 불가능을 가능으로 만듭니다. 사람들에게 방향을 제시하는 타고난 선구자예요.',
+            mbti:'ENTJ/ENFJ 성향', strength:'비전, 강한 추진력', growth:'과정의 소소함 즐기기',
+            affirmation:'나는 내가 그리는 미래를 향해 날아간다' },
+        '☀️🔥🦋💭': { animal:'🦋', name:'나비형', title:'자유로운 변화자',
+            desc:'끊임없이 변화하고 성장하는 당신. 어떤 환경에서도 아름답게 적응하고, 자유로운 영혼으로 세상을 날아다닙니다. 변화 자체가 당신의 본질이에요.',
+            mbti:'ENFP/INFP 성향', strength:'적응력, 창의적 자유로움', growth:'한 곳에 뿌리내리기',
+            affirmation:'나는 변화 속에서 더욱 빛난다' },
+        '☀️🔥🦋⚡': { animal:'🐯', name:'호랑이형', title:'열정의 개척자',
+            desc:'뜨거운 열정과 강인한 의지로 새로운 길을 여는 당신. 도전을 즐기고, 실패도 성장의 재료로 삼습니다. 한 번 목표를 정하면 반드시 해내는 불굴의 개척자예요.',
+            mbti:'ESTP/ENTJ 성향', strength:'열정, 강인한 의지', growth:'지속가능한 페이스 찾기',
+            affirmation:'나는 두려운 채로 시작하고 결국 해낸다' },
+    };
+
+    const PSYCH_QUESTIONS = [
+        // 정보 입력 (3개)
+        { type:'info', key:'route', title:'이 앱을 어떻게 알게 됐어요?',
+          options:['유튜브 영상','지인 추천','카톡 공유','인터넷 검색','기타'] },
+        { type:'info', key:'age', title:'나이대가 어떻게 돼요?',
+          options:['30대','40대','50대','60대','70대 이상'] },
+        { type:'info', key:'region', title:'어디에 사시나요?',
+          options:['서울','경기/인천','충청','전라','경상','강원/제주','해외'] },
+        // 심리테스트 (12개)
+        { type:'slider', axis:'E', title:'모임에서 나는 주로?',
+          left:'조용히 듣는 편', right:'대화를 이끄는 편' },
+        { type:'card', axis:'E', title:'에너지가 충전될 때는?',
+          options:['🏠 혼자만의 시간','📚 조용한 독서','🌿 자연 속 산책','🎉 친구들과 웃음','💃 신나는 모임','🎤 사람들 앞에서'] },
+        { type:'slider', axis:'E', title:'낯선 사람을 처음 만나면?',
+          left:'긴장되고 조심스러워', right:'반갑고 설레어' },
+        { type:'slider', axis:'O', title:'변화가 찾아오면?',
+          left:'익숙한 것을 지키고 싶어', right:'일단 뛰어들고 싶어' },
+        { type:'word', axis:'O', title:'나를 가장 잘 표현하는 단어는?',
+          options:['신중한','안정적인','호기심많은','도전적인','창의적인','모험가','자유로운'] },
+        { type:'slider', axis:'O', title:'새로운 아이디어나 계획을 들으면?',
+          left:'검토하고 판단해', right:'일단 흥미롭고 설레어' },
+        { type:'slider', axis:'A', title:'갈등이 생기면 나는?',
+          left:'내 생각을 먼저 말해', right:'상대를 먼저 배려해' },
+        { type:'card', axis:'A', title:'힘든 친구에게 나는?',
+          options:['🤗 꼭 안아줘','👂 끝까지 들어줘','💡 해결책을 줘','🍚 밥부터 사줘','📞 자주 연락해','🙏 조용히 응원해'] },
+        { type:'slider', axis:'A', title:'타인의 감정이 느껴질 때?',
+          left:'나도 같이 감정이 와', right:'객관적으로 바라봐' },
+        { type:'slider', axis:'C', title:'감정이 힘들 때 나는?',
+          left:'가만히 생각 정리해', right:'뭔가 행동을 해' },
+        { type:'word', axis:'C', title:'오늘 나에게 필요한 것은?',
+          options:['조용한 사색','따뜻한 위로','신나는 활동','명확한 계획','즉흥적인 재미','깊은 대화','혼자만의 공간'] },
+        { type:'slider', axis:'C', title:'계획을 세울 때 나는?',
+          left:'꼼꼼하게 세워야 해', right:'큰 그림만 잡으면 돼' },
+    ];
+
+    let psychAnswers = {};
+    let psychStep = 0;
+
+    window.startPsychTest = function(){
+        psychAnswers = {};
+        psychStep = 0;
+        showPsychStep(0);
+    }
+
+    function showPsychStep(step){
+        const existing = document.getElementById('psych-modal');
+        if(existing) existing.remove();
+
+        const total = PSYCH_QUESTIONS.length;
+        const q = PSYCH_QUESTIONS[step];
+        const isInfo = q.type === 'info';
+        const progress = Math.round((step / total) * 100);
+
+        let contentHTML = '';
+
+        if(q.type === 'info'){
+            contentHTML = `<div style="display:flex;flex-direction:column;gap:10px;">
+                ${q.options.map((o,i) => `
+                    <button onclick="selectInfoAnswer(${step},'${o}')"
+                        style="padding:13px 16px;border-radius:12px;border:2px solid ${psychAnswers[q.key]===o?'#1B4332':'var(--border-color)'};
+                        background:${psychAnswers[q.key]===o?'#F0F7F4':'var(--card-bg)'};
+                        color:${psychAnswers[q.key]===o?'#1B4332':'var(--text-color)'};
+                        font-size:0.95em;font-weight:${psychAnswers[q.key]===o?'700':'400'};
+                        cursor:pointer;text-align:left;">
+                        ${psychAnswers[q.key]===o?'✅ ':''}${o}
+                    </button>`).join('')}
+            </div>`;
+        } else if(q.type === 'slider'){
+            const val = psychAnswers[q.axis+'_'+step] || 5;
+            contentHTML = `
+                <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-muted);margin-bottom:8px;">
+                    <span>${q.left}</span><span>${q.right}</span>
+                </div>
+                <input type="range" min="1" max="10" value="${val}"
+                    oninput="psychAnswers['${q.axis}_${step}']=parseInt(this.value);document.getElementById('slider-val-${step}').textContent=this.value"
+                    style="width:100%;height:8px;accent-color:#1B4332;cursor:pointer;margin-bottom:8px;">
+                <div style="text-align:center;font-size:1.2em;font-weight:700;color:#1B4332;" id="slider-val-${step}">${val}</div>
+                <div style="display:flex;justify-content:space-between;font-size:0.75em;color:var(--text-muted);">
+                    <span>1</span><span>5</span><span>10</span>
+                </div>`;
+        } else if(q.type === 'card'){
+            contentHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                ${q.options.map((o,i) => `
+                    <button onclick="selectCardAnswer(${step},'${q.axis}',${i},this)"
+                        style="padding:16px 10px;border-radius:14px;border:2px solid ${psychAnswers[q.axis+'_'+step]===i?'#1B4332':'var(--border-color)'};
+                        background:${psychAnswers[q.axis+'_'+step]===i?'#F0F7F4':'var(--card-bg)'};
+                        font-size:1.5em;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                        <span>${o.split(' ')[0]}</span>
+                        <span style="font-size:0.5em;color:var(--text-color);font-weight:${psychAnswers[q.axis+'_'+step]===i?'700':'400'};">${o.split(' ').slice(1).join(' ')}</span>
+                    </button>`).join('')}
+            </div>`;
+        } else if(q.type === 'word'){
+            contentHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+                ${q.options.map((o,i) => `
+                    <button onclick="selectWordAnswer(${step},'${q.axis}',${i})"
+                        style="padding:10px 16px;border-radius:20px;border:2px solid ${psychAnswers[q.axis+'_'+step]===i?'#1B4332':'var(--border-color)'};
+                        background:${psychAnswers[q.axis+'_'+step]===i?'#1B4332':'var(--card-bg)'};
+                        color:${psychAnswers[q.axis+'_'+step]===i?'#fff':'var(--text-color)'};
+                        font-size:0.9em;font-weight:700;cursor:pointer;">
+                        ${o}
+                    </button>`).join('')}
+            </div>`;
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;overflow-y:auto;';
+        modal.innerHTML = `
+            <div style="background:var(--bg-color);min-height:100vh;display:flex;flex-direction:column;">
+                <!-- 헤더 -->
+                <div style="background:#1B4332;padding:16px 20px;display:flex;align-items:center;gap:12px;">
+                    <button onclick="document.getElementById('psych-modal').remove();"
+                        style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;">✕</button>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.7);">
+                            ${isInfo ? '기본 정보' : '심리테스트'} · ${step+1} / ${total}
+                        </div>
+                        <div style="background:rgba(255,255,255,0.2);border-radius:4px;height:4px;margin-top:4px;">
+                            <div style="background:#C9A84C;height:100%;border-radius:4px;width:${progress}%;transition:width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 질문 -->
+                <div style="flex:1;padding:28px 20px;">
+                    <div style="font-size:0.78em;color:#1B4332;font-weight:700;margin-bottom:8px;">
+                        ${isInfo ? '📋 기본 정보' : '🧠 Q' + (step-2)}
+                    </div>
+                    <div style="font-size:1.15em;font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.5;">
+                        ${q.title}
+                    </div>
+                    ${contentHTML}
+                </div>
+
+                <!-- 하단 버튼 -->
+                <div style="padding:16px 20px;display:flex;gap:10px;background:var(--bg-color);border-top:1px solid var(--border-color);">
+                    ${step > 0 ? `<button onclick="showPsychStep(${step-1})"
+                        style="flex:1;min-height:48px;background:var(--card-bg);color:var(--text-color);border:1px solid var(--border-color);border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                        ← 이전
+                    </button>` : ''}
+                    <button onclick="psychNext(${step})"
+                        style="flex:2;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                        ${step < total-1 ? '다음 →' : '결과 보기 🎉'}
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    window.selectInfoAnswer = function(step, val){
+        const q = PSYCH_QUESTIONS[step];
+        psychAnswers[q.key] = val;
+        showPsychStep(step); // 리렌더
+    }
+    window.selectCardAnswer = function(step, axis, idx, btn){
+        psychAnswers[axis+'_'+step] = idx;
+        showPsychStep(step);
+    }
+    window.selectWordAnswer = function(step, axis, idx){
+        psychAnswers[axis+'_'+step] = idx;
+        showPsychStep(step);
+    }
+
+    window.psychNext = function(step){
+        const q = PSYCH_QUESTIONS[step];
+        // 유효성 검사
+        if(q.type === 'info' && !psychAnswers[q.key]){
+            showToast('선택해주세요!'); return;
+        }
+        if(q.type === 'card' && psychAnswers[q.axis+'_'+step] === undefined){
+            showToast('카드를 선택해주세요!'); return;
+        }
+        if(q.type === 'word' && psychAnswers[q.axis+'_'+step] === undefined){
+            showToast('단어를 선택해주세요!'); return;
+        }
+        if(q.type === 'slider' && !psychAnswers[q.axis+'_'+step]){
+            psychAnswers[q.axis+'_'+step] = 5; // 기본값
+        }
+
+        if(step < PSYCH_QUESTIONS.length - 1){
+            showPsychStep(step + 1);
+        } else {
+            calcPsychResult();
+        }
+    }
+
+    function calcPsychResult(){
+        // 각 축 점수 계산 (높을수록 외향/도약/독립/행동)
+        const scores = {E:0, O:0, A:0, C:0};
+        const counts = {E:0, O:0, A:0, C:0};
+
+        PSYCH_QUESTIONS.forEach((q, step) => {
+            if(q.type === 'slider'){
+                scores[q.axis] += psychAnswers[q.axis+'_'+step] || 5;
+                counts[q.axis]++;
+            } else if(q.type === 'card'){
+                const idx = psychAnswers[q.axis+'_'+step] || 0;
+                // 카드 순서: 1~3은 내향/점진/관계/사색, 4~6은 외향/도약/독립/행동
+                scores[q.axis] += idx < 3 ? 3 : 8;
+                counts[q.axis]++;
+            } else if(q.type === 'word'){
+                const idx = psychAnswers[q.axis+'_'+step] || 0;
+                scores[q.axis] += idx < 3 ? 3 : idx < 5 ? 5 : 8;
+                counts[q.axis]++;
+            }
+        });
+
+        // 평균 계산
+        const avg = {};
+        ['E','O','A','C'].forEach(k => { avg[k] = counts[k] > 0 ? scores[k]/counts[k] : 5; });
+
+        // 4축 결과
+        const E = avg.E >= 5.5 ? '☀️' : '🌙';
+        const O = avg.O >= 5.5 ? '🔥' : '🌱';
+        const A = avg.A >= 5.5 ? '🤝' : '🦋';
+        const C = avg.C >= 5.5 ? '⚡' : '💭';
+
+        const typeKey = E+O+A+C;
+        const result = PSYCH_TYPES[typeKey] || PSYCH_TYPES['🌙🌱🤝💭'];
+
+        // 저장
+        safeSetItem('psych_result', JSON.stringify({
+            typeKey, result, answers: psychAnswers,
+            scores: avg, date: getTodayStr()
+        }));
+
+        showPsychResult(typeKey, result, avg);
+    }
+
+    function showPsychResult(typeKey, result, scores){
+        const modal = document.getElementById('psych-modal');
+        if(!modal) return;
+
+        const eScore = Math.round(scores.E * 10);
+        const oScore = Math.round(scores.O * 10);
+        const aScore = Math.round(scores.A < 5.5 ? (10-scores.A)*10 : scores.A*10);
+        const cScore = Math.round(scores.C < 5.5 ? (10-scores.C)*10 : scores.C*10);
+
+        modal.innerHTML = `
+            <div style="background:var(--bg-color);min-height:100vh;">
+                <!-- 결과 헤더 -->
+                <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:40px 20px;text-align:center;">
+                    <div style="font-size:0.82em;color:rgba(255,255,255,0.7);margin-bottom:8px;">나의 확언 동물 유형</div>
+                    <div style="font-size:80px;margin-bottom:8px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3));">${result.animal}</div>
+                    <div style="font-size:1.6em;font-weight:900;color:#fff;margin-bottom:4px;">${result.name}</div>
+                    <div style="font-size:1em;color:#C9A84C;font-weight:700;">"${result.title}"</div>
+                </div>
+
+                <div style="padding:24px 20px;">
+                    <!-- 설명 -->
+                    <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid var(--border-color);">
+                        <div style="font-size:0.85em;font-weight:700;color:#1B4332;margin-bottom:10px;">🦄 나는 이런 사람이에요</div>
+                        <div style="font-size:0.9em;line-height:1.9;color:var(--text-color);">${result.desc}</div>
+                    </div>
+
+                    <!-- Big 5 점수 -->
+                    <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid var(--border-color);">
+                        <div style="font-size:0.85em;font-weight:700;color:#1B4332;margin-bottom:14px;">📊 Big 5 성격 분석</div>
+                        ${[
+                            ['외향성', eScore, '내향적', '외향적'],
+                            ['개방성', oScore, '안정 추구', '변화 추구'],
+                            ['친화성', aScore, '독립적', '관계 중심'],
+                            ['행동력', cScore, '사색형', '실행형']
+                        ].map(([label, score, left, right]) => `
+                            <div style="margin-bottom:12px;">
+                                <div style="display:flex;justify-content:space-between;font-size:0.8em;margin-bottom:4px;">
+                                    <span style="font-weight:700;color:var(--text-color);">${label}</span>
+                                    <span style="color:#1B4332;font-weight:700;">${score}%</span>
+                                </div>
+                                <div style="background:var(--border-color);border-radius:6px;height:8px;">
+                                    <div style="background:linear-gradient(90deg,#1B4332,#C9A84C);height:100%;border-radius:6px;width:${score}%;transition:width 0.8s;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;font-size:0.7em;color:var(--text-muted);margin-top:2px;">
+                                    <span>${left}</span><span>${right}</span>
+                                </div>
+                            </div>`).join('')}
+                        <div style="font-size:0.72em;color:var(--text-muted);margin-top:8px;">출처: Costa & McCrae (1992) Big Five Personality Model</div>
+                    </div>
+
+                    <!-- 강점/성장 -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+                        <div style="background:#F0F7F4;border-radius:14px;padding:16px;">
+                            <div style="font-size:0.78em;font-weight:700;color:#1B4332;margin-bottom:6px;">💪 강점</div>
+                            <div style="font-size:0.82em;color:#1B4332;">${result.strength}</div>
+                        </div>
+                        <div style="background:#FFF8E7;border-radius:14px;padding:16px;">
+                            <div style="font-size:0.78em;font-weight:700;color:#C9A84C;margin-bottom:6px;">🌱 성장 포인트</div>
+                            <div style="font-size:0.82em;color:#856404;">${result.growth}</div>
+                        </div>
+                    </div>
+
+                    <!-- MBTI 연계 -->
+                    <div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid var(--border-color);">
+                        <div style="font-size:0.78em;font-weight:700;color:var(--text-muted);margin-bottom:4px;">🔤 MBTI 연관 유형</div>
+                        <div style="font-size:0.9em;color:var(--text-color);font-weight:700;">${result.mbti}</div>
+                    </div>
+
+                    <!-- 추천 확언 -->
+                    <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+                        <div style="font-size:0.78em;color:#C9A84C;font-weight:700;margin-bottom:8px;">✨ ${result.name}을 위한 추천 확언</div>
+                        <div style="font-size:1em;color:#fff;font-weight:700;line-height:1.7;">"${result.affirmation}"</div>
+                    </div>
+
+                    <!-- 공유 버튼 -->
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+                        <button onclick="sharePsychResult('${result.animal}','${result.name}','${result.title}')"
+                            style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                            ${result.animal} 내 결과 공유하기 📤
+                        </button>
+                        <button onclick="sharePsychTest()"
+                            style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:14px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                            💌 친구에게 테스트 추천하기
+                        </button>
+                    </div>
+
+                    <!-- 다시하기 / 확언하러 가기 -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:30px;">
+                        <button onclick="startPsychTest()"
+                            style="min-height:44px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;">
+                            🔄 다시 테스트
+                        </button>
+                        <button onclick="document.getElementById('psych-modal').remove(); switchView('home');"
+                            style="min-height:44px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">
+                            🌿 확언 하러 가기
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    window.sharePsychResult = function(animal, name, title){
+        const text = `나는 ${animal} ${name} - "${title}"!\n\nBig 5 성격이론 기반 확언 동물 유형 테스트\n너는 어떤 유형일까? 👇\nhttps://life2radio.github.io/affirmation/`;
+        if(navigator.share){
+            navigator.share({ text }).catch(()=>{});
+        } else {
+            navigator.clipboard?.writeText(text).then(()=> showToast('📋 결과가 복사됐어요! 카톡에 붙여넣기 하세요'));
+        }
+    }
+
+    window.sharePsychTest = function(){
+        const text = `🧠 나는 16가지 동물 중 어떤 확언 유형일까?\n\nBig 5 성격이론 기반 · 12문항 심리테스트\n결과가 진짜 나 같아서 소름... 👇\nhttps://life2radio.github.io/affirmation/`;
+        if(navigator.share){
+            navigator.share({ text }).catch(()=>{});
+        } else {
+            navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요'));
+        }
+    }
+
     // ★ Google One Tap - 이메일만 가져오기
     const GOOGLE_CLIENT_ID = '960491976015-2d0jequkprvnp5g267i16q4mrgd96qr3.apps.googleusercontent.com';
 
     window._googleOneTap = function(){
-        if(typeof google === 'undefined'){
-            showToast('구글 연결 중... 잠시 후 다시 눌러주세요');
-            return;
-        }
-        google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: function(response){
-                try {
-                    // JWT 디코딩 (이메일만 추출)
-                    const payload = JSON.parse(atob(response.credential.split('.')[1]));
-                    const email = payload.email;
-                    const name  = payload.name;
-                    if(email){
-                        const emailInput = document.getElementById('ob-email-input');
-                        if(emailInput) emailInput.value = email;
-                        // 닉네임 비어있으면 구글 이름으로 채우기
-                        const nickInput = document.getElementById('ob-nick-input');
-                        if(nickInput && !nickInput.value) nickInput.value = name || '';
-                        showToast('✅ 이메일이 입력됐어요!');
-                    }
-                } catch(e) {
-                    showToast('다시 시도해주세요');
+        // OAuth 팝업 방식 - 더 안정적
+        const redirectUri = encodeURIComponent('https://life2radio.github.io/affirmation/');
+        const scope = encodeURIComponent('email profile');
+        const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&prompt=select_account`;
+
+        const popup = window.open(url, 'google_oauth', 'width=500,height=600,scrollbars=yes');
+
+        // 팝업에서 돌아온 토큰 처리
+        const timer = setInterval(()=>{
+            try {
+                if(popup && popup.closed){
+                    clearInterval(timer);
+                    return;
                 }
-            },
-            use_fedcm_for_prompt: true
-        });
-        google.accounts.id.prompt();
+                if(popup && popup.location && popup.location.hash){
+                    const hash = popup.location.hash;
+                    clearInterval(timer);
+                    popup.close();
+                    const params = new URLSearchParams(hash.substring(1));
+                    const token = params.get('access_token');
+                    if(token){
+                        fetch('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + token)
+                            .then(r => r.json())
+                            .then(info => {
+                                const emailEl = document.getElementById('nm-email') || document.getElementById('ob-email-input');
+                                const nickEl  = document.getElementById('nm-nick')  || document.getElementById('ob-nick-input');
+                                if(emailEl && info.email) emailEl.value = info.email;
+                                if(nickEl  && !nickEl.value && info.name) nickEl.value = info.name;
+                                showToast('✅ 구글 이메일이 입력됐어요!');
+                            }).catch(()=> showToast('이메일을 직접 입력해주세요'));
+                    }
+                }
+            } catch(e) {}
+        }, 500);
+
+        // 30초 후 자동 종료
+        setTimeout(()=>{ clearInterval(timer); if(popup && !popup.closed) popup.close(); }, 30000);
     }
 
     // ★ 설치없이 이용하기 → 닉네임/이메일 등록 팝업
@@ -3165,28 +3682,6 @@
         // 기존 값 채우기
         if(existNick) document.getElementById('nm-nick').value = existNick;
         if(existEmail) document.getElementById('nm-email').value = existEmail;
-
-        // 구글 One Tap을 이 모달의 이메일 입력창으로 연결
-        window._googleOneTap = function(){
-            if(typeof google === 'undefined'){ showToast('구글 연결 중... 잠시 후 다시 눌러주세요'); return; }
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: function(response){
-                    try {
-                        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-                        if(payload.email){
-                            const emailEl = document.getElementById('nm-email') || document.getElementById('ob-email-input');
-                            if(emailEl) emailEl.value = payload.email;
-                            const nickEl = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
-                            if(nickEl && !nickEl.value) nickEl.value = payload.name || '';
-                            showToast('✅ 이메일이 입력됐어요!');
-                        }
-                    } catch(e) { showToast('다시 시도해주세요'); }
-                },
-                use_fedcm_for_prompt: true
-            });
-            google.accounts.id.prompt();
-        }
     }
 
     window._saveNicknameModal = function(){
@@ -3209,7 +3704,8 @@
 
     window.saveNickname = function(){
         const val = document.getElementById('nickname-input').value.trim();
-        if(!val){ showToast('닉네임을 입력해주세요'); return; }
+        if(!val){ showToast('닉네임을 입력해주세요!'); return; }
+        if(val.length < 2){ showToast('닉네임은 2글자 이상이어야 해요!'); return; }
         safeSetItem('my_nickname', val);
         showToast('🏅 닉네임이 저장됐어요!');
         window._sendUserUpdate();
@@ -3217,8 +3713,11 @@
 
     window.saveUserEmail = function(){
         const val = document.getElementById('user-email-input').value.trim();
+        if(!val){ showToast('이메일을 입력해주세요!'); return; }
+        // 이메일 형식 검사 (@ + 도메인 포함)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if(!emailRegex.test(val)){ showToast('올바른 이메일 형식이 아니에요!\n예: abc@gmail.com'); return; }
         safeSetItem('my_email', val);
-        // 사연 보내기에도 반영
         const se = document.getElementById('story-email');
         if(se) se.value = val;
         showToast('📧 이메일이 저장됐어요!');
@@ -7706,6 +8205,7 @@ https://life2radio.github.io/affirmation/
     }
 
     function initSettings(){
+        renderSurvey(); // ★ 설문 렌더링
         // 글자 크기
         const fs = safeGetItem('setting_fontsize','normal');
         ['normal','large','xlarge'].forEach(s=>{
@@ -7798,6 +8298,63 @@ https://life2radio.github.io/affirmation/
         if(!tog) return;
         tog.style.background = on ? 'var(--primary-color)' : '#E8E5E0';
         thumb.style.left     = on ? '29px' : '3px';
+    }
+
+    // ★ 초기화 확인 창
+    window.confirmReset = function(){
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:20px;padding:28px 24px;width:88%;max-width:340px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+                <div style="font-size:1.1em;font-weight:700;color:#C0392B;margin-bottom:8px;">정말 초기화할까요?</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    <b>모든 기록이 완전히 삭제돼요.</b><br>
+                    완료 체크, 기분, 메모, 일기,<br>포인트까지 되돌릴 수 없어요.
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="this.closest('div[style*=fixed]').remove();" style="flex:1;min-height:48px;background:#F5F5F5;color:#333;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">취소</button>
+                    <button onclick="this.closest('div[style*=fixed]').remove(); resetAppData();" style="flex:1;min-height:48px;background:#D32F2F;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">초기화</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    // ★ 설문 렌더링
+    const SURVEYS = {
+        age:   { key:'survey_age',   items:['40대','50대','60대','70대 이상','비공개'] },
+        route: { key:'survey_route', items:['인생2막라디오 유튜브','지인 공유','검색','광고','기타'] },
+        type:  { key:'survey_type',  items:['단순 평범하게','생각이 많은 편','감성적인 편','활동적인 편','기타'] },
+        mood:  { key:'survey_mood',  items:['대체로 즐거워요','잔잔한 편이에요','우울할 때가 많아요','신경이 예민해요','들쭉날쭉해요'] },
+        happy: { key:'survey_happy', items:['책 읽을 때','산책할 때','운동할 때','음악 들을 때','잠잘 때','영화 볼 때','일기 쓸 때','요리할 때','여행할 때','가족과 함께'] },
+    };
+
+    function renderSurvey(){
+        Object.entries(SURVEYS).forEach(([name, cfg])=>{
+            const el = document.getElementById('survey-' + name);
+            if(!el) return;
+            const saved = safeGetItem(cfg.key, '');
+            el.innerHTML = cfg.items.map(item => {
+                const active = saved === item;
+                return `<button onclick="selectSurvey('${cfg.key}','${item}',this.parentNode)" style="padding:7px 14px;border-radius:20px;font-size:0.85em;font-weight:600;cursor:pointer;border:1.5px solid ${active?'var(--primary-color)':'var(--border-color)'};background:${active?'var(--primary-color)':'var(--card-bg)'};color:${active?'#fff':'var(--text-color)'};">${item}</button>`;
+            }).join('');
+        });
+    }
+
+    window.selectSurvey = function(key, val, container){
+        safeSetItem(key, val);
+        // 버튼 스타일 업데이트
+        container.querySelectorAll('button').forEach(btn => {
+            const active = btn.textContent === val;
+            btn.style.border = `1.5px solid ${active?'var(--primary-color)':'var(--border-color)'}`;
+            btn.style.background = active ? 'var(--primary-color)' : 'var(--card-bg)';
+            btn.style.color = active ? '#fff' : 'var(--text-color)';
+        });
+    }
+
+    window.saveSurvey = function(){
+        showToast('😊 저장됐어요! 감사해요!');
+        window._sendUserUpdate();
     }
 
     window.resetAppData = function(){
