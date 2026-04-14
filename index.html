@@ -3542,7 +3542,10 @@
                 </div>
                 <button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;margin-bottom:8px;">💌 친구에게 테스트 추천하기</button>
                 ${isStandalone
-                    ? `<button onclick="downloadPsychResult()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:1px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📥 결과지 이미지 저장</button>`
+                    ? `<div style="display:flex;gap:8px;margin-top:8px;">
+                        <button onclick="downloadPsychResult()" style="flex:1;min-height:40px;background:var(--card-bg);color:#1B4332;border:1px solid #1B4332;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📥 이미지 저장</button>
+                        <button onclick="downloadPsychPDF()" style="flex:1;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📄 상세 PDF</button>
+                      </div>`
                     : `<button onclick="document.getElementById('psych-modal').remove();showInstallPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📥 결과지 저장하려면 → 앱 설치하기</button>`}
                 <div style="text-align:center;margin-top:10px;">
                     <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
@@ -3635,6 +3638,266 @@
     }
 
     // ★ 결과지 이미지 저장 (앱 설치 시에만)
+    window.downloadPsychPDF = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const r = JSON.parse(saved);
+        const s = r.scores;
+        const love    = getLoveStyle(s);
+        const work    = getWorkStyle(s);
+        const friend  = getFriendStyle(s);
+        const hard    = getHardStyle(s);
+        const via     = getViaStyle(r.viaStrengths);
+        const nick    = safeGetItem('my_nickname','') || '나';
+        const today   = getTodayStr();
+
+        // 자존감 해석
+        const rseLevel = s.RSE >= 85 ? '매우 높음 — 안정적 자기가치감'
+            : s.RSE >= 65 ? '높음 — 전반적으로 긍정적 자기관'
+            : s.RSE >= 45 ? '평균 — 상황에 따라 변동'
+            : s.RSE >= 25 ? '낮음 — 자기비판 경향'
+            : '매우 낮음 — 심리적 지원 권장';
+
+        // Big5 각 요인 해석
+        function bfiDesc(label, val, high, low){
+            return val >= 65 ? `<span style="color:#1B4332;font-weight:700;">${label} ${val}% — ${high}</span>`
+                : val < 40 ? `<span style="color:#C9A84C;font-weight:700;">${label} ${val}% — ${low}</span>`
+                : `<span style="color:#555;">${label} ${val}% — 중간 수준</span>`;
+        }
+
+        const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${nick}님의 성격 분석 결과지</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif; background:#F5F3EF; color:#333; font-size:14px; line-height:1.7; }
+  .page { max-width:720px; margin:0 auto; padding:20px; }
+
+  /* 표지 헤더 */
+  .header { background:linear-gradient(135deg,#1B4332,#2D6A4F); color:#fff; border-radius:20px; padding:40px 32px; text-align:center; margin-bottom:20px; }
+  .header .badge { display:inline-block; background:rgba(212,168,67,0.2); border:1px solid rgba(212,168,67,0.5); border-radius:20px; padding:6px 20px; font-size:12px; color:#C9A84C; font-weight:700; margin-bottom:16px; letter-spacing:2px; }
+  .header .animal { font-size:80px; margin-bottom:8px; }
+  .header .type-name { font-size:32px; font-weight:900; color:#C9A84C; margin-bottom:4px; }
+  .header .type-title { font-size:18px; color:rgba(255,255,255,0.85); margin-bottom:4px; }
+  .header .mbti { font-size:13px; color:rgba(255,255,255,0.5); }
+  .header .tagline { font-size:15px; color:rgba(255,255,255,0.8); margin-top:12px; padding:12px 20px; background:rgba(255,255,255,0.08); border-radius:12px; }
+  .header .date { font-size:12px; color:rgba(255,255,255,0.4); margin-top:16px; }
+
+  /* 섹션 카드 */
+  .card { background:#fff; border-radius:16px; padding:24px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+  .card-title { font-size:16px; font-weight:700; color:#1B4332; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #F0F7F4; display:flex; align-items:center; gap:8px; }
+  .card-title .icon { font-size:20px; }
+
+  /* Big5 바 */
+  .bar-wrap { margin-bottom:14px; }
+  .bar-header { display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; }
+  .bar-label { font-weight:700; color:#333; }
+  .bar-score { font-weight:700; color:#1B4332; }
+  .bar-bg { background:#F0F0F0; border-radius:10px; height:10px; overflow:hidden; margin-bottom:4px; }
+  .bar-fill { height:100%; border-radius:10px; background:linear-gradient(90deg,#1B4332,#52B788); }
+  .bar-desc { font-size:12px; color:#888; }
+
+  /* 자존감 */
+  .rse-wrap { text-align:center; padding:16px; background:#F0F7F4; border-radius:12px; margin-bottom:12px; }
+  .rse-score { font-size:48px; font-weight:900; color:#1B4332; }
+  .rse-label { font-size:13px; color:#555; margin-top:4px; }
+  .rse-level { display:inline-block; background:#1B4332; color:#C9A84C; padding:4px 16px; border-radius:20px; font-size:12px; font-weight:700; margin-top:8px; }
+
+  /* 스타일 섹션 */
+  .style-box { background:#F8FBF8; border-left:4px solid #1B4332; border-radius:0 12px 12px 0; padding:16px; margin-bottom:12px; }
+  .style-title { font-size:14px; font-weight:700; color:#1B4332; margin-bottom:8px; }
+  .style-desc { font-size:13px; color:#555; line-height:1.8; margin-bottom:8px; }
+  .style-strength { font-size:13px; color:#2D6A4F; margin-bottom:6px; }
+  .style-caution { font-size:13px; color:#C9A84C; margin-bottom:6px; }
+  .style-tip { font-size:12px; color:#888; font-style:italic; background:#FFF8E7; padding:8px 12px; border-radius:8px; margin-top:8px; }
+
+  /* 강점 태그 */
+  .strength-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .strength-tag { background:#1B4332; color:#fff; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700; }
+  .strength-tag.secondary { background:#F0F7F4; color:#1B4332; }
+
+  /* 출처 */
+  .cite { font-size:11px; color:#aaa; font-style:italic; margin-top:6px; }
+
+  /* 푸터 */
+  .footer { text-align:center; padding:24px; color:#aaa; font-size:12px; }
+  .footer .app-name { color:#1B4332; font-weight:700; font-size:14px; margin-bottom:4px; }
+
+  /* 인쇄 */
+  @media print {
+    body { background:#fff; }
+    .page { max-width:100%; padding:10px; }
+    .card { box-shadow:none; border:1px solid #eee; page-break-inside:avoid; }
+    .no-print { display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 인쇄 버튼 -->
+  <div class="no-print" style="text-align:right;margin-bottom:12px;">
+    <button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ PDF로 저장 / 인쇄</button>
+  </div>
+
+  <!-- 헤더 -->
+  <div class="header">
+    <div class="badge">인생2막라디오 확언앱 · 성격 분석 결과지</div>
+    <div class="animal">${r.animal.animal}</div>
+    <div class="type-name">${r.animal.name}</div>
+    <div class="type-title">${r.animal.title}</div>
+    <div class="mbti">MBTI 유사 유형: ${r.animal.mbti || '-'}</div>
+    <div class="tagline">"${r.animal.tagline}"</div>
+    <div class="date">검사일: ${today} · ${nick}님</div>
+  </div>
+
+  <!-- Big Five -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🧠</span>성격 5요인 분석 (BFI-44)</div>
+    <div class="bar-wrap">
+      <div class="bar-header"><span class="bar-label">외향성 (Extraversion)</span><span class="bar-score">${s.E}%</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${s.E}%"></div></div>
+      <div class="bar-desc">${s.E >= 65 ? '사교적이고 활발하며 타인과의 교류에서 에너지를 얻어요. 리더십, 긍정적 정서, 주장성이 강해요.' : s.E < 40 ? '혼자 있을 때 에너지를 회복하며, 소수의 깊은 관계를 선호해요. 신중하고 사려 깊은 사고를 해요.' : '내향과 외향의 균형을 갖춘 양향형이에요. 상황에 따라 유연하게 적응해요.'}</div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-header"><span class="bar-label">개방성 (Openness)</span><span class="bar-score">${s.O}%</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${s.O}%"></div></div>
+      <div class="bar-desc">${s.O >= 65 ? '호기심이 많고 창의적이며 새로운 아이디어와 경험을 즐겨요. 예술적 감수성과 상상력이 풍부해요.' : s.O < 40 ? '실용적이고 안정적인 것을 선호해요. 검증된 방식과 익숙한 환경에서 최고의 능력을 발휘해요.' : '새로운 것과 익숙한 것 사이에서 균형을 유지해요. 실용성과 창의성을 적절히 활용해요.'}</div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-header"><span class="bar-label">친화성 (Agreeableness)</span><span class="bar-score">${s.A}%</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${s.A}%"></div></div>
+      <div class="bar-desc">${s.A >= 65 ? '협력적이고 따뜻하며 타인을 잘 배려해요. 신뢰, 이타심, 공감 능력이 뛰어나요.' : s.A < 40 ? '독립적이고 직설적이에요. 협상보다 자신의 입장을 명확히 주장하며, 냉철한 판단을 해요.' : '상황에 따라 협력과 주장 사이에서 균형을 잡아요.'}</div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-header"><span class="bar-label">성실성 (Conscientiousness)</span><span class="bar-score">${s.C}%</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${s.C}%"></div></div>
+      <div class="bar-desc">${s.C >= 65 ? '체계적이고 목표 지향적이에요. 높은 자기조절 능력과 책임감으로 신뢰받는 사람이에요.' : s.C < 40 ? '자유롭고 유연한 방식을 선호해요. 즉흥성과 적응력이 강점이에요.' : '계획성과 유연성의 균형을 갖고 있어요.'}</div>
+    </div>
+    <div class="bar-wrap">
+      <div class="bar-header"><span class="bar-label">정서안정성 (Emotional Stability)</span><span class="bar-score">${100-s.N}%</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${100-s.N}%"></div></div>
+      <div class="bar-desc">${100-s.N >= 65 ? '감정적으로 안정되어 있고 스트레스에 강해요. 어려운 상황에서도 침착하게 대응해요.' : 100-s.N < 40 ? '감정적 민감도가 높아요. 깊은 공감 능력의 원천이지만, 스트레스 관리가 중요해요.' : '감정 기복이 크지 않으며, 상황에 따라 적절히 감정을 표현해요.'}</div>
+    </div>
+    <p class="cite">📚 John, O.P., Donahue, E.M., & Kentle, R.L. (1991). The Big Five Inventory. UC Berkeley. 신뢰도 α=.79~.88</p>
+  </div>
+
+  <!-- 자존감 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🌱</span>자존감 분석 (Rosenberg Self-Esteem Scale)</div>
+    <div class="rse-wrap">
+      <div class="rse-score">${s.RSE}점</div>
+      <div class="rse-label">100점 만점 기준</div>
+      <div class="rse-level">${rseLevel}</div>
+    </div>
+    <p style="font-size:13px;color:#555;line-height:1.8;">
+      ${s.RSE >= 65
+        ? `자존감 ${s.RSE}점은 전반적으로 긍정적인 자기가치감을 갖고 있음을 나타내요. 자신의 장단점을 수용하며 심리적으로 안정된 상태예요. 사회적 위협이나 비판에 상대적으로 덜 흔들려요.`
+        : s.RSE >= 45
+        ? `자존감 ${s.RSE}점은 평균 수준이에요. 좋은 상황에서는 자신감이 높아지고, 어려운 상황에서는 자기의심이 생기는 경향이 있어요. 확언 실천이 자존감 향상에 효과적이에요.`
+        : `자존감 ${s.RSE}점은 현재 자기가치감이 낮은 편이에요. 자기비판적 사고 패턴이 있을 수 있어요. 매일 확언을 꾸준히 실천하면 자존감이 높아질 수 있어요. 30일 후 재검사로 변화를 확인해보세요.`
+      }
+    </p>
+    <p class="cite">📚 Rosenberg, M. (1965). Society and the Adolescent Self-Image. Princeton University Press. 세계 52개국 검증, α=.88</p>
+  </div>
+
+  <!-- 연애 스타일 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">💕</span>연애 스타일</div>
+    <div class="style-box">
+      <div class="style-title">${love.title}</div>
+      <div class="style-desc">${love.desc}</div>
+      <div class="style-strength">${love.strength}</div>
+      <div class="style-caution">${love.caution}</div>
+      <div class="style-tip">${love.tip}</div>
+    </div>
+  </div>
+
+  <!-- 일 스타일 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">💼</span>일 스타일</div>
+    <div class="style-box">
+      <div class="style-title">${work.title}</div>
+      <div class="style-desc">${work.desc}</div>
+      <div class="style-strength">${work.strength}</div>
+      <div class="style-caution">${work.caution}</div>
+      <div class="style-tip">${work.tip}</div>
+    </div>
+  </div>
+
+  <!-- 관계 스타일 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">👥</span>관계 스타일</div>
+    <div class="style-box">
+      <div class="style-title">${friend.title}</div>
+      <div class="style-desc">${friend.desc}</div>
+      <div class="style-strength">${friend.strength}</div>
+      <div class="style-caution">${friend.caution}</div>
+      <div class="style-tip">${friend.tip}</div>
+    </div>
+  </div>
+
+  <!-- 위기 대처 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🌧️</span>위기 대처 스타일</div>
+    <div class="style-box">
+      <div class="style-title">${hard.title}</div>
+      <div class="style-desc">${hard.desc}</div>
+      <div class="style-strength">${hard.strength}</div>
+      <div class="style-caution">${hard.caution}</div>
+      <div class="style-tip">${hard.tip}</div>
+    </div>
+  </div>
+
+  <!-- VIA 강점 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">✨</span>핵심 강점 (VIA Character Strengths)</div>
+    <div class="style-box">
+      <div class="style-title">${via.title || '나만의 강점'}</div>
+      <div class="style-desc">${via.desc || ''}</div>
+    </div>
+    <div class="strength-tags">
+      ${(r.viaStrengths||[]).map((s,i)=>`<span class="strength-tag ${i>0?'secondary':''}">${i===0?'👑 ':''} ${s}</span>`).join('')}
+    </div>
+    <p class="cite" style="margin-top:12px;">📚 Peterson, C., & Seligman, M.E.P. (2004). Character Strengths and Virtues. Oxford University Press.</p>
+  </div>
+
+  <!-- 성장 방향 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🌿</span>나를 위한 확언 방향</div>
+    <div style="background:#F0F7F4;border-radius:12px;padding:16px;">
+      ${s.RSE < 60 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>자존감 강화</b>가 지금 가장 필요해요. 매일 자기 자신을 인정하고 칭찬하는 확언을 실천해보세요.</p>' : ''}
+      ${s.N > 60 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>정서 안정</b> 관련 확언이 도움이 돼요. 감정을 인정하면서도 흔들리지 않는 내면을 키우는 확언을 추천해요.</p>' : ''}
+      ${s.C < 45 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>실천과 꾸준함</b> 관련 확언이 도움이 돼요. 작은 행동을 완수하는 것에서 자기효능감을 키워보세요.</p>' : ''}
+      <p style="font-size:13px;color:#555;">30일 후 재검사로 확언의 효과를 수치로 확인할 수 있어요. 뇌과학 연구에 따르면 21~66일의 꾸준한 실천이 자기인식을 변화시킵니다.</p>
+    </div>
+  </div>
+
+  <!-- 푸터 -->
+  <div class="footer">
+    <div class="app-name">인생2막라디오 확언앱</div>
+    <div>BFI-44 · Rosenberg Self-Esteem Scale · VIA 기반 · 정확도 약 90%</div>
+    <div style="margin-top:4px;">life2radio.github.io/affirmation</div>
+    <div style="margin-top:8px;font-size:11px;">※ 이 결과지는 학술 도구 기반의 참고 자료이며, 전문적 심리 진단을 대체하지 않습니다.</div>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+        const w = window.open('', '_blank');
+        if(w){
+            w.document.write(html);
+            w.document.close();
+        } else {
+            showToast('팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요!');
+        }
+    }
+
     window.downloadPsychResult = function(){
         const saved = safeGetItem('psych_result_v2','');
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
