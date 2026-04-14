@@ -7218,6 +7218,12 @@ https://life2radio.github.io/affirmation/
     window.skipOnboarding = function(){
         document.getElementById('onboarding-overlay').style.display = 'none';
         safeSetItem('onboarding_done','1');
+        // 닉네임+이메일 미등록 시 등록 팝업 표시
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        if(!nick || !email){
+            setTimeout(()=> showNicknameModal(), 300);
+        }
     }
 
     /* ===== 명예의 전당 ===== */
