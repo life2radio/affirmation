@@ -4408,6 +4408,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
         if(se) se.value = email;
         document.getElementById('nickname-modal')?.remove();
         window._sendUserUpdate();
+        window._sendUserRegister('닉네임모달등록'); // ★ 시트로 전송
         initOnboarding();
     }
 
@@ -9739,11 +9740,8 @@ https://life2radio.github.io/affirmation/
                         <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
                         크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
                     </div>
-                    <button id="kakao-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                    <button id="kakao-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
                         🌿 인생확언 앱 열기
-                    </button>
-                    <button onclick="this.closest('div').parentNode.remove();" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
-                        그냥 여기서 볼게요
                     </button>
                 </div>`;
             document.body.appendChild(modal);
@@ -9755,7 +9753,7 @@ https://life2radio.github.io/affirmation/
                 this.textContent = '✅ 주소 복사됨! 크롬 열리면 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
-                    window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
                 }, 400);
             });
             window.initApp();
