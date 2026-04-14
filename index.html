@@ -9449,6 +9449,8 @@ https://life2radio.github.io/affirmation/
                 t.value = psychUrl; document.body.appendChild(t);
                 t.select(); document.execCommand('copy'); document.body.removeChild(t);
                 if(navigator.clipboard) navigator.clipboard.writeText(psychUrl).catch(()=>{});
+                // ★ 크롬에서 열릴 때 바로 심리테스트 열도록 플래그 저장
+                try{ localStorage.setItem('pending_psych','1'); } catch(e){}
                 this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
@@ -9495,11 +9497,29 @@ https://life2radio.github.io/affirmation/
 
         } else {
             // 일반 크롬/사파리
-            window.initApp();
+            // ★ pending_psych 플래그 확인 (카톡에서 크롬으로 넘어온 경우)
+            let _pendingPsych = false;
+            try{
+                if(localStorage.getItem('pending_psych')==='1'){
+                    _pendingPsych = true;
+                    localStorage.removeItem('pending_psych');
+                }
+            }catch(e){}
 
-            if(_hasPsychHash){
-                history.replaceState(null, '', window.location.pathname);
-                setTimeout(()=>{ startPsychTest(); }, 1200);
+            if(_pendingPsych){
+                // 설치팝업 건너뛰고 바로 심리테스트
+                window.initApp();
+                // 혹시 뜬 팝업 닫고 심리테스트 오픈
+                setTimeout(()=>{
+                    document.querySelectorAll('div[style*="z-index:999999"]').forEach(el=>el.remove());
+                    startPsychTest();
+                }, 1500);
+            } else {
+                window.initApp();
+                if(_hasPsychHash){
+                    history.replaceState(null, '', window.location.pathname);
+                    setTimeout(()=>{ startPsychTest(); }, 1200);
+                }
             }
         }
 
