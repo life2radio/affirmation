@@ -4162,21 +4162,21 @@ ${desc}
 
     // ★ 친구에게 테스트 추천 (앱 링크 + 🧠 버튼 안내)
     window.sharePsychInvite = function(){
-        const text = `🧠 나는 어떤 확언 동물 유형일까? 해봤는데 진짜 소름...
+        const text = `🧠 나는 어떤 사람일까? — 확언 동물 유형 검사
 
-✅ BFI-10 성격검사 (세계 표준)
-✅ Rosenberg 자존감 점수 측정
-✅ VIA 핵심 강점 발견
+심리학자들이 60년간 연구한 검사 3가지를 통해
+나의 성격, 자존감, 핵심 강점을 분석해드려요.
 
-연애스타일·일스타일·관계스타일·위기대처법·소비성향까지
-내가 몰랐던 나의 진짜 모습을 알게 돼 😮
+일 스타일 · 관계 방식 · 위기 대처법 · 소비 성향까지
+나도 몰랐던 내 모습을 알 수 있어요.
 
-👇 아래 링크 열면 바로 테스트 시작!
+무료 · 5분 소요 · 16가지 동물 유형 중 나는?
+
+👇 아래 링크에서 바로 시작하세요
 https://life2radio.github.io/affirmation/#psych`;
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요')); }
     }
-
 
 
         // ★ Google One Tap - 이메일만 가져오기
