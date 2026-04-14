@@ -14,15 +14,28 @@ function doPost(e) {
       let sheet = ss.getSheetByName('사용자현황');
       if(!sheet){
         sheet = ss.insertSheet('사용자현황');
-        sheet.appendRow(['최종업데이트','닉네임','이메일','기기','설치일','총달성일','연속달성','포인트','등급','마지막방문']);
+        sheet.appendRow(['최종업데이트','닉네임','이메일','기기ID','기기','설치일','총달성일','연속달성','포인트','등급','마지막방문','앱설치여부']);
       }
       const rows = sheet.getDataRange().getValues();
       let found = -1;
       for(let i=1;i<rows.length;i++){
-        if(rows[i][1] === data.nickname && rows[i][3] === data.device){ found=i+1; break; }
+        // device_id 우선 매칭, 없으면 이메일, 없으면 닉네임+기기
+        if(data.device_id && rows[i][3] === data.device_id){ found=i+1; break; }
+        if(data.email && rows[i][2] === data.email && rows[i][2]){ found=i+1; break; }
+        if(!data.device_id && rows[i][1] === data.nickname && rows[i][4] === data.device){ found=i+1; break; }
       }
-      const row = [new Date(), data.nickname, data.email||'', data.device,
-        data.installDate, data.totalDays, data.streak, data.points, data.level, data.lastVisit];
+      // 앱설치 여부 확인 (앱설치 시트에 같은 device_id 있으면 ✅)
+      let isInstalled = '미확인';
+      try {
+        const installSheet = ss.getSheetByName('앱설치현황');
+        if(installSheet){
+          const iRows = installSheet.getDataRange().getValues();
+          const devId = data.device_id || '';
+          if(devId && iRows.slice(1).some(r => r[3] === devId)) isInstalled = '✅ 설치됨';
+        }
+      } catch(e){}
+      const row = [new Date(), data.nickname, data.email||'', data.device_id||'', data.device,
+        data.installDate, data.totalDays, data.streak, data.points, data.level, data.lastVisit, isInstalled];
       if(found>0){ sheet.getRange(found,1,1,row.length).setValues([row]); }
       else { sheet.appendRow(row); }
     }
@@ -44,7 +57,7 @@ function doPost(e) {
       let sheet = ss.getSheetByName('회원등록');
       if(!sheet){
         sheet = ss.insertSheet('회원등록');
-        sheet.appendRow(['날짜','닉네임','이메일','등록경로']);
+        sheet.appendRow(['날짜','닉네임','이메일','기기ID','등록경로']);
       }
       // 중복 체크 (이메일 기준)
       if(data.email){
@@ -55,7 +68,7 @@ function doPost(e) {
           // 기존 행 업데이트
           for(let i=1;i<rows.length;i++){
             if(rows[i][2]===data.email){
-              sheet.getRange(i+1,1,1,4).setValues([[new Date(), data.nickname, data.email, data.trigger||'']]);
+              sheet.getRange(i+1,1,1,5).setValues([[new Date(), data.nickname, data.email, data.device_id||'', data.trigger||'']]);
               break;
             }
           }
@@ -120,6 +133,34 @@ function doPost(e) {
         sheet.appendRow(['날짜','닉네임','이메일','PDF명']);
       }
       sheet.appendRow([new Date(), data.nickname, data.email||'', data.pdf]);
+    }
+
+    // ⑨ 앱 설치
+    else if(data.action === 'app_install'){
+      let sheet = ss.getSheetByName('앱설치현황');
+      if(!sheet){
+        sheet = ss.insertSheet('앱설치현황');
+        sheet.appendRow(['설치날짜','닉네임','이메일','기기ID']);
+      }
+      // 중복 설치 방지 (같은 device_id)
+      const rows = sheet.getDataRange().getValues();
+      const exists = rows.slice(1).some(r => r[3] === (data.device_id||''));
+      if(!exists){
+        sheet.appendRow([new Date(), data.nickname||'미설정', data.email||'', data.device_id||'']);
+      }
+      // 사용자현황 시트의 앱설치여부 업데이트
+      try {
+        const uSheet = ss.getSheetByName('사용자현황');
+        if(uSheet && data.device_id){
+          const uRows = uSheet.getDataRange().getValues();
+          for(let i=1;i<uRows.length;i++){
+            if(uRows[i][3] === data.device_id){
+              uSheet.getRange(i+1, 12).setValue('✅ 설치됨');
+              break;
+            }
+          }
+        }
+      } catch(e){}
     }
 
   } catch(err) {
@@ -307,23 +348,40 @@ function collectAllData(ss, weekAgo) {
 function callGeminiAnalysis(data) {
   const prompt = buildPrompt(data);
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-    const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
-    };
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+  };
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
 
-    const res = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload)
-    });
+  // 429 오류 시 자동 재시도 (최대 3회, 30초 간격)
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = UrlFetchApp.fetch(url, options);
+      const code = res.getResponseCode();
 
-    const json = JSON.parse(res.getContentText());
-    return json.candidates?.[0]?.content?.parts?.[0]?.text || '분석 실패';
-  } catch(e) {
-    return '분석 오류: ' + e.toString();
+      if (code === 429) {
+        if (attempt < 3) {
+          Logger.log(`429 오류 - ${attempt}회 시도. 30초 후 재시도...`);
+          Utilities.sleep(30000); // 30초 대기
+          continue;
+        } else {
+          return '분석 일시 중단: API 한도 초과. 잠시 후 다시 실행해주세요.';
+        }
+      }
+
+      const json = JSON.parse(res.getContentText());
+      return json.candidates?.[0]?.content?.parts?.[0]?.text || '분석 실패';
+    } catch(e) {
+      if (attempt === 3) return '분석 오류: ' + e.toString();
+      Utilities.sleep(15000);
+    }
   }
 }
 
