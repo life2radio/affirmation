@@ -4558,8 +4558,18 @@ https://life2radio.github.io/affirmation/?psych=1`;
         const se = document.getElementById('story-email');
         if(se) se.value = email;
         document.getElementById('nickname-modal')?.remove();
+
+        // ★ 관리자 모드: 특정 이름+이메일 조합 시 최고등급 부여
+        if(nick === '인생2막관리자' && email === 'life2radio@gmail.com'){
+            setPoints(9999);
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화! 모든 기능을 테스트할 수 있어요.');
+            safeSetItem('onboarding_done','1');
+            return;
+        }
+
         window._sendUserUpdate();
-        window._sendUserRegister('닉네임모달등록'); // ★ 시트로 전송
+        window._sendUserRegister('이름모달등록');
         initOnboarding();
     }
 
@@ -4601,9 +4611,19 @@ https://life2radio.github.io/affirmation/?psych=1`;
         }
         safeSetItem('my_nickname', val);
         syncNicknameEmail();
+
+        // ★ 관리자 모드 체크
+        const curEmail = safeGetItem('my_email','');
+        if(val === '인생2막관리자' && curEmail === 'life2radio@gmail.com'){
+            setPoints(9999);
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화!');
+            return;
+        }
+
         showToast('🏅 이름이 저장됐어요!');
         window._sendUserUpdate();
-        window._sendUserRegister('닉네임설정');
+        window._sendUserRegister('이름설정');
     }
 
     window.saveUserEmail = function(){
