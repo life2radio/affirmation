@@ -4368,6 +4368,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
         syncNicknameEmail();
         showToast('🏅 닉네임이 저장됐어요!');
         window._sendUserUpdate();
+        window._sendUserRegister('닉네임설정');
     }
 
     window.saveUserEmail = function(){
@@ -4386,6 +4387,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
         syncNicknameEmail();
         showToast('📧 이메일이 저장됐어요!');
         window._sendUserUpdate();
+        window._sendUserRegister('이메일설정');
     }
 
     // 앱 설치 가이드 아코디언
@@ -7252,7 +7254,10 @@ https://life2radio.github.io/affirmation/
             totalCodes === r.threshold &&
             safeGetItem(`pdf_unlocked_${r.threshold}`, '') !== '1'
         );
-        if(unlockedPdf) safeSetItem(`pdf_unlocked_${unlockedPdf.threshold}`, '1');
+        if(unlockedPdf) {
+            safeSetItem(`pdf_unlocked_${unlockedPdf.threshold}`, '1');
+            window._sendPdfAccess(unlockedPdf.label); // ★ PDF 해금 로그
+        }
 
         // 남은 코드 수 계산
         const nextPdf = PDF_REWARDS.find(r => totalCodes < r.threshold);
@@ -8309,6 +8314,7 @@ https://life2radio.github.io/affirmation/
     // 레벨업 팝업
     function showLevelUp(lvIdx){
         const lv = LEVELS[lvIdx];
+        window._sendLevelUp(lv.name);
         const modal = document.createElement('div');
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
         modal.innerHTML = `
@@ -8481,6 +8487,99 @@ https://life2radio.github.io/affirmation/
     }
 
     // ★ 매일 접속 시 업데이트 (닉네임 설정 후, 완료 체크 후)
+    // ====================================================
+    // ★ 통합 데이터 전송 시스템
+    // ====================================================
+    function _sheetSend(data){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        try {
+            fetch(SHEET_API_URL, {
+                method:'POST', mode:'no-cors',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(data)
+            }).catch(()=>{});
+        } catch(e){}
+    }
+    function _getNick(){ return safeGetItem('my_nickname','미설정'); }
+    function _getEmail(){ return safeGetItem('my_email',''); }
+
+    // ① 닉네임/이메일 등록
+    window._sendUserRegister = function(trigger){
+        _sheetSend({
+            action: 'user_register',
+            nickname: _getNick(),
+            email: _getEmail(),
+            trigger: trigger || '설정',
+            date: getTodayStr()
+        });
+    }
+
+    // ② 레벨업
+    window._sendLevelUp = function(levelName){
+        _sheetSend({
+            action: 'level_up',
+            nickname: _getNick(),
+            email: _getEmail(),
+            level: levelName,
+            date: getTodayStr()
+        });
+    }
+
+    // ③ 연속달성 마일스톤 (100/200/300일)
+    window._sendStreakMilestone = function(days){
+        _sheetSend({
+            action: 'streak_milestone',
+            nickname: _getNick(),
+            email: _getEmail(),
+            days: days,
+            date: getTodayStr()
+        });
+    }
+
+    // ④ 사연 보내기
+    window._sendStoryLog = function(){
+        _sheetSend({
+            action: 'story_sent',
+            nickname: _getNick(),
+            email: _getEmail(),
+            date: getTodayStr()
+        });
+    }
+
+    // ⑤ 설문 정보 저장
+    window._sendSurveyLog = function(surveyData){
+        _sheetSend({
+            action: 'survey_saved',
+            nickname: _getNick(),
+            email: _getEmail(),
+            data: surveyData,
+            date: getTodayStr()
+        });
+    }
+
+    // ⑥ PDF 접근
+    window._sendPdfAccess = function(pdfName){
+        _sheetSend({
+            action: 'pdf_access',
+            nickname: _getNick(),
+            email: _getEmail(),
+            pdf: pdfName,
+            date: getTodayStr()
+        });
+    }
+
+    // ⑦ 행동 로그 (확언완료/즐겨찾기/공유 등)
+    window._sendActionLog = function(action, detail){
+        _sheetSend({
+            action: 'action_log',
+            nickname: _getNick(),
+            email: _getEmail(),
+            event: action,
+            detail: detail || '',
+            date: getTodayStr()
+        });
+    }
+
     window._sendUserUpdate = function(){
         setTimeout(sendUserDataToSheet, 1000);
     }
@@ -8494,6 +8593,10 @@ https://life2radio.github.io/affirmation/
             safeSetItem(key,'1');
             addPoint(bonuses[streak], `${streak}일 연속 보너스`);
             showToast(`🔥 ${streak}일 연속 달성! +${bonuses[streak]}PT 보너스!`);
+            // ★ 마일스톤 전송 (100/200/300일)
+            if([100,200,300].includes(streak)){
+                window._sendStreakMilestone(streak);
+            }
         }
     }
 
@@ -8822,6 +8925,7 @@ https://life2radio.github.io/affirmation/
                 if(res.ok){
                     showToast('💌 사연이 전송됐어요! +10PT 적립됐어요 😊');
                     addPoint(10,'사연보내기',`story_send_${todayObj.getFullYear()}_${todayObj.getMonth()+1}`);
+                    window._sendStoryLog(); // ★ 사연 전송 로그
                     // 패자부활: 월 1회, 결석 최대 7일 삭제
                     var revKey='revival_story_'+todayObj.getFullYear()+'_'+(todayObj.getMonth()+1);
                     if(!safeGetItem(revKey,'')){
@@ -9081,8 +9185,17 @@ https://life2radio.github.io/affirmation/
     }
 
     window.saveSurvey = function(){
+        // 설문 데이터 수집
+        const surveyData = {
+            age: safeGetItem('survey_age',''),
+            route: safeGetItem('survey_route',''),
+            type: safeGetItem('survey_type',''),
+            mood: safeGetItem('survey_mood',''),
+            happy: safeGetItem('survey_happy',''),
+        };
         showToast('😊 저장됐어요! 감사해요!');
         window._sendUserUpdate();
+        window._sendSurveyLog(surveyData); // ★ 설문 로그
     }
 
     window.resetAppData = function(){
