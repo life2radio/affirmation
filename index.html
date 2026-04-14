@@ -9415,7 +9415,9 @@ https://life2radio.github.io/affirmation/
         setTimeout(linkLevelAndPoint, 1500);
 
         // ★ #psych 해시 & 카카오톡 처리 — 가장 먼저 실행
-        const _hasPsychParam = new URLSearchParams(window.location.search).get('psych')==='1';
+        const _hasPsychParam = 
+            new URLSearchParams(window.location.search).get('psych')==='1' ||
+            window.location.hash === '#psych';
         const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
         const _isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -9432,12 +9434,12 @@ https://life2radio.github.io/affirmation/
                     <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
                         카카오톡에서는 심리테스트 결과가<br>
                         저장되지 않아요.<br>
-                        아래 버튼을 누르면<br>
-                        <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
-                        크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
+                        아래 버튼을 누르면 크롬이 열려요.<br><br>
+                        크롬 주소창에 <b>붙여넣기</b>만 하면<br>
+                        <b style="color:#1B4332;">결과가 저장되는 심리테스트</b>를 시작할 수 있어요 😊
                     </div>
                     <button id="psych-chrome-btn2" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
-                        📋 주소 복사 + 크롬으로 열기
+                        🌿 인생확언 앱에서 심리테스트 시작하기
                     </button>
                     <button onclick="this.closest('div').parentNode.remove();window.initApp();setTimeout(()=>startPsychTest(),500);" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
                         그냥 여기서 할게요 (결과 저장 안 됨)
@@ -9449,7 +9451,7 @@ https://life2radio.github.io/affirmation/
                 t.value = psychUrl; document.body.appendChild(t);
                 t.select(); document.execCommand('copy'); document.body.removeChild(t);
                 if(navigator.clipboard) navigator.clipboard.writeText(psychUrl).catch(()=>{});
-                this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
+                this.textContent = '✅ 주소 복사됨! 크롬 열리면 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
                     window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
@@ -9473,7 +9475,7 @@ https://life2radio.github.io/affirmation/
                         크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
                     </div>
                     <button id="kakao-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
-                        📋 주소 복사 + 크롬으로 열기
+                        🌿 인생확언 앱 열기
                     </button>
                     <button onclick="this.closest('div').parentNode.remove();" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
                         그냥 여기서 볼게요
@@ -9485,7 +9487,7 @@ https://life2radio.github.io/affirmation/
                 t.value = appUrl; document.body.appendChild(t);
                 t.select(); document.execCommand('copy'); document.body.removeChild(t);
                 if(navigator.clipboard) navigator.clipboard.writeText(appUrl).catch(()=>{});
-                this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
+                this.textContent = '✅ 주소 복사됨! 크롬 열리면 붙여넣기 하세요';
                 this.style.background = '#2E7D32';
                 setTimeout(()=>{
                     window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
