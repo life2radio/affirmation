@@ -4100,17 +4100,79 @@
         if(affEl) affEl.textContent = '"' + (affirmations[animal.animal] || '나는 오늘도 충분히 괜찮은 사람이다') + '"';
     }
 
+    // ★ 전체 결과 다시 보기 (버그 수정: 모달 제거하지 않고 바로 결과 표시)
+    window.viewMyPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const result = JSON.parse(saved);
+        // 기존 모달이 있으면 결과지로 교체, 없으면 새로 생성
+        let modal = document.getElementById('psych-modal');
+        if(!modal){
+            modal = document.createElement('div');
+            modal.id = 'psych-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+            document.body.appendChild(modal);
+        }
+        showPsychResult(result);
+    }
+
+    // ★ 내 결과 공유 (유형별 상세 소개 포함)
     window.sharePsychMyResult = function(){
         const saved = safeGetItem('psych_result_v2','');
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
         const r = JSON.parse(saved);
-        const text = `나는 ${r.animal.animal} ${r.animal.name} - "${r.animal.title}"!\n\n${r.animal.tagline}\n\nBFI-10 + Rosenberg + VIA 기반 확언 동물 유형 검사\n너는 어떤 유형일까? 👇\nhttps://life2radio.github.io/affirmation/`;
+        const s = r.scores;
+
+        const animalDesc = {
+            '🦁':'타고난 리더십과 따뜻한 공감력을 동시에 가진 사람이에요. 강하면서도 사람을 품는 카리스마가 있고, 변화를 두려워하지 않고 앞장서는 존재예요. 주변에서 자연스럽게 따르게 만드는 힘이 있어요.',
+            '🐘':'기억력과 포용력이 탁월한 수호자예요. 주변 모두를 품어주는 따뜻함이 최고의 강점이고, 한 번 만든 관계는 평생 소중히 지키는 사람이에요. 천천히 성장하지만 그 깊이는 누구도 따라오지 못해요.',
+            '🦅':'높은 곳에서 큰 그림을 보는 선구자예요. 명확한 비전과 강한 추진력으로 불가능을 가능으로 만들고, 사람들에게 나아갈 방향을 제시하는 타고난 선구자예요. 목표를 정하면 반드시 해내는 사람이에요.',
+            '🦋':'끊임없이 변화하고 아름답게 성장하는 사람이에요. 어떤 환경에서도 유연하게 적응하고, 자유로운 영혼으로 세상을 날아다녀요. 변화 자체가 당신의 본질이고, 그 과정에서 더욱 빛나요.',
+            '🐬':'어디서든 웃음꽃을 피우는 에너자이저예요. 사람과 사람을 이어주는 천부적인 재능이 있고, 넘치는 에너지로 주변을 활기차게 만들어요. 꾸준함과 긍정으로 세상을 밝히는 존재예요.',
+            '🦢':'겉으로 우아해 보이지만 내면에서 끊임없이 노력하는 사람이에요. 자신만의 기준과 심미안이 뛰어나고, 조용하지만 오래 기억에 남는 인상을 주는 사람이에요. 성장에 대한 의지가 남달라요.',
+            '🐝':'말보다 행동으로 증명하는 실천가예요. 작은 것도 꼼꼼히 챙기고, 꾸준한 노력으로 달콤한 결실을 만들어내요. 혼자서도 묵묵히 자신의 역할을 다하는 진정한 실천가예요.',
+            '🐱':'자유롭고 독립적이지만, 마음을 열면 누구보다 깊이 연결되는 사람이에요. 나만의 방식이 분명하고, 감정을 행동으로 표현하는 직관적인 사람이에요. 자신만의 세계가 뚜렷해요.',
+            '🐺':'조용하지만 결정적인 순간에 누구보다 빠르게 행동하는 본능의 리더예요. 의리와 신뢰를 가장 중요한 가치로 여기고, 한 번 마음을 준 사람에게는 끝까지 함께해요.',
+            '🐋':'바다처럼 깊고 넓은 마음을 가진 공감자예요. 조용하지만 존재만으로도 주변을 안정시키는 힘이 있고, 깊은 사유를 통해 세상을 이해하는 방식이 남달라요. 상대의 마음을 가장 잘 아는 사람이에요.',
+            '🐆':'조용하지만 폭발적인 에너지를 품고 있는 혁신가예요. 준비가 됐을 때 누구도 막을 수 없고, 자신만의 방식으로 변화를 만들어내요. 목표를 향해 거침없이 질주하는 사람이에요.',
+            '🦊':'번뜩이는 직관과 날카로운 통찰력을 가진 탐험가예요. 남들이 놓치는 것을 포착하고, 겉으로 조용해 보이지만 내면에는 끊임없이 탐험 중인 지적 호기심이 넘쳐요. 새로운 가능성을 늘 찾고 있어요.',
+            '🐢':'느리지만 절대 포기하지 않는 동반자예요. 꾸준함이 최고의 전략임을 몸으로 아는 사람이에요. 가까운 사람을 위해서라면 어떤 어려움도 묵묵히 감당하는 따뜻한 힘이 있어요.',
+            '🦉':'말보다 깊은 눈빛으로 상대를 이해하는 치유자예요. 혼자만의 시간 속에서 진짜 힘을 얻고, 천천히 그러나 확실하게 주변을 치유해요. 무리하지 않고 자신의 리듬을 지키는 것이 가장 큰 강점이에요.',
+            '🐯':'뜨거운 열정과 강인한 의지로 새로운 길을 여는 개척자예요. 도전을 즐기고 실패도 성장의 재료로 삼아요. 한 번 목표를 정하면 반드시 해내는 불굴의 의지가 있어요.',
+            '🦌':'남들이 보지 못하는 아름다움을 발견하는 몽상가예요. 내면 세계가 풍부하고 감수성이 뛰어나 예술적 영감이 넘쳐요. 혼자만의 사색 속에서 세상을 이해하는 깊이가 남달라요.',
+        };
+
+        const desc = animalDesc[r.animal.animal] || r.animal.tagline;
+        const text = `나는 ${r.animal.animal} ${r.animal.name}이에요!
+"${r.animal.title}"
+
+${desc}
+
+📊 나의 성격 분석:
+외향성 ${s.E}% · 개방성 ${s.O}% · 친화성 ${s.A}%
+성실성 ${s.C}% · 안정성 ${100-s.N}%
+🌱 자존감: ${s.RSE}점  ✨ 강점: ${(r.viaStrengths||[]).slice(0,2).join(' · ')}
+🔤 MBTI 연관: ${r.animal.mbti}
+
+너는 어떤 유형이야? 🧠
+👉 https://life2radio.github.io/affirmation/#psych`;
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 결과가 복사됐어요!')); }
     }
 
+    // ★ 친구에게 테스트 추천 (앱 링크 + 🧠 버튼 안내)
     window.sharePsychInvite = function(){
-        const text = `🧠 나는 16가지 동물 중 어떤 확언 유형일까?\n\nBFI-10 성격검사 + 자존감검사 + 강점검사\n3가지 심리검사로 알아보는 나의 진짜 모습\n결과가 진짜 나 같아서 소름... 👇\nhttps://life2radio.github.io/affirmation/`;
+        const text = `🧠 나는 어떤 확언 동물 유형일까? 해봤는데 진짜 소름...
+
+✅ BFI-10 성격검사 (세계 표준)
+✅ Rosenberg 자존감 점수 측정
+✅ VIA 핵심 강점 발견
+
+연애스타일·일스타일·관계스타일·위기대처법·소비성향까지
+내가 몰랐던 나의 진짜 모습을 알게 돼 😮
+
+👇 아래 링크 열면 바로 테스트 시작!
+https://life2radio.github.io/affirmation/#psych`;
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요')); }
     }
@@ -9402,6 +9464,62 @@ https://life2radio.github.io/affirmation/
         }
 
         window.initApp();
+
+        // ★ #psych 해시로 진입 시 처리
+        if(window.location.hash === '#psych'){
+            const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+            if(isKakao){
+                // 카톡 인앱이면 → #psych URL 그대로 크롬으로 보내기
+                const psychUrl = 'https://life2radio.github.io/affirmation/#psych';
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
+                modal.innerHTML = `
+                    <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                        <div style="font-size:48px;margin-bottom:12px;">🧠</div>
+                        <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:8px;">크롬에서 열어야 결과가 저장돼요!</div>
+                        <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
+                            카카오톡에서는 심리테스트 결과가<br>
+                            저장되지 않아요.<br>
+                            아래 버튼을 누르면<br>
+                            <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
+                            크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
+                        </div>
+                        <button id="psych-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                            📋 주소 복사 + 크롬으로 열기
+                        </button>
+                        <button onclick="this.closest('div').parentNode.remove();setTimeout(()=>startPsychTest(),300);" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
+                            그냥 여기서 할게요 (결과 저장 안 됨)
+                        </button>
+                    </div>`;
+                document.body.appendChild(modal);
+
+                document.getElementById('psych-chrome-btn').addEventListener('click', function(){
+                    if(navigator.clipboard){
+                        navigator.clipboard.writeText(psychUrl).catch(()=>{
+                            const t=document.createElement('textarea');
+                            t.value=psychUrl; document.body.appendChild(t);
+                            t.select(); document.execCommand('copy');
+                            document.body.removeChild(t);
+                        });
+                    } else {
+                        const t=document.createElement('textarea');
+                        t.value=psychUrl; document.body.appendChild(t);
+                        t.select(); document.execCommand('copy');
+                        document.body.removeChild(t);
+                    }
+                    const btn=document.getElementById('psych-chrome-btn');
+                    btn.textContent='✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
+                    btn.style.background='#2E7D32';
+                    setTimeout(()=>{
+                        window.open('intent://life2radio.github.io/affirmation/%23psych#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                    }, 400);
+                });
+            } else {
+                // 크롬이면 → 바로 심리테스트 소개 오픈
+                setTimeout(()=>{ startPsychTest(); }, 1200);
+            }
+            history.replaceState(null, '', window.location.pathname);
+        }
     });
 
 </script>
