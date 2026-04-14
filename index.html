@@ -4162,7 +4162,8 @@ ${desc}
 
     // ★ 친구에게 테스트 추천 (앱 링크 + 🧠 버튼 안내)
     window.sharePsychInvite = function(){
-        const text = `🧠 나는 어떤 사람일까? — 확언 동물 유형 검사
+        const text = `🧠 나는 어떤 사람일까?
+— 성격·자존감·강점 무료 심리검사
 
 심리학자들이 60년간 연구한 검사 3가지를 통해
 나의 성격, 자존감, 핵심 강점을 분석해드려요.
@@ -9465,6 +9466,56 @@ https://life2radio.github.io/affirmation/
 
         window.initApp();
 
+        // ★ 뒤로가기 처리 시스템
+        // 모달/팝업 열릴 때 history state 쌓고
+        // 뒤로가기 누르면 모달 닫기 (앱 밖으로 안 나가게)
+
+        // 초기 state 설정
+        history.replaceState({ page: 'app' }, '');
+
+        // 모달 열릴 때 자동으로 history state 추가
+        const _origAppendChild = document.body.appendChild.bind(document.body);
+        document.body.appendChild = function(el){
+            const result = _origAppendChild(el);
+            if(el && el.id && (
+                el.id === 'psych-modal' ||
+                el.id === 'nickname-modal' ||
+                el.id.includes('modal')
+            )){
+                history.pushState({ modal: el.id }, '');
+            }
+            return result;
+        };
+
+        // 뒤로가기 이벤트
+        window.addEventListener('popstate', function(e){
+            // 열려있는 모달 찾기
+            const modals = [
+                'psych-modal',
+                'nickname-modal',
+                'bgm-modal',
+            ];
+            for(const id of modals){
+                const el = document.getElementById(id);
+                if(el){
+                    el.remove();
+                    return;
+                }
+            }
+
+            // style이 fixed인 오버레이 팝업 찾기
+            const overlays = document.querySelectorAll('div[style*="position:fixed"]');
+            if(overlays.length > 0){
+                // 가장 마지막(위에 있는) 오버레이 닫기
+                overlays[overlays.length - 1].remove();
+                history.pushState({ page: 'app' }, '');
+                return;
+            }
+
+            // 팝업 없으면 → 앱 홈으로
+            history.pushState({ page: 'app' }, '');
+        });
+
         // ★ #psych 해시로 진입 시 처리
         if(window.location.hash === '#psych'){
             const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
@@ -9511,7 +9562,7 @@ https://life2radio.github.io/affirmation/
                     btn.textContent='✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
                     btn.style.background='#2E7D32';
                     setTimeout(()=>{
-                        window.open('intent://life2radio.github.io/affirmation/%23psych#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                        window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
                     }, 400);
                 });
             } else {
