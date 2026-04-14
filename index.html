@@ -304,7 +304,7 @@
     <header>
         <a onclick="switchView('settings')" class="header-icon-btn" style="left:16px;" title="설정">⚙️</a>
         <a onclick="shareApp()" class="header-icon-btn" style="left:62px;" title="앱 공유">🔗</a>
-        <a onclick="switchView('favorites')" class="header-icon-btn" style="left:108px;" title="즐겨찾기">❤️</a>
+        <a onclick="startPsychTest()" class="header-icon-btn" style="left:108px;" title="심리테스트">🧠</a>
         <span id="main-header-title">오늘의 확언</span>
         <a onclick="openSearch()" class="header-icon-btn" style="right:110px;" title="검색">🔍</a>
         <a id="header-bgm-btn" onclick="isBgmOn?(pauseBGM(),updateBgmUI()):openBgmSelector()" class="header-icon-btn" style="right:64px;font-size:1em;" title="배경음악">🎵</a>
@@ -1196,33 +1196,41 @@
                 </div>
             </div>
 
-            <!-- 홈화면 추가 안내 -->
-            <div style="background:#FFF8E7;border:2px solid var(--accent-color);border-radius:16px;padding:22px;margin-bottom:16px;">
-                <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:10px;">📱 내 폰에 앱으로 꺼내두기</div>
-                <div style="font-size:16px;color:#555;line-height:1.8;margin-bottom:16px;">앱처럼 사용하려면 폰에 꺼내두기해보세요!<br>매일 아이콘 하나만 눌러서 바로 확언을 시작할 수 있어요.</div>
-                <div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:10px;">
-                    <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🍎 아이폰 (Safari)</div>
-                    <div style="font-size:0.88em;color:#555;line-height:1.9;">
-                        1️⃣ 하단 가운데 <b>공유 버튼 (□↑)</b> 탭<br>
-                        2️⃣ 아래로 스크롤 → <b>"홈 화면에 추가"</b> 탭<br>
-                        3️⃣ 오른쪽 상단 <b>"추가"</b> 탭
+            <!-- 홈화면 추가 안내 (아코디언) -->
+            <div style="background:#FFF8E7;border:2px solid var(--accent-color);border-radius:16px;margin-bottom:16px;overflow:hidden;">
+                <div onclick="toggleInstallGuide()" style="padding:20px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:1em;font-weight:700;color:var(--primary-color);">📱 내 폰에 앱으로 꺼내두기</div>
+                        <div style="font-size:0.82em;color:var(--text-muted);margin-top:3px;">클릭해서 설치 방법 보기</div>
                     </div>
+                    <span id="install-guide-arrow" style="font-size:1.2em;color:var(--text-muted);transition:transform 0.3s;">▼</span>
                 </div>
-                <div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:10px;">
-                    <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🤖 안드로이드 크롬</div>
-                    <div style="font-size:0.88em;color:#555;line-height:1.9;">
-                        1️⃣ 오른쪽 상단 <b>⋮ 메뉴</b> 탭<br>
-                        2️⃣ <b>"공유..."</b> 탭<br>
-                        3️⃣ 공유 목록에서 <b>"홈 화면에 추가"</b> 탭<br>
-                        4️⃣ <b>"추가"</b> 탭
+                <div id="install-guide-body" style="display:none;padding:0 22px 22px;">
+                    <div style="font-size:0.9em;color:#555;line-height:1.8;margin-bottom:14px;">앱처럼 사용하려면 폰에 꺼내두기해보세요!<br>매일 아이콘 하나만 눌러서 바로 확언을 시작할 수 있어요.</div>
+                    <div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:10px;">
+                        <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🍎 아이폰 (Safari)</div>
+                        <div style="font-size:0.88em;color:#555;line-height:1.9;">
+                            1️⃣ 하단 가운데 <b>공유 버튼 (□↑)</b> 탭<br>
+                            2️⃣ 아래로 스크롤 → <b>"홈 화면에 추가"</b> 탭<br>
+                            3️⃣ 오른쪽 상단 <b>"추가"</b> 탭
+                        </div>
                     </div>
-                </div>
-                <div style="background:#FFFFFF;border-radius:12px;padding:16px;">
-                    <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🤖 삼성 인터넷</div>
-                    <div style="font-size:0.88em;color:#555;line-height:1.9;">
-                        1️⃣ 하단 <b>≡ 메뉴</b> 탭<br>
-                        2️⃣ <b>"페이지 추가"</b> 탭<br>
-                        3️⃣ <b>"홈 화면"</b> 선택 → <b>"추가"</b> 탭
+                    <div style="background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:10px;">
+                        <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🤖 안드로이드 크롬</div>
+                        <div style="font-size:0.88em;color:#555;line-height:1.9;">
+                            1️⃣ 오른쪽 상단 <b>⋮ 메뉴</b> 탭<br>
+                            2️⃣ <b>"공유..."</b> 탭<br>
+                            3️⃣ 공유 목록에서 <b>"홈 화면에 추가"</b> 탭<br>
+                            4️⃣ <b>"추가"</b> 탭
+                        </div>
+                    </div>
+                    <div style="background:#FFFFFF;border-radius:12px;padding:16px;">
+                        <div style="font-size:0.95em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">🤖 삼성 인터넷</div>
+                        <div style="font-size:0.88em;color:#555;line-height:1.9;">
+                            1️⃣ 하단 <b>≡ 메뉴</b> 탭<br>
+                            2️⃣ <b>"페이지 추가"</b> 탭<br>
+                            3️⃣ <b>"홈 화면"</b> 선택 → <b>"추가"</b> 탭
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3883,18 +3891,44 @@
         initOnboarding();
     }
 
+    // ★ 닉네임/이메일 전체 동기화
+    function syncNicknameEmail(){
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        // 설정 탭
+        const ni = document.getElementById('nickname-input');
+        if(ni) ni.value = nick;
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        // 사연 탭
+        const sn = document.getElementById('story-name');
+        if(sn && nick && !sn.value) sn.value = nick;
+        const se = document.getElementById('story-email');
+        if(se && email) se.value = email;
+        // 온보딩
+        const oni = document.getElementById('ob-nick-input');
+        if(oni && nick) oni.value = nick;
+        const oei = document.getElementById('ob-email-input');
+        if(oei && email) oei.value = email;
+        // 닉네임 모달
+        const mni = document.getElementById('nm-nick');
+        if(mni && nick) mni.value = nick;
+        const mei = document.getElementById('nm-email');
+        if(mei && email) mei.value = email;
+    }
+
     window.saveNickname = function(){
         const val = (document.getElementById('nickname-input')?.value || '').trim();
         if(!val || val.length < 2){
             showToast('닉네임은 2글자 이상 입력해주세요!');
             return;
         }
-        // 변경 확인
         const prev = safeGetItem('my_nickname','');
         if(prev && prev !== val){
             if(!confirm('닉네임을 변경하시겠습니까?\n\n이전: ' + prev + '\n변경: ' + val)) return;
         }
         safeSetItem('my_nickname', val);
+        syncNicknameEmail();
         showToast('🏅 닉네임이 저장됐어요!');
         window._sendUserUpdate();
     }
@@ -3907,16 +3941,23 @@
             showToast('올바른 이메일 형식이 아니에요!\n예: abc@gmail.com');
             return;
         }
-        // 변경 확인
         const prev = safeGetItem('my_email','');
         if(prev && prev !== val){
             if(!confirm('이메일을 변경하시겠습니까?\n\n이전: ' + prev + '\n변경: ' + val)) return;
         }
         safeSetItem('my_email', val);
-        const se = document.getElementById('story-email');
-        if(se) se.value = val;
+        syncNicknameEmail();
         showToast('📧 이메일이 저장됐어요!');
         window._sendUserUpdate();
+    }
+
+    // 앱 설치 가이드 아코디언
+    window.toggleInstallGuide = function(){
+        const body = document.getElementById('install-guide-body');
+        const arrow = document.getElementById('install-guide-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
     }
 
     // 아코디언 열기/닫기
@@ -8424,8 +8465,8 @@ https://life2radio.github.io/affirmation/
     }
 
     function initSettings(){
-        renderSurvey(); // ★ 설문 렌더링
-        // 설문 저장 상태 반영
+        renderSurvey();
+        syncNicknameEmail(); // ★ 닉네임/이메일 동기화
         const surveyLabel = document.getElementById('survey-saved-label');
         if(surveyLabel){
             surveyLabel.textContent = safeGetItem('survey_saved','') === '1'
