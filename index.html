@@ -788,7 +788,7 @@
                         🧠 지금 바로 시작하기 →
                     </button>
                     <div style="font-size:0.72em;color:rgba(255,255,255,0.45);margin-top:10px;text-align:center;">
-                        BFI-10 · Rosenberg · VIA 검사 기반 · 약 5분 소요
+                        BFI-44 · Rosenberg · VIA 검사 기반 · 약 12분 소요
                     </div>
                 </div>
 
@@ -988,7 +988,7 @@
                 <button onclick="startPsychTest()" style="width:100%;min-height:56px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1.05em;font-weight:700;cursor:pointer;">
                     🧠 지금 바로 시작하기 →
                 </button>
-                <div style="font-size:0.78em;color:var(--text-muted);margin-top:12px;">BFI-10 · Rosenberg · VIA · 약 5분 소요 · 무료</div>
+                <div style="font-size:0.78em;color:var(--text-muted);margin-top:12px;">BFI-44 · Rosenberg · VIA · 약 12분 소요 · 무료</div>
             </div>
         </div>
 
@@ -1057,6 +1057,11 @@
                style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;box-sizing:border-box;background:#FEE500;color:#3A1D1D;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px;">
                 💬 인생2막❤️라디오 카카오 오픈채팅으로 보내기
             </button>
+            <div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#7A5500;line-height:1.8;margin-bottom:8px;">
+                📎 <b>사진·한글파일 등 파일 첨부는 카카오톡으로!</b><br>
+                위 버튼으로 오픈채팅 입장 후<br>
+                카카오톡에서 파일을 바로 첨부해서 보내주세요 😊
+            </div>
             <button id="story-kakao-done-btn"
                onclick="onStoryKakaoDone()"
                style="display:none;width:100%;min-height:46px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;margin-bottom:14px;">
@@ -1190,7 +1195,7 @@
                     3가지 과학 검사로 알아보는 나의 진짜 모습
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-                    <span style="background:#F0F7F4;color:#1B4332;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">BFI-10 성격검사</span>
+                    <span style="background:#F0F7F4;color:#1B4332;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">BFI-44 성격검사</span>
                     <span style="background:#FFF8E7;color:#856404;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">Rosenberg 자존감</span>
                     <span style="background:#F0F7F4;color:#1B4332;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">VIA 강점검사</span>
                 </div>
@@ -3247,8 +3252,8 @@
     // ★ 심리테스트 전체 시스템
     // ====================================================
     // ====================================================
-    // ★ 심리테스트 v2.0 — BFI-10 + Rosenberg + VIA
-    // 출처: Rammstedt & John (2007) / Rosenberg (1965) / Peterson & Seligman (2004)
+    // ★ 심리테스트 v3.0 — BFI-44 + Rosenberg + VIA
+    // 출처: John, Donahue & Kentle (1991) / Rosenberg (1965) / Peterson & Seligman (2004)
     // ====================================================
 
     // 16가지 동물 유형 (E/O/A/C 4축 조합)
@@ -3287,18 +3292,52 @@
             tagline:'남들이 못 보는 아름다움을 발견해요', mbti:'INFP/INTP' },
     };
 
-    // BFI-10 문항 (Rammstedt & John, 2007)
+    // BFI-44 문항 (John, Donahue & Kentle, 1991) — 세계 표준 성격 검사
     const BFI_ITEMS = [
-        { id:'E1', axis:'E', rev:false, text:'나는 말이 많고 활달한 편이에요' },
-        { id:'A1', axis:'A', rev:true,  text:'나는 차갑고 거리를 두는 편이에요' },
-        { id:'C1', axis:'C', rev:false, text:'나는 철저하고 꼼꼼한 편이에요' },
-        { id:'N1', axis:'N', rev:false, text:'나는 우울하고 침울한 편이에요' },
-        { id:'O1', axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어가 많아요' },
-        { id:'E2', axis:'E', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
-        { id:'A2', axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
-        { id:'C2', axis:'C', rev:true,  text:'나는 좀 게으르고 덜렁거리는 편이에요' },
-        { id:'N2', axis:'N', rev:true,  text:'나는 느긋하고 스트레스를 잘 견뎌요' },
-        { id:'O2', axis:'O', rev:false, text:'나는 예술적이고 심미적인 것을 즐겨요' },
+        { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
+        { id:'A1',  axis:'A', rev:true,  text:'나는 다른 사람의 단점을 잘 찾아내는 편이에요' },
+        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
+        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
+        { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
+        { id:'E2',  axis:'E', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
+        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
+        { id:'C2',  axis:'C', rev:true,  text:'나는 부주의하게 행동할 때가 있어요' },
+        { id:'N2',  axis:'N', rev:true,  text:'나는 느긋하고 스트레스를 잘 다뤄요' },
+        { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
+        { id:'E3',  axis:'E', rev:false, text:'나는 활기차고 에너지가 넘쳐요' },
+        { id:'A3',  axis:'A', rev:true,  text:'나는 다른 사람과 다툴 때가 있어요' },
+        { id:'C3',  axis:'C', rev:false, text:'나는 믿을 수 있는 사람이에요' },
+        { id:'N3',  axis:'N', rev:false, text:'나는 긴장되거나 초조할 때가 있어요' },
+        { id:'O3',  axis:'O', rev:false, text:'나는 영리하고 생각이 깊은 편이에요' },
+        { id:'E4',  axis:'E', rev:false, text:'나는 주변에 열정을 불러일으키는 편이에요' },
+        { id:'A4',  axis:'A', rev:false, text:'나는 용서하는 마음이 있어요' },
+        { id:'C4',  axis:'C', rev:true,  text:'나는 체계 없이 어수선한 편이에요' },
+        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
+        { id:'O4',  axis:'O', rev:false, text:'나는 예술적 상상력이 풍부한 편이에요' },
+        { id:'E5',  axis:'E', rev:true,  text:'나는 말이 없고 낯을 가리는 편이에요' },
+        { id:'A5',  axis:'A', rev:false, text:'나는 일반적으로 다른 사람을 믿는 편이에요' },
+        { id:'C5',  axis:'C', rev:true,  text:'나는 게으른 편이에요' },
+        { id:'N5',  axis:'N', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
+        { id:'O5',  axis:'O', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
+        { id:'E6',  axis:'E', rev:false, text:'나는 자신감 있고 당당하게 나를 표현해요' },
+        { id:'A6',  axis:'A', rev:true,  text:'나는 때때로 냉정하고 무뚝뚝할 수 있어요' },
+        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
+        { id:'N6',  axis:'N', rev:false, text:'나는 기분 변화가 있는 편이에요' },
+        { id:'O6',  axis:'O', rev:false, text:'나는 예술·음악·문학을 감상하는 것을 즐겨요' },
+        { id:'E7',  axis:'E', rev:true,  text:'나는 수줍음이 많고 소심한 편이에요' },
+        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
+        { id:'C7',  axis:'C', rev:false, text:'나는 효율적으로 계획하고 실행해요' },
+        { id:'N7',  axis:'N', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
+        { id:'O7',  axis:'O', rev:true,  text:'나는 다양한 관심사보다 한 가지에 집중하는 편이에요' },
+        { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
+        { id:'A8',  axis:'A', rev:true,  text:'나는 때로 다른 사람에게 무례할 수 있어요' },
+        { id:'C8',  axis:'C', rev:false, text:'나는 계획을 세우고 그대로 실행해요' },
+        { id:'N8',  axis:'N', rev:false, text:'나는 쉽게 긴장하고 불안해져요' },
+        { id:'O8',  axis:'O', rev:false, text:'나는 깊이 생각하고 복잡한 아이디어를 즐겨요' },
+        { id:'O9',  axis:'O', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
+        { id:'A9',  axis:'A', rev:false, text:'나는 다른 사람과 협력하는 것을 좋아해요' },
+        { id:'C9',  axis:'C', rev:true,  text:'나는 쉽게 주의가 산만해지는 편이에요' },
+        { id:'O10', axis:'O', rev:false, text:'나는 문화·예술에 대한 관심이 많아요' },
     ];
 
     // Rosenberg 자존감 척도 (Rosenberg, 1965)
@@ -3315,26 +3354,44 @@
         { id:'R10', rev:true, text:'나는 때때로 내가 좋지 않은 사람이라고 생각해요' },
     ];
 
-    // VIA 강점 (Peterson & Seligman, 2004 — 간소화)
+    // VIA 강점 (Peterson & Seligman, 2004 — 12문항 확장)
     const VIA_ITEMS = [
-        { id:'V1', text:'지금 이 순간, 나는?',
-          opts:['🔍 새로운 것이 궁금해요','🏠 익숙한 것이 편안해요'],
-          str:['호기심','안정감'] },
-        { id:'V2', text:'어려운 문제가 생기면?',
+        { id:'V1',  text:'새로운 것을 배울 때 나는?',
+          opts:['🔍 설레고 더 알고 싶어요','📖 차근차근 정리하고 싶어요'],
+          str:['호기심','신중성'] },
+        { id:'V2',  text:'어려운 문제가 생기면?',
           opts:['🤝 같이 해결하고 싶어요','💡 혼자 생각해서 풀고 싶어요'],
           str:['협동심','자기주도'] },
-        { id:'V3', text:'힘든 일이 생겼을 때 나는?',
+        { id:'V3',  text:'힘든 일이 생겼을 때 나는?',
           opts:['🌊 감정을 느끼고 표현해요','🧘 조용히 받아들여요'],
           str:['감성지능','자기조절'] },
-        { id:'V4', text:'사람들에게 나는?',
+        { id:'V4',  text:'사람들에게 나는?',
           opts:['💝 따뜻하게 챙겨줘요','🎯 솔직하게 말해줘요'],
           str:['친절함','정직함'] },
-        { id:'V5', text:'일할 때 나는?',
-          opts:['📋 계획 세우고 차근차근 해요','⚡ 일단 시작하고 맞춰가요'],
-          str:['신중성','활력'] },
-        { id:'V6', text:'삶에서 더 중요한 건?',
+        { id:'V5',  text:'일이 잘 안 풀릴 때 나는?',
+          opts:['🔥 더 열심히 해요','🔄 방법을 바꿔봐요'],
+          str:['활력','창의성'] },
+        { id:'V6',  text:'삶에서 더 중요한 건?',
           opts:['🌱 지금 이 순간을 충분히 살기','🚀 더 나은 미래를 만들기'],
           str:['감사','희망'] },
+        { id:'V7',  text:'내가 가장 뿌듯할 때는?',
+          opts:['🏆 목표를 달성했을 때','🤗 누군가에게 도움이 됐을 때'],
+          str:['자기주도','친절함'] },
+        { id:'V8',  text:'모임에서 나는?',
+          opts:['🎉 분위기를 살려요','👂 조용히 듣고 공감해요'],
+          str:['활력','공감능력'] },
+        { id:'V9',  text:'오래된 것과 새로운 것, 나는?',
+          opts:['✨ 새로운 것에 끌려요','🏛️ 검증된 것이 편해요'],
+          str:['호기심','신중성'] },
+        { id:'V10', text:'잘못을 했을 때 나는?',
+          opts:['🙏 바로 인정하고 사과해요','🤔 충분히 생각하고 해요'],
+          str:['정직함','신중성'] },
+        { id:'V11', text:'나에게 리더십이란?',
+          opts:['🗣️ 앞장서서 이끄는 것','🌿 묵묵히 모범을 보이는 것'],
+          str:['활력','자기조절'] },
+        { id:'V12', text:'어려운 상황에서 나는?',
+          opts:['💪 포기하지 않고 버텨요','🌈 희망을 찾으려 해요'],
+          str:['자기주도','희망'] },
     ];
 
     const INFO_ITEMS = [
@@ -3521,7 +3578,7 @@
             <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:20px;border:1px solid var(--border-color);">
                 <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:12px;">🔬 어떤 검사로 분석하나요?</div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-10 성격 검사</div><div style="font-size:0.75em;color:var(--text-muted);">Rammstedt & John (2007)</div></div></div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-44 성격 검사</div><div style="font-size:0.75em;color:var(--text-muted);">John, Donahue & Kentle (1991)</div></div></div>
                     <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#C9A84C;color:#1B4332;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">RSE</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">Rosenberg 자존감 척도</div><div style="font-size:0.75em;color:var(--text-muted);">Rosenberg (1965)</div></div></div>
                     <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#2D6A4F;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">VIA</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">VIA 강점 검사</div><div style="font-size:0.75em;color:var(--text-muted);">Peterson & Seligman (2004)</div></div></div>
                 </div>
@@ -3628,7 +3685,7 @@
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.font = '16px sans-serif';
-        ctx.fillText('BFI-10 · Rosenberg · VIA 기반 · 인생2막라디오', 400, 780);
+        ctx.fillText('BFI-44 · Rosenberg · VIA 기반 · 인생2막라디오', 400, 780);
 
         // 앱 링크
         ctx.fillStyle = '#C9A84C';
@@ -3767,7 +3824,7 @@
     }
 
     function calcAndShowResult(){
-        // BFI-10 채점
+        // BFI-44 채점
         const bfi = { E:[], O:[], A:[], C:[], N:[] };
         BFI_ITEMS.forEach(item => {
             let raw = pA['bfi_'+item.id] || 4;
@@ -3991,7 +4048,7 @@
                             <span>${left}</span><span>${right}</span>
                         </div>
                     </div>`).join('')}
-                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: BFI-10 (Rammstedt & John, 2007)</div>
+                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: BFI-44 (John, Donahue & Kentle, 1991)</div>
             </div>
 
             <!-- 7가지 카테고리 -->
