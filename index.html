@@ -4471,6 +4471,12 @@ https://life2radio.github.io/affirmation/?psych=1`;
         showToast('📧 이메일이 저장됐어요!');
         window._sendUserUpdate();
         window._sendUserRegister('이메일설정');
+        // ★ 대기 중인 레벨업 처리
+        if(_pendingLevelUp >= 0){
+            const idx = _pendingLevelUp;
+            _pendingLevelUp = -1;
+            setTimeout(()=> showLevelUp(idx), 500);
+        }
     }
 
     // 앱 설치 가이드 아코디언
@@ -8349,6 +8355,8 @@ https://life2radio.github.io/affirmation/
     // 포인트 지급 (하루 1회 제한 있는 항목은 key 전달)
     const DAILY_MAX_PT = 23;
 
+    let _pendingLevelUp = -1; // 레벨업 대기 인덱스
+
     window.addPoint = function(amount, reason, dailyKey){
         if(dailyKey){
             const k = `pt_daily_${dailyKey}_${getTodayStr()}`;
@@ -8403,6 +8411,35 @@ https://life2radio.github.io/affirmation/
     // 레벨업 팝업
     function showLevelUp(lvIdx){
         const lv = LEVELS[lvIdx];
+
+        // ★ 닉네임+이메일 미등록 시 → 레벨업 보류 + 등록 팝업
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        if(!nick || !email){
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:12px;">${lv.emoji}</div>
+                    <div style="font-size:1.1em;font-weight:700;color:#1B4332;margin-bottom:8px;">${lv.name} 등급까지 왔어요!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.8;margin-bottom:20px;">
+                        레벨업 기록을 저장하려면<br>
+                        <b style="color:#1B4332;">닉네임과 이메일 등록</b>이 필요해요.<br>
+                        등록하면 바로 레벨업이 확정돼요! 🎉
+                    </div>
+                    <button onclick="this.closest('div[style*=fixed]').remove();showNicknameModal();_pendingLevelUp=${lvIdx};"
+                        style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                        🏅 등록하고 레벨업 받기
+                    </button>
+                    <button onclick="this.closest('div[style*=fixed]').remove();"
+                        style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
+                        나중에 할게요
+                    </button>
+                </div>`;
+            document.body.appendChild(modal);
+            return; // 등록 전까지 레벨업 팝업 보류
+        }
+
         window._sendLevelUp(lv.name);
         const modal = document.createElement('div');
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
@@ -8557,6 +8594,7 @@ https://life2radio.github.io/affirmation/
             const userData = {
                 action: 'user_log',
                 nickname:   nick || '미설정',
+                email:      safeGetItem('my_email',''),
                 date:       today,
                 installDate: startDate,
                 totalDays:  cd.length,
