@@ -3659,103 +3659,86 @@
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
         const r = JSON.parse(saved);
         const s = r.scores;
-        const love    = getLoveStyle(s);
-        const work    = getWorkStyle(s);
-        const friend  = getFriendStyle(s);
-        const hard    = getHardStyle(s);
-        const via     = getViaStyle(r.viaStrengths);
-        const nick    = safeGetItem('my_nickname','') || '나';
-        const today   = getTodayStr();
+        const raw = r.rawScores || {};
+        const love   = getLoveStyle(s);
+        const work   = getWorkStyle(s);
+        const friend = getFriendStyle(s);
+        const hard   = getHardStyle(s);
+        const money  = getMoneyStyle(s);
+        const rse    = getRseStyle(s.RSE);
+        const via    = getViaStyle(r.viaStrengths);
+        const overall = getOverallDesc(s, r.animal);
+        const nick   = safeGetItem('my_nickname','') || '나';
+        const today  = getTodayStr();
 
-        // 자존감 해석
-        const rseLevel = s.RSE >= 85 ? '매우 높음 — 안정적 자기가치감'
-            : s.RSE >= 65 ? '높음 — 전반적으로 긍정적 자기관'
-            : s.RSE >= 45 ? '평균 — 상황에 따라 변동'
+        const rseLevel = s.RSE >= 75 ? '높음 — 안정적 자기가치감'
+            : s.RSE >= 50 ? '평균 — 상황에 따라 변동'
             : s.RSE >= 25 ? '낮음 — 자기비판 경향'
             : '매우 낮음 — 심리적 지원 권장';
 
-        // Big5 각 요인 해석
-        function bfiDesc(label, val, high, low){
-            return val >= 65 ? `<span style="color:#1B4332;font-weight:700;">${label} ${val}% — ${high}</span>`
-                : val < 40 ? `<span style="color:#C9A84C;font-weight:700;">${label} ${val}% — ${low}</span>`
-                : `<span style="color:#555;">${label} ${val}% — 중간 수준</span>`;
-        }
+        // 경계선 체크
+        const borderAxes = [];
+        if(s.E>=42&&s.E<=58) borderAxes.push('외향성');
+        if(s.O>=42&&s.O<=58) borderAxes.push('개방성');
+        if(s.A>=42&&s.A<=58) borderAxes.push('친화성');
+        if(s.C>=42&&s.C<=58) borderAxes.push('성실성');
 
-        const html = `<!DOCTYPE html>
+        const html = \`<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${nick}님의 성격 분석 결과지</title>
+<title>\${nick}님의 성격 분석 결과지</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif; background:#F5F3EF; color:#333; font-size:14px; line-height:1.7; }
-  .page { max-width:720px; margin:0 auto; padding:20px; }
-
-  /* 표지 헤더 */
-  .header { background:linear-gradient(135deg,#1B4332,#2D6A4F); color:#fff; border-radius:20px; padding:40px 32px; text-align:center; margin-bottom:20px; }
-  .header .badge { display:inline-block; background:rgba(212,168,67,0.2); border:1px solid rgba(212,168,67,0.5); border-radius:20px; padding:6px 20px; font-size:12px; color:#C9A84C; font-weight:700; margin-bottom:16px; letter-spacing:2px; }
-  .header .animal { font-size:80px; margin-bottom:8px; }
-  .header .type-name { font-size:32px; font-weight:900; color:#C9A84C; margin-bottom:4px; }
-  .header .type-title { font-size:18px; color:rgba(255,255,255,0.85); margin-bottom:4px; }
-  .header .mbti { font-size:13px; color:rgba(255,255,255,0.5); }
-  .header .tagline { font-size:15px; color:rgba(255,255,255,0.8); margin-top:12px; padding:12px 20px; background:rgba(255,255,255,0.08); border-radius:12px; }
-  .header .date { font-size:12px; color:rgba(255,255,255,0.4); margin-top:16px; }
-
-  /* 섹션 카드 */
-  .card { background:#fff; border-radius:16px; padding:24px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
-  .card-title { font-size:16px; font-weight:700; color:#1B4332; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #F0F7F4; display:flex; align-items:center; gap:8px; }
-  .card-title .icon { font-size:20px; }
-
-  /* Big5 바 */
-  .bar-wrap { margin-bottom:14px; }
-  .bar-header { display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; }
-  .bar-label { font-weight:700; color:#333; }
-  .bar-score { font-weight:700; color:#1B4332; }
-  .bar-bg { background:#F0F0F0; border-radius:10px; height:10px; overflow:hidden; margin-bottom:4px; }
-  .bar-fill { height:100%; border-radius:10px; background:linear-gradient(90deg,#1B4332,#52B788); }
-  .bar-desc { font-size:12px; color:#888; }
-
-  /* 자존감 */
-  .rse-wrap { text-align:center; padding:16px; background:#F0F7F4; border-radius:12px; margin-bottom:12px; }
-  .rse-score { font-size:48px; font-weight:900; color:#1B4332; }
-  .rse-label { font-size:13px; color:#555; margin-top:4px; }
-  .rse-level { display:inline-block; background:#1B4332; color:#C9A84C; padding:4px 16px; border-radius:20px; font-size:12px; font-weight:700; margin-top:8px; }
-
-  /* 스타일 섹션 */
-  .style-box { background:#F8FBF8; border-left:4px solid #1B4332; border-radius:0 12px 12px 0; padding:16px; margin-bottom:12px; }
-  .style-title { font-size:14px; font-weight:700; color:#1B4332; margin-bottom:8px; }
-  .style-desc { font-size:13px; color:#555; line-height:1.8; margin-bottom:8px; }
-  .style-strength { font-size:13px; color:#2D6A4F; margin-bottom:6px; }
-  .style-caution { font-size:13px; color:#C9A84C; margin-bottom:6px; }
-  .style-tip { font-size:12px; color:#888; font-style:italic; background:#FFF8E7; padding:8px 12px; border-radius:8px; margin-top:8px; }
-
-  /* 강점 태그 */
-  .strength-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .strength-tag { background:#1B4332; color:#fff; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700; }
-  .strength-tag.secondary { background:#F0F7F4; color:#1B4332; }
-
-  /* 출처 */
-  .cite { font-size:11px; color:#aaa; font-style:italic; margin-top:6px; }
-
-  /* 푸터 */
-  .footer { text-align:center; padding:24px; color:#aaa; font-size:12px; }
-  .footer .app-name { color:#1B4332; font-weight:700; font-size:14px; margin-bottom:4px; }
-
-  /* 인쇄 */
-  @media print {
-    body { background:#fff; }
-    .page { max-width:100%; padding:10px; }
-    .card { box-shadow:none; border:1px solid #eee; page-break-inside:avoid; }
-    .no-print { display:none !important; }
-  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;background:#F5F3EF;color:#333;font-size:14px;line-height:1.7;}
+  .page{max-width:720px;margin:0 auto;padding:20px;}
+  .header{background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border-radius:20px;padding:40px 32px;text-align:center;margin-bottom:20px;}
+  .header .badge{display:inline-block;background:rgba(212,168,67,0.2);border:1px solid rgba(212,168,67,0.5);border-radius:20px;padding:6px 20px;font-size:12px;color:#C9A84C;font-weight:700;margin-bottom:16px;letter-spacing:2px;}
+  .header .animal{font-size:80px;margin-bottom:8px;}
+  .header .type-name{font-size:32px;font-weight:900;color:#C9A84C;margin-bottom:4px;}
+  .header .type-title{font-size:18px;color:rgba(255,255,255,0.85);margin-bottom:4px;}
+  .header .mbti{font-size:13px;color:rgba(255,255,255,0.5);}
+  .header .intro{font-size:15px;color:rgba(255,255,255,0.9);margin-top:14px;padding:14px 20px;background:rgba(255,255,255,0.1);border-radius:12px;line-height:1.8;text-align:left;}
+  .header .date{font-size:12px;color:rgba(255,255,255,0.4);margin-top:16px;}
+  .card{background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
+  .card-title{font-size:16px;font-weight:700;color:#1B4332;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #F0F7F4;display:flex;align-items:center;gap:8px;}
+  .overall-text{font-size:14px;line-height:2;color:#444;}
+  .overall-text b{color:#1B4332;}
+  .bar-wrap{margin-bottom:14px;}
+  .bar-header{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;}
+  .bar-label{font-weight:700;color:#333;}
+  .bar-score{font-weight:700;color:#1B4332;}
+  .bar-raw{font-size:11px;color:#aaa;font-weight:400;margin-left:4px;}
+  .bar-bg{background:#F0F0F0;border-radius:10px;height:10px;overflow:hidden;margin-bottom:4px;}
+  .bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#1B4332,#52B788);}
+  .bar-border{border:2px dashed #C9A84C !important;}
+  .bar-desc{font-size:12px;color:#888;}
+  .rse-wrap{text-align:center;padding:16px;background:#F0F7F4;border-radius:12px;margin-bottom:12px;}
+  .rse-score{font-size:48px;font-weight:900;color:#1B4332;}
+  .rse-level{display:inline-block;background:#1B4332;color:#C9A84C;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:700;margin-top:8px;}
+  .style-box{background:#F8FBF8;border-left:4px solid #1B4332;border-radius:0 12px 12px 0;padding:16px;margin-bottom:12px;}
+  .style-title{font-size:14px;font-weight:700;color:#1B4332;margin-bottom:8px;}
+  .style-desc{font-size:13px;color:#555;line-height:1.8;margin-bottom:8px;}
+  .style-strength{font-size:13px;color:#2D6A4F;margin-bottom:6px;}
+  .style-caution{font-size:13px;color:#C9A84C;margin-bottom:6px;}
+  .style-tip{font-size:12px;color:#888;font-style:italic;background:#FFF8E7;padding:8px 12px;border-radius:8px;margin-top:8px;}
+  .strength-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .strength-tag{background:#1B4332;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;}
+  .strength-tag.sec{background:#F0F7F4;color:#1B4332;}
+  .border-alert{background:#FFF8E7;border:1px solid #C9A84C;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#7A5500;line-height:1.7;}
+  .cite{font-size:11px;color:#aaa;font-style:italic;margin-top:8px;}
+  .footer{text-align:center;padding:24px;color:#aaa;font-size:12px;}
+  .footer .app-name{color:#1B4332;font-weight:700;font-size:14px;margin-bottom:4px;}
+  .affirmation-box{background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;color:#fff;}
+  .affirmation-box .af-title{font-size:14px;font-weight:700;color:#C9A84C;margin-bottom:12px;}
+  .affirmation-box .af-item{font-size:13px;line-height:1.9;color:rgba(255,255,255,0.9);margin-bottom:6px;padding-left:12px;border-left:2px solid rgba(201,168,76,0.4);}
+  @media print{body{background:#fff;}.page{max-width:100%;padding:10px;}.card{box-shadow:none;border:1px solid #eee;page-break-inside:avoid;}.no-print{display:none !important;}}
 </style>
 </head>
 <body>
 <div class="page">
-
-  <!-- 인쇄 버튼 -->
   <div class="no-print" style="text-align:right;margin-bottom:12px;">
     <button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ PDF로 저장 / 인쇄</button>
   </div>
@@ -3763,147 +3746,186 @@
   <!-- 헤더 -->
   <div class="header">
     <div class="badge">인생2막라디오 확언앱 · 성격 분석 결과지</div>
-    <div class="animal">${r.animal.animal}</div>
-    <div class="type-name">${r.animal.name}</div>
-    <div class="type-title">${r.animal.title}</div>
-    <div class="mbti">MBTI 유사 유형: ${r.animal.mbti || '-'}</div>
-    <div class="tagline">"${r.animal.tagline}"</div>
-    <div class="date">검사일: ${today} · ${nick}님</div>
+    <div class="animal">\${r.animal.animal}</div>
+    <div class="type-name">\${r.animal.name}</div>
+    <div class="type-title">\${r.animal.title}</div>
+    <div class="mbti">MBTI 유사 유형: \${r.animal.mbti || '-'}</div>
+    <div class="intro">\${r.animal.desc || r.animal.tagline}</div>
+    <div class="date">검사일: \${today} · \${nick}님</div>
+  </div>
+
+  \${borderAxes.length > 0 ? \`
+  <div class="border-alert">
+    💡 <b>경계선 안내:</b> \${borderAxes.join(', ')} 요인이 50% 근처에 있어요.
+    이 경우 반대 유형의 특성도 함께 가질 수 있어요. 결과는 참고용으로 활용하고, 30일 후 재검사로 변화를 확인해보세요.
+  </div>\` : ''}
+
+  <!-- 전반적 성격 서술 -->
+  <div class="card">
+    <div class="card-title">🧬 BFI-44가 분석한 나의 성격</div>
+    <div class="overall-text">\${overall}</div>
+    <p class="cite">📚 John, O.P., Donahue, E.M., & Kentle, R.L. (1991). The Big Five Inventory. UC Berkeley.</p>
   </div>
 
   <!-- Big Five -->
   <div class="card">
-    <div class="card-title"><span class="icon">🧠</span>성격 5요인 분석 (BFI-44)</div>
-    <div class="bar-wrap">
-      <div class="bar-header"><span class="bar-label">외향성 (Extraversion)</span><span class="bar-score">${s.E}%</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${s.E}%"></div></div>
-      <div class="bar-desc">${s.E >= 65 ? '사교적이고 활발하며 타인과의 교류에서 에너지를 얻어요. 리더십, 긍정적 정서, 주장성이 강해요.' : s.E < 40 ? '혼자 있을 때 에너지를 회복하며, 소수의 깊은 관계를 선호해요. 신중하고 사려 깊은 사고를 해요.' : '내향과 외향의 균형을 갖춘 양향형이에요. 상황에 따라 유연하게 적응해요.'}</div>
+    <div class="card-title">🧠 성격 5요인 수치 분석 (BFI-44 · 44문항)</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px;padding:8px 12px;background:#F8F8F8;border-radius:8px;">
+      📊 1점=전혀 아님 · 4점=보통 · 7점=매우 그렇다 · 50% 기준으로 높음/낮음 구분
     </div>
-    <div class="bar-wrap">
-      <div class="bar-header"><span class="bar-label">개방성 (Openness)</span><span class="bar-score">${s.O}%</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${s.O}%"></div></div>
-      <div class="bar-desc">${s.O >= 65 ? '호기심이 많고 창의적이며 새로운 아이디어와 경험을 즐겨요. 예술적 감수성과 상상력이 풍부해요.' : s.O < 40 ? '실용적이고 안정적인 것을 선호해요. 검증된 방식과 익숙한 환경에서 최고의 능력을 발휘해요.' : '새로운 것과 익숙한 것 사이에서 균형을 유지해요. 실용성과 창의성을 적절히 활용해요.'}</div>
-    </div>
-    <div class="bar-wrap">
-      <div class="bar-header"><span class="bar-label">친화성 (Agreeableness)</span><span class="bar-score">${s.A}%</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${s.A}%"></div></div>
-      <div class="bar-desc">${s.A >= 65 ? '협력적이고 따뜻하며 타인을 잘 배려해요. 신뢰, 이타심, 공감 능력이 뛰어나요.' : s.A < 40 ? '독립적이고 직설적이에요. 협상보다 자신의 입장을 명확히 주장하며, 냉철한 판단을 해요.' : '상황에 따라 협력과 주장 사이에서 균형을 잡아요.'}</div>
-    </div>
-    <div class="bar-wrap">
-      <div class="bar-header"><span class="bar-label">성실성 (Conscientiousness)</span><span class="bar-score">${s.C}%</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${s.C}%"></div></div>
-      <div class="bar-desc">${s.C >= 65 ? '체계적이고 목표 지향적이에요. 높은 자기조절 능력과 책임감으로 신뢰받는 사람이에요.' : s.C < 40 ? '자유롭고 유연한 방식을 선호해요. 즉흥성과 적응력이 강점이에요.' : '계획성과 유연성의 균형을 갖고 있어요.'}</div>
-    </div>
-    <div class="bar-wrap">
-      <div class="bar-header"><span class="bar-label">정서안정성 (Emotional Stability)</span><span class="bar-score">${100-s.N}%</span></div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${100-s.N}%"></div></div>
-      <div class="bar-desc">${100-s.N >= 65 ? '감정적으로 안정되어 있고 스트레스에 강해요. 어려운 상황에서도 침착하게 대응해요.' : 100-s.N < 40 ? '감정적 민감도가 높아요. 깊은 공감 능력의 원천이지만, 스트레스 관리가 중요해요.' : '감정 기복이 크지 않으며, 상황에 따라 적절히 감정을 표현해요.'}</div>
-    </div>
-    <p class="cite">📚 John, O.P., Donahue, E.M., & Kentle, R.L. (1991). The Big Five Inventory. UC Berkeley. 신뢰도 α=.79~.88</p>
+    \${[
+      ['외향성','E','내향적','외향적','사람과의 교류에서 에너지를 얻는 정도'],
+      ['개방성','O','실용 추구','변화 추구','새로운 경험과 창의성에 대한 개방도'],
+      ['친화성','A','독립적','관계 중심','타인을 배려하고 협력하는 경향'],
+      ['성실성','C','유연함','계획적','목표 지향적이고 체계적으로 행동하는 정도'],
+      ['안정성','N','예민함','안정적','정서적 안정과 스트레스 대처 능력'],
+    ].map(([label, ax, left, right, tip]) => {
+      const score = ax === 'N' ? 100-s[ax] : s[ax];
+      const rawScore = ax === 'N' ? (raw[ax] ? (8-raw[ax]).toFixed(1) : '-') : (raw[ax]||'-');
+      const isBorder = score >= 42 && score <= 58;
+      return \`
+      <div class="bar-wrap">
+        <div class="bar-header">
+          <span class="bar-label">\${label} \${isBorder ? '⚠️' : ''}</span>
+          <span class="bar-score">\${score}% <span class="bar-raw">(\${rawScore}점/7)</span></span>
+        </div>
+        <div class="bar-bg \${isBorder ? 'bar-border' : ''}"><div class="bar-fill" style="width:\${score}%"></div></div>
+        <div class="bar-desc">
+          \${score >= 65 ? right+'이 강한 편이에요' : score < 40 ? left+'인 편이에요' : '중간 수준이에요 (경계형)'}
+          · \${tip}
+        </div>
+      </div>\`;
+    }).join('')}
+    <p class="cite">📚 신뢰도 α=.79~.88 · 세계 52개국 이상 검증</p>
   </div>
 
   <!-- 자존감 -->
   <div class="card">
-    <div class="card-title"><span class="icon">🌱</span>자존감 분석 (Rosenberg Self-Esteem Scale)</div>
+    <div class="card-title">🌱 자존감 분석 (Rosenberg Self-Esteem Scale)</div>
     <div class="rse-wrap">
-      <div class="rse-score">${s.RSE}점</div>
-      <div class="rse-label">100점 만점 기준</div>
-      <div class="rse-level">${rseLevel}</div>
+      <div class="rse-score">\${s.RSE}점</div>
+      <div style="font-size:13px;color:#555;margin-top:4px;">100점 만점 기준</div>
+      <div class="rse-level">\${rseLevel}</div>
     </div>
-    <p style="font-size:13px;color:#555;line-height:1.8;">
-      ${s.RSE >= 65
-        ? `자존감 ${s.RSE}점은 전반적으로 긍정적인 자기가치감을 갖고 있음을 나타내요. 자신의 장단점을 수용하며 심리적으로 안정된 상태예요. 사회적 위협이나 비판에 상대적으로 덜 흔들려요.`
-        : s.RSE >= 45
-        ? `자존감 ${s.RSE}점은 평균 수준이에요. 좋은 상황에서는 자신감이 높아지고, 어려운 상황에서는 자기의심이 생기는 경향이 있어요. 확언 실천이 자존감 향상에 효과적이에요.`
-        : `자존감 ${s.RSE}점은 현재 자기가치감이 낮은 편이에요. 자기비판적 사고 패턴이 있을 수 있어요. 매일 확언을 꾸준히 실천하면 자존감이 높아질 수 있어요. 30일 후 재검사로 변화를 확인해보세요.`
-      }
-    </p>
-    <p class="cite">📚 Rosenberg, M. (1965). Society and the Adolescent Self-Image. Princeton University Press. 세계 52개국 검증, α=.88</p>
+    <div class="style-box">
+      <div class="style-title">\${rse.title}</div>
+      <div class="style-desc">\${rse.desc}</div>
+      <div class="style-strength">\${rse.strength}</div>
+      <div class="style-tip">\${rse.tip}</div>
+    </div>
+    <p class="cite">📚 Rosenberg, M. (1965). Society and the Adolescent Self-Image. 세계 52개국 검증, α=.88</p>
   </div>
 
   <!-- 연애 스타일 -->
   <div class="card">
-    <div class="card-title"><span class="icon">💕</span>연애 스타일</div>
+    <div class="card-title">💕 연애 스타일</div>
     <div class="style-box">
-      <div class="style-title">${love.title}</div>
-      <div class="style-desc">${love.desc}</div>
-      <div class="style-strength">${love.strength}</div>
-      <div class="style-caution">${love.caution}</div>
-      <div class="style-tip">${love.tip}</div>
+      <div class="style-title">\${love.title}</div>
+      <div class="style-desc">\${love.desc}</div>
+      <div class="style-strength">\${love.strength}</div>
+      <div class="style-caution">\${love.caution}</div>
+      <div class="style-tip">\${love.tip}</div>
     </div>
   </div>
 
   <!-- 일 스타일 -->
   <div class="card">
-    <div class="card-title"><span class="icon">💼</span>일 스타일</div>
+    <div class="card-title">💼 일 스타일</div>
     <div class="style-box">
-      <div class="style-title">${work.title}</div>
-      <div class="style-desc">${work.desc}</div>
-      <div class="style-strength">${work.strength}</div>
-      <div class="style-caution">${work.caution}</div>
-      <div class="style-tip">${work.tip}</div>
+      <div class="style-title">\${work.title}</div>
+      <div class="style-desc">\${work.desc}</div>
+      <div class="style-strength">\${work.strength}</div>
+      <div class="style-caution">\${work.caution}</div>
+      <div class="style-tip">\${work.tip}</div>
     </div>
   </div>
 
   <!-- 관계 스타일 -->
   <div class="card">
-    <div class="card-title"><span class="icon">👥</span>관계 스타일</div>
+    <div class="card-title">👥 관계 스타일</div>
     <div class="style-box">
-      <div class="style-title">${friend.title}</div>
-      <div class="style-desc">${friend.desc}</div>
-      <div class="style-strength">${friend.strength}</div>
-      <div class="style-caution">${friend.caution}</div>
-      <div class="style-tip">${friend.tip}</div>
+      <div class="style-title">\${friend.title}</div>
+      <div class="style-desc">\${friend.desc}</div>
+      <div class="style-strength">\${friend.strength}</div>
+      <div class="style-caution">\${friend.caution}</div>
+      <div class="style-tip">\${friend.tip}</div>
     </div>
   </div>
 
   <!-- 위기 대처 -->
   <div class="card">
-    <div class="card-title"><span class="icon">🌧️</span>위기 대처 스타일</div>
+    <div class="card-title">🌧️ 위기 대처 스타일</div>
     <div class="style-box">
-      <div class="style-title">${hard.title}</div>
-      <div class="style-desc">${hard.desc}</div>
-      <div class="style-strength">${hard.strength}</div>
-      <div class="style-caution">${hard.caution}</div>
-      <div class="style-tip">${hard.tip}</div>
+      <div class="style-title">\${hard.title}</div>
+      <div class="style-desc">\${hard.desc}</div>
+      <div class="style-strength">\${hard.strength}</div>
+      <div class="style-caution">\${hard.caution}</div>
+      <div class="style-tip">\${hard.tip}</div>
+    </div>
+  </div>
+
+  <!-- 소비 성향 -->
+  <div class="card">
+    <div class="card-title">💰 소비 성향</div>
+    <div class="style-box">
+      <div class="style-title">\${money.title}</div>
+      <div class="style-desc">\${money.desc}</div>
+      <div class="style-tip">\${money.tip}</div>
     </div>
   </div>
 
   <!-- VIA 강점 -->
   <div class="card">
-    <div class="card-title"><span class="icon">✨</span>핵심 강점 (VIA Character Strengths)</div>
+    <div class="card-title">✨ 핵심 강점 (VIA Character Strengths)</div>
     <div class="style-box">
-      <div class="style-title">${via.title || '나만의 강점'}</div>
-      <div class="style-desc">${via.desc || ''}</div>
+      <div class="style-title">\${via.title}</div>
+      <div class="style-desc">\${via.desc}</div>
     </div>
     <div class="strength-tags">
-      ${(r.viaStrengths||[]).map((s,i)=>`<span class="strength-tag ${i>0?'secondary':''}">${i===0?'👑 ':''} ${s}</span>`).join('')}
+      \${(r.viaStrengths||[]).map((sv,i)=>\`<span class="strength-tag \${i>0?'sec':''}">\${i===0?'👑 ':''}\${sv}</span>\`).join('')}
     </div>
-    <p class="cite" style="margin-top:12px;">📚 Peterson, C., & Seligman, M.E.P. (2004). Character Strengths and Virtues. Oxford University Press.</p>
+    <p class="cite">📚 Peterson, C., & Seligman, M.E.P. (2004). Character Strengths and Virtues. Oxford University Press.</p>
   </div>
 
-  <!-- 성장 방향 -->
+  <!-- 확언 방향 -->
   <div class="card">
-    <div class="card-title"><span class="icon">🌿</span>나를 위한 확언 방향</div>
-    <div style="background:#F0F7F4;border-radius:12px;padding:16px;">
-      ${s.RSE < 60 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>자존감 강화</b>가 지금 가장 필요해요. 매일 자기 자신을 인정하고 칭찬하는 확언을 실천해보세요.</p>' : ''}
-      ${s.N > 60 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>정서 안정</b> 관련 확언이 도움이 돼요. 감정을 인정하면서도 흔들리지 않는 내면을 키우는 확언을 추천해요.</p>' : ''}
-      ${s.C < 45 ? '<p style="font-size:13px;color:#1B4332;margin-bottom:8px;">💡 <b>실천과 꾸준함</b> 관련 확언이 도움이 돼요. 작은 행동을 완수하는 것에서 자기효능감을 키워보세요.</p>' : ''}
-      <p style="font-size:13px;color:#555;">30일 후 재검사로 확언의 효과를 수치로 확인할 수 있어요. 뇌과학 연구에 따르면 21~66일의 꾸준한 실천이 자기인식을 변화시킵니다.</p>
+    <div class="card-title">🌿 나를 위한 확언 방향</div>
+    <div class="affirmation-box">
+      <div class="af-title">지금 나에게 가장 필요한 확언 테마</div>
+      \${s.RSE < 60 ? '<div class="af-item">💚 자기가치감 강화 — "나는 지금 이대로 충분하다"</div>' : ''}
+      \${s.N > 60 ? '<div class="af-item">🌊 정서 안정 — "나는 감정을 인정하면서도 흔들리지 않는다"</div>' : ''}
+      \${s.C < 45 ? '<div class="af-item">⚡ 실천력 강화 — "나는 오늘 작은 한 걸음을 완수한다"</div>' : ''}
+      \${s.A >= 65 && s.N >= 50 ? '<div class="af-item">🤝 자기돌봄 — "나는 나 자신도 소중히 돌볼 자격이 있다"</div>' : ''}
+      \${s.E < 45 ? '<div class="af-item">🌙 내향의 강점 — "나의 깊은 사고와 관찰력은 나만의 강점이다"</div>' : ''}
+      <div class="af-item">✨ 꾸준한 실천 — "매일 조금씩, 나는 반드시 변화한다"</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:12px;">
+        📚 뇌의 신경가소성(Neuroplasticity) 연구에 따르면 21~66일의 반복적 자기대화가 자기인식을 변화시킵니다.
+      </div>
     </div>
+  </div>
+
+  <!-- 30일 재검사 안내 -->
+  <div class="card" style="border:2px solid #C9A84C;">
+    <div class="card-title" style="color:#C9A84C;">🔄 30일 후 재검사 권장</div>
+    <p style="font-size:13px;color:#555;line-height:1.8;">
+      지금부터 매일 확언을 실천하고 30일 후 재검사를 해보세요.<br>
+      자존감 점수와 스트레스 안정성이 실제로 변화했는지 수치로 확인할 수 있어요.<br>
+      <b style="color:#1B4332;">확언의 효과를 데이터로 증명하세요!</b>
+    </p>
+    <p class="cite">📚 Roberts, B.W. et al. (2006). 성격 변화는 최소 3~4주 행동 변화 누적 필요. Psychological Bulletin, 132(1).</p>
   </div>
 
   <!-- 푸터 -->
   <div class="footer">
     <div class="app-name">인생2막라디오 확언앱</div>
-    <div>BFI-44 · Rosenberg Self-Esteem Scale · VIA 기반 · 정확도 약 90%</div>
+    <div>BFI-44 · Rosenberg Self-Esteem Scale · VIA Character Strengths 기반</div>
+    <div>정확도 약 90% · 세계 52개국 검증 학술 도구</div>
     <div style="margin-top:4px;">life2radio.github.io/affirmation</div>
     <div style="margin-top:8px;font-size:11px;">※ 이 결과지는 학술 도구 기반의 참고 자료이며, 전문적 심리 진단을 대체하지 않습니다.</div>
   </div>
-
 </div>
 </body>
-</html>`;
+</html>\`;
 
         const w = window.open('', '_blank');
         if(w){
@@ -3920,82 +3942,131 @@
         const r = JSON.parse(saved);
         const s = r.scores;
 
-        // Canvas로 결과 카드 생성
+        // Canvas 결과 카드 생성 (개선판)
+        const W = 800, H = 1200;
         const canvas = document.createElement('canvas');
-        canvas.width = 800; canvas.height = 1000;
+        canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
 
-        // 배경
-        const grad = ctx.createLinearGradient(0,0,0,1000);
-        grad.addColorStop(0,'#1B4332');
-        grad.addColorStop(1,'#2D6A4F');
+        // 배경 그라데이션
+        const grad = ctx.createLinearGradient(0,0,0,H);
+        grad.addColorStop(0,'#152E20');
+        grad.addColorStop(0.5,'#1B4332');
+        grad.addColorStop(1,'#0F2519');
         ctx.fillStyle = grad;
-        ctx.fillRect(0,0,800,1000);
+        ctx.fillRect(0,0,W,H);
 
-        // 동물
-        ctx.font = '120px serif';
+        // 배경 원형 장식
+        ctx.beginPath(); ctx.arc(W-60,60,180,0,Math.PI*2);
+        ctx.fillStyle='rgba(212,168,67,0.05)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(60,H-60,140,0,Math.PI*2);
+        ctx.fillStyle='rgba(45,106,79,0.15)'; ctx.fill();
+
+        // 그리드 라인
+        ctx.strokeStyle='rgba(212,168,67,0.06)'; ctx.lineWidth=1;
+        for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+        for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
         ctx.textAlign = 'center';
-        ctx.fillText(r.animal.animal, 400, 200);
+
+        // 상단 배지
+        ctx.fillStyle='rgba(212,168,67,0.15)';
+        ctx.beginPath(); ctx.roundRect(W/2-160,30,320,36,18); ctx.fill();
+        ctx.strokeStyle='rgba(212,168,67,0.4)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.roundRect(W/2-160,30,320,36,18); ctx.stroke();
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 15px sans-serif';
+        ctx.fillText('인생2막라디오 · 성격 분석 결과', W/2, 54);
+
+        // 동물 이모지
+        ctx.font = '100px serif';
+        ctx.fillText(r.animal.animal, W/2, 175);
 
         // 유형명
         ctx.fillStyle = '#C9A84C';
-        ctx.font = 'bold 36px sans-serif';
-        ctx.fillText(r.animal.name, 400, 270);
+        ctx.font = 'bold 40px sans-serif';
+        ctx.fillText(r.animal.name, W/2, 240);
 
         // 타이틀
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.font = '26px sans-serif';
-        ctx.fillText('"' + r.animal.title + '"', 400, 316);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '22px sans-serif';
+        ctx.fillText('"' + r.animal.title + '"', W/2, 278);
+
+        // MBTI
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('MBTI 유사: ' + (r.animal.mbti||'-'), W/2, 308);
 
         // 구분선
-        ctx.strokeStyle = 'rgba(201,168,76,0.5)';
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(80,340); ctx.lineTo(720,340); ctx.stroke();
+        ctx.strokeStyle='rgba(201,168,67,0.4)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(80,330); ctx.lineTo(W-80,330); ctx.stroke();
 
         // Big5 바
         const axes = [['외향성',s.E],['개방성',s.O],['친화성',s.A],['성실성',s.C],['안정성',100-s.N]];
         ctx.textAlign = 'left';
         axes.forEach(([label, score], i) => {
-            const y = 380 + i*60;
-            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            const y = 370 + i*70;
+            const isBorder = score>=42 && score<=58;
+            // 레이블
+            ctx.fillStyle = 'rgba(255,255,255,0.75)';
             ctx.font = '18px sans-serif';
-            ctx.fillText(label, 80, y);
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
-            ctx.roundRect(80, y+10, 540, 16, 8);
-            ctx.fill();
-            ctx.fillStyle = '#C9A84C';
-            ctx.roundRect(80, y+10, Math.round(540*score/100), 16, 8);
-            ctx.fill();
-            ctx.fillStyle = '#C9A84C';
+            ctx.fillText(label + (isBorder?' ⚠':''), 80, y);
+            // 점수
+            ctx.fillStyle = isBorder ? '#FFC107' : '#C9A84C';
             ctx.textAlign = 'right';
             ctx.font = 'bold 18px sans-serif';
-            ctx.fillText(score+'%', 660, y+2);
+            ctx.fillText(score+'%', W-80, y);
             ctx.textAlign = 'left';
+            // 배경 바
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath(); ctx.roundRect(80, y+8, 540, 18, 9); ctx.fill();
+            // 50% 기준선
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(80+270, y+5); ctx.lineTo(80+270, y+30); ctx.stroke();
+            // 채우기 바
+            const barColor = isBorder ? '#FFC107' : (score >= 65 ? '#52B788' : score < 40 ? '#74C69D' : '#40916C');
+            ctx.fillStyle = barColor;
+            ctx.beginPath(); ctx.roundRect(80, y+8, Math.round(540*score/100), 18, 9); ctx.fill();
+            // 설명
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.font = '13px sans-serif';
+            const descText = score>=65 ? '높음' : score<40 ? '낮음' : '중간(경계)';
+            ctx.fillText(descText, 80, y+36);
         });
 
-        // 자존감
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        // 자존감 섹션
+        const rseY = 370 + 5*70 + 20;
+        ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(80,rseY); ctx.lineTo(W-80,rseY); ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
         ctx.font = '18px sans-serif';
-        ctx.fillText('자존감 점수', 80, 700);
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.roundRect(80, 710, 540, 16, 8); ctx.fill();
-        ctx.fillStyle = '#4CAF50';
-        ctx.roundRect(80, 710, Math.round(540*s.RSE/100), 16, 8); ctx.fill();
-        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('자존감 (RSE)', 80, rseY+30);
+        const rseLevel = s.RSE>=75?'높음':s.RSE>=50?'평균':s.RSE>=25?'낮음':'매우 낮음';
+        ctx.fillStyle = s.RSE>=75?'#52B788':s.RSE>=50?'#C9A84C':'#FF8A80';
         ctx.textAlign = 'right';
         ctx.font = 'bold 18px sans-serif';
-        ctx.fillText(s.RSE+'점', 660, 702);
+        ctx.fillText(s.RSE+'점 · '+rseLevel, W-80, rseY+30);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.beginPath(); ctx.roundRect(80, rseY+38, 540, 18, 9); ctx.fill();
+        ctx.fillStyle = s.RSE>=75?'#52B788':s.RSE>=50?'#C9A84C':'#FF8A80';
+        ctx.beginPath(); ctx.roundRect(80, rseY+38, Math.round(540*s.RSE/100), 18, 9); ctx.fill();
 
-        // 출처
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.font = '16px sans-serif';
-        ctx.fillText('BFI-44 · Rosenberg · VIA 기반 · 인생2막라디오', 400, 780);
+        // VIA 강점
+        const viaY = rseY + 80;
+        ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(80,viaY); ctx.lineTo(W-80,viaY); ctx.stroke();
+        ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+        ctx.fillText('✨ 핵심 강점: ' + (r.viaStrengths||[]).slice(0,3).join(' · '), W/2, viaY+28);
 
-        // 앱 링크
+        // 출처 & 링크
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('BFI-44 · Rosenberg · VIA 기반 · 인생2막라디오', W/2, H-70);
         ctx.fillStyle = '#C9A84C';
-        ctx.font = 'bold 18px sans-serif';
-        ctx.fillText('life2radio.github.io/affirmation/', 400, 830);
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText('life2radio.github.io/affirmation/', W/2, H-40);
 
         // 다운로드
         const link = document.createElement('a');
@@ -4541,6 +4612,18 @@
             </div>
 
             <div style="padding:20px;">
+
+            <!-- ★ 동물 유형 전반 소개 (가장 먼저) -->
+            <div style="background:linear-gradient(135deg,rgba(27,67,50,0.08),rgba(45,106,79,0.05));border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid rgba(27,67,50,0.15);">
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">
+                    ${animal.animal} 나는 ${animal.name}이에요
+                </div>
+                <div style="font-size:0.95em;line-height:1.9;color:var(--text-color);margin-bottom:12px;">${animal.desc || animal.tagline}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="background:#1B4332;color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.75em;font-weight:700;">${animal.title}</span>
+                    <span style="background:var(--card-bg);color:var(--text-muted);padding:4px 12px;border-radius:20px;font-size:0.75em;border:1px solid var(--border-color);">MBTI 유사: ${animal.mbti||'-'}</span>
+                </div>
+            </div>
 
             <!-- 전반적 성향 -->
             <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
