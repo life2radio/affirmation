@@ -3493,11 +3493,10 @@
                     style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                 <span style="font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">인생2막라디오 × 확언 유형 검사</span>
             </div>
-            <div style="background:linear-gradient(160deg,#1B4332 0%,#2D6A4F 60%,#1B4332 100%);padding:40px 24px 36px;text-align:center;">
-                <div style="font-size:70px;margin-bottom:16px;">🧠</div>
-                <div style="font-size:0.8em;color:#C9A84C;font-weight:700;letter-spacing:1px;margin-bottom:10px;">3가지 과학 검사 기반</div>
-                <div style="font-size:1.7em;font-weight:900;color:#fff;line-height:1.3;margin-bottom:12px;">나는 어떤<br>사람일까?</div>
-                <div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.8;">연애·일·관계·돈·자존감까지<br><b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요</div>
+            <div style="background:linear-gradient(160deg,#1B4332 0%,#2D6A4F 60%,#1B4332 100%);padding:32px 24px 28px;text-align:center;">
+                <div style="font-size:0.85em;color:#C9A84C;font-weight:700;letter-spacing:2px;margin-bottom:14px;">🧠 3가지 과학 검사 기반</div>
+                <div style="font-size:2.2em;font-weight:900;color:#fff;line-height:1.25;margin-bottom:14px;">나는 어떤<br>사람일까?</div>
+                <div style="font-size:0.92em;color:rgba(255,255,255,0.85);line-height:1.9;">일·관계·위기·소비·자존감까지<br><b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요</div>
             </div>
             <div style="background:#F0F7F4;padding:14px 20px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
                 <div style="font-size:0.78em;color:#1B4332;font-weight:700;">🔬 세계 학술 검증</div>
@@ -4448,6 +4447,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
     }
 
     function showInstallPrompt(){
+        // ★ 심리테스트 링크로 왔을 때는 설치 팝업 건너뜀
+        if(window._psychMode){ initOnboarding(); return; }
         safeSetItem('install_prompt_v10','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
@@ -9497,14 +9498,15 @@ https://life2radio.github.io/affirmation/
 
         } else {
             // 일반 크롬/사파리
-            window.initApp();
             if(_hasPsychParam){
+                // ★ 심리테스트 모드: 설치 팝업 건너뛰고 바로 심리테스트
+                window._psychMode = true;
                 history.replaceState(null, '', window.location.pathname);
-                // 설치팝업 닫고 바로 심리테스트
-                setTimeout(()=>{
-                    document.querySelectorAll('div[style*="z-index:999999"]').forEach(el=>el.remove());
-                    startPsychTest();
-                }, 1500);
+                window.initApp();
+                window._psychMode = false;
+                setTimeout(()=>{ startPsychTest(); }, 600);
+            } else {
+                window.initApp();
             }
         }
 
