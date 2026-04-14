@@ -791,6 +791,9 @@
                         BFI-10 · Rosenberg · VIA 검사 기반 · 약 5분 소요
                     </div>
                 </div>
+
+                <!-- 카테고리 잠금/해제 카드 -->
+                <div id="psych-preview-list" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;"></div>
             </div>
         </div>
 
@@ -3350,13 +3353,6 @@
 
     // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
     function renderPsychPreview(){
-        const el = document.getElementById('psych-preview-list');
-        if(!el) return;
-        const saved = safeGetItem('psych_result_v2','');
-        const done = !!saved;
-        let result = null;
-        if(done) try { result = JSON.parse(saved); } catch(e){}
-
         const CATEGORIES = [
             { icon:'💕', title:'연애 스타일', desc:'나는 어떤 방식으로 사랑하는 사람인가?', key:'love' },
             { icon:'💼', title:'일 스타일', desc:'내가 빛나는 환경은 어떤 곳인가?', key:'work' },
@@ -3367,12 +3363,14 @@
             { icon:'✨', title:'핵심 강점', desc:'내가 몰랐던 나의 슈퍼파워는?', key:'via' },
         ];
 
-        el.innerHTML = CATEGORIES.map(cat => {
-            if(done && result){
+        const saved = safeGetItem('psych_result_v2','');
+        const done = !!saved;
+
+        const makeHTML = (done) => CATEGORIES.map(cat => {
+            if(done){
                 return `<div onclick="showCategoryDetail('${cat.key}')"
-                    style="background:var(--card-bg);border-radius:12px;padding:12px 14px;border:1px solid #1B4332;
-                    display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.2s;"
-                    onmouseover="this.style.background='#F0F7F4'" onmouseout="this.style.background='var(--card-bg)'">
+                    style="background:var(--card-bg);border-radius:12px;padding:12px 14px;
+                    border:1px solid #1B4332;display:flex;align-items:center;gap:12px;cursor:pointer;">
                     <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
                     <div style="flex:1;">
                         <div style="font-size:0.88em;font-weight:700;color:#1B4332;">${cat.title}</div>
@@ -3381,17 +3379,25 @@
                     <span style="font-size:0.8em;color:#1B4332;font-weight:700;white-space:nowrap;">결과 보기 🔓</span>
                 </div>`;
             } else {
-                return `<div style="background:var(--card-bg);border-radius:12px;padding:12px 14px;border:1px solid var(--border-color);
-                    display:flex;align-items:center;gap:12px;opacity:0.7;">
+                return `<div style="background:var(--card-bg);border-radius:12px;padding:12px 14px;
+                    border:1px solid var(--border-color);display:flex;align-items:center;gap:12px;opacity:0.75;">
                     <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
                     <div>
                         <div style="font-size:0.88em;font-weight:700;color:var(--text-color);">${cat.title}</div>
                         <div style="font-size:0.78em;color:var(--text-muted);margin-top:1px;">${cat.desc}</div>
                     </div>
-                    <span style="margin-left:auto;font-size:1.1em;color:var(--text-muted);">🔒</span>
+                    <span style="margin-left:auto;font-size:1.1em;">🔒</span>
                 </div>`;
             }
         }).join('');
+
+        // 즐겨찾기 탭 카드 업데이트
+        const el = document.getElementById('psych-preview-list');
+        if(el) el.innerHTML = makeHTML(done);
+
+        // 심리테스트 모달 내부 카드 업데이트
+        const mel = document.getElementById('psych-modal-preview');
+        if(mel) mel.innerHTML = makeHTML(done);
     }
 
     // ★ 카테고리별 결과 팝업
@@ -3493,7 +3499,7 @@
             <!-- 이런 걸 알 수 있어요 -->
             <div style="margin-bottom:20px;">
                 <div style="font-size:1em;font-weight:700;color:var(--text-color);margin-bottom:12px;">✅ 이런 걸 알 수 있어요</div>
-                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-preview-list">
+                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-modal-preview">
                 </div>
             </div>
 
@@ -4295,6 +4301,7 @@
         restoreNotifSchedule();
         initSolidarity();
         loadSheetData();
+        setTimeout(renderPsychPreview, 500); // ★ 심리테스트 카드 초기 렌더링
         // ★ 설치 팝업 → 온보딩 순서
         // 이미 앱으로 설치된 경우(standalone 모드) 팝업 건너뜀
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
