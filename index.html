@@ -3440,7 +3440,16 @@
                 <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:14px;">${title}</div>
                 ${extra}
                 <div style="font-size:0.92em;line-height:1.9;color:var(--text-color);margin-bottom:14px;">${desc}</div>
-                ${tip ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.85em;color:#1B4332;margin-bottom:18px;">${tip}</div>` : ''}
+                ${tip ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.85em;color:#1B4332;margin-bottom:14px;">${tip}</div>` : ''}
+                ${cat.video ? `<a href="${cat.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:12px;text-decoration:none;margin-bottom:14px;">
+                    <span style="font-size:1.4em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;margin-bottom:2px;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.88em;font-weight:700;color:#1B4332;">${cat.video.label}</div>
+                    </div>
+                    <span style="font-size:1em;color:#1B4332;">▶</span>
+                </a>` : ''}
                 <button onclick="this.closest('div[style*=fixed]').remove()"
                     style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
                     닫기
