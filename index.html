@@ -3862,30 +3862,30 @@
     }
 
     function getLoveStyle(s){
-        if(s.A >= 60 && s.N <= 40) return { title:'💕 헌신적인 사랑꾼', desc:'한 번 마음을 열면 세상에서 제일 깊이 사랑해요. 상대방을 위해서라면 뭐든 할 수 있는 타입이에요. 근데 그만큼 상대방도 같은 깊이로 대해주길 바라는 마음이 있어요.', tip:'💡 표현을 조금 더 자주 해주세요. 상대방은 당신이 생각만큼 못 읽을 수도 있어요!' };
-        if(s.A >= 60 && s.N > 40) return { title:'💕 감성적인 연인', desc:'깊이 사랑하지만 상처도 깊이 받아요. 작은 말 한마디가 오래 마음에 남는 타입이에요. 관계에서 감정 기복이 있지만, 그만큼 진심이 넘쳐요.', tip:'💡 "이래서 내가 상처받았어"를 말로 표현하는 연습을 해보세요.' };
-        if(s.A < 60 && s.N <= 40) return { title:'💕 독립적인 파트너', desc:'사랑하면서도 나만의 공간이 필요한 타입이에요. 집착보다는 서로 믿고 자유롭게 지내는 관계가 맞아요. 표현이 서툴지만 행동으로 사랑을 보여줘요.', tip:'💡 말로도 표현해주세요. 상대방은 행동만으론 가끔 불안할 수 있어요.' };
-        return { title:'💕 신중한 연애러', desc:'쉽게 마음을 열지 않지만, 한 번 열면 오래 가는 관계를 만들어요. 연애에서 안정감을 가장 중요하게 여겨요.', tip:'💡 완벽한 타이밍을 기다리다 기회를 놓칠 수 있어요. 조금 더 용기를!' };
+        if(s.A >= 60 && s.N <= 40) return { title:'💕 헌신적인 사랑꾼', desc:'한 번 마음을 열면 세상에서 제일 깊이 사랑해요. 상대방을 위해서라면 뭐든 할 수 있는 타입이에요. 근데 그만큼 상대방도 같은 깊이로 대해주길 바라는 마음이 있어요.', tip:'💡 표현을 조금 더 자주 해주세요. 상대방은 당신이 생각만큼 못 읽을 수도 있어요!', video:{ url:'https://youtube.com/shorts/eF7D2lUPQII', label:'감정 표현이 어려운 당신에게' } };
+        if(s.A >= 60 && s.N > 40) return { title:'💕 감성적인 연인', desc:'깊이 사랑하지만 상처도 깊이 받아요. 작은 말 한마디가 오래 마음에 남는 타입이에요. 관계에서 감정 기복이 있지만, 그만큼 진심이 넘쳐요.', tip:'💡 "이래서 내가 상처받았어"를 말로 표현하는 연습을 해보세요.', video:{ url:'https://youtube.com/shorts/eF7D2lUPQII', label:'감정 표현이 어려운 당신에게' } };
+        if(s.A < 60 && s.N <= 40) return { title:'💕 독립적인 파트너', desc:'사랑하면서도 나만의 공간이 필요한 타입이에요. 집착보다는 서로 믿고 자유롭게 지내는 관계가 맞아요. 표현이 서툴지만 행동으로 사랑을 보여줘요.', tip:'💡 말로도 표현해주세요. 상대방은 행동만으론 가끔 불안할 수 있어요.', video:{ url:'https://youtube.com/shorts/eF7D2lUPQII', label:'감정 표현이 어려운 당신에게' } };
+        return { title:'💕 신중한 연애러', desc:'쉽게 마음을 열지 않지만, 한 번 열면 오래 가는 관계를 만들어요. 연애에서 안정감을 가장 중요하게 여겨요.', tip:'💡 완벽한 타이밍을 기다리다 기회를 놓칠 수 있어요. 조금 더 용기를!', video:{ url:'https://youtube.com/shorts/eF7D2lUPQII', label:'감정 표현이 어려운 당신에게' } };
     }
 
     function getWorkStyle(s){
-        if(s.C >= 60 && s.O >= 60) return { title:'💼 창의적 전략가', desc:'계획도 잘 세우고 아이디어도 넘쳐요. 새로운 방식으로 일을 효율화하는 걸 즐기고, 일에서 의미를 찾아야 동력이 생기는 타입이에요.', tip:'💡 완벽한 계획보다 빠른 실행이 더 좋은 결과를 낼 때도 있어요.' };
-        if(s.C >= 60 && s.O < 60) return { title:'💼 믿음직한 실행자', desc:'맡은 일은 반드시 끝내는 타입이에요. 꼼꼼하고 체계적이라 신뢰도가 높아요. 반복 업무도 잘 견디고, 규칙과 시스템 속에서 빛나요.', tip:'💡 가끔은 계획에서 벗어나 보세요. 예상 밖의 멋진 일이 생길 수 있어요.' };
-        if(s.C < 60 && s.O >= 60) return { title:'💼 자유로운 크리에이터', desc:'틀에 박힌 방식보다 나만의 방식으로 일할 때 최고의 결과가 나와요. 창의적인 환경에서 진짜 실력을 발휘하는 타입이에요.', tip:'💡 마감 관리를 조금 더 신경 쓰면 더 빛날 수 있어요.' };
-        return { title:'💼 유연한 팀플레이어', desc:'상황에 맞게 유연하게 대처하고, 함께 일할 때 시너지가 나는 타입이에요. 혼자보다 팀에서 더 잘 해요.', tip:'💡 나만의 전문성을 한 가지 깊이 파고들면 더 강력해질 수 있어요.' };
+        if(s.C >= 60 && s.O >= 60) return { title:'💼 창의적 전략가', desc:'계획도 잘 세우고 아이디어도 넘쳐요. 새로운 방식으로 일을 효율화하는 걸 즐기고, 일에서 의미를 찾아야 동력이 생기는 타입이에요.', tip:'💡 완벽한 계획보다 빠른 실행이 더 좋은 결과를 낼 때도 있어요.', video:{ url:'https://youtube.com/shorts/Q3vJyOXh9Y0', label:'그냥 이대로 살다가는 안 됩니다' } };
+        if(s.C >= 60 && s.O < 60) return { title:'💼 믿음직한 실행자', desc:'맡은 일은 반드시 끝내는 타입이에요. 꼼꼼하고 체계적이라 신뢰도가 높아요. 반복 업무도 잘 견디고, 규칙과 시스템 속에서 빛나요.', tip:'💡 가끔은 계획에서 벗어나 보세요. 예상 밖의 멋진 일이 생길 수 있어요.', video:{ url:'https://youtube.com/shorts/Q3vJyOXh9Y0', label:'그냥 이대로 살다가는 안 됩니다' } };
+        if(s.C < 60 && s.O >= 60) return { title:'💼 자유로운 크리에이터', desc:'틀에 박힌 방식보다 나만의 방식으로 일할 때 최고의 결과가 나와요. 창의적인 환경에서 진짜 실력을 발휘하는 타입이에요.', tip:'💡 마감 관리를 조금 더 신경 쓰면 더 빛날 수 있어요.', video:{ url:'https://youtube.com/shorts/Q3vJyOXh9Y0', label:'그냥 이대로 살다가는 안 됩니다' } };
+        return { title:'💼 유연한 팀플레이어', desc:'상황에 맞게 유연하게 대처하고, 함께 일할 때 시너지가 나는 타입이에요. 혼자보다 팀에서 더 잘 해요.', tip:'💡 나만의 전문성을 한 가지 깊이 파고들면 더 강력해질 수 있어요.', video:{ url:'https://youtube.com/shorts/Q3vJyOXh9Y0', label:'그냥 이대로 살다가는 안 됩니다' } };
     }
 
     function getFriendStyle(s){
-        if(s.E >= 60 && s.A >= 60) return { title:'👥 모두의 에너자이저', desc:'어디서든 분위기를 살리는 존재예요. 친구가 많고, 새로운 사람 만나는 걸 즐겨요. 주변 사람들이 당신이랑 있으면 편하다고 느껴요.', tip:'💡 가끔은 혼자만의 시간도 필요해요. 충전해야 더 빛날 수 있어요.' };
-        if(s.E >= 60 && s.A < 60) return { title:'👥 솔직한 활발이', desc:'말 그대로 에너지가 넘치고 솔직해요. 가식 없는 관계를 선호하고, 불편한 말도 직접 해버리는 타입이에요.', tip:'💡 솔직함이 강점이지만, 타이밍을 잘 보면 더 좋은 관계가 만들어져요.' };
-        if(s.E < 60 && s.A >= 60) return { title:'👥 조용한 관계 고수', desc:'친한 친구 몇 명이 전부지만, 그 친구들한테는 목숨 걸어요. 넓고 얕은 관계보다 깊고 좁은 관계를 선호해요.', tip:'💡 새로운 사람에게 마음을 여는 데 시간이 걸리는 건 자연스러워요.' };
-        return { title:'👥 독립적인 아웃사이더', desc:'혼자 있는 시간이 더 편하고, 관계에서 에너지 소비가 큰 타입이에요. 소수의 깊은 관계를 소중히 해요.', tip:'💡 연결이 어색하게 느껴질 때도 있지만, 당신만의 방식으로 충분해요.' };
+        if(s.E >= 60 && s.A >= 60) return { title:'👥 모두의 에너자이저', desc:'어디서든 분위기를 살리는 존재예요. 친구가 많고, 새로운 사람 만나는 걸 즐겨요. 주변 사람들이 당신이랑 있으면 편하다고 느껴요.', tip:'💡 가끔은 혼자만의 시간도 필요해요. 충전해야 더 빛날 수 있어요.', video:{ url:'https://youtube.com/shorts/7ZXaUCHowXM', label:'외로움이 줄어드는 과학적 방법' } };
+        if(s.E >= 60 && s.A < 60) return { title:'👥 솔직한 활발이', desc:'말 그대로 에너지가 넘치고 솔직해요. 가식 없는 관계를 선호하고, 불편한 말도 직접 해버리는 타입이에요.', tip:'💡 솔직함이 강점이지만, 타이밍을 잘 보면 더 좋은 관계가 만들어져요.', video:{ url:'https://youtube.com/shorts/7ZXaUCHowXM', label:'외로움이 줄어드는 과학적 방법' } };
+        if(s.E < 60 && s.A >= 60) return { title:'👥 조용한 관계 고수', desc:'친한 친구 몇 명이 전부지만, 그 친구들한테는 목숨 걸어요. 넓고 얕은 관계보다 깊고 좁은 관계를 선호해요.', tip:'💡 새로운 사람에게 마음을 여는 데 시간이 걸리는 건 자연스러워요.', video:{ url:'https://youtube.com/shorts/n39bewOVsfM', label:'착하게 살수록 외로워지는 진짜 이유' } };
+        return { title:'👥 독립적인 아웃사이더', desc:'혼자 있는 시간이 더 편하고, 관계에서 에너지 소비가 큰 타입이에요. 소수의 깊은 관계를 소중히 해요.', tip:'💡 연결이 어색하게 느껴질 때도 있지만, 당신만의 방식으로 충분해요.', video:{ url:'https://youtube.com/shorts/n39bewOVsfM', label:'착하게 살수록 외로워지는 진짜 이유' } };
     }
 
     function getHardStyle(s){
-        if(s.N <= 35) return { title:'🌧️ 단단한 회복력', desc:'웬만한 일에는 흔들리지 않는 정서적 안정감이 있어요. 힘든 일도 비교적 빨리 털고 일어나는 편이에요. 주변에서 당신에게 안정감을 느끼는 사람이 많아요.', tip:'💡 너무 괜찮은 척하지 않아도 돼요. 힘들 때 도움 요청하는 것도 강점이에요.' };
-        if(s.N <= 55) return { title:'🌧️ 균형 잡힌 감정', desc:'감정이 있지만 잘 조절하는 편이에요. 힘든 일이 있으면 잠깐 흔들리다가 다시 자리를 잡아요. 혼자 정리하는 시간이 필요한 타입이에요.', tip:'💡 정리가 됐을 때 가까운 사람에게 털어놓아 보세요. 혼자보다 더 빨리 회복돼요.' };
-        return { title:'🌧️ 깊이 느끼는 감성가', desc:'감정을 깊이 느끼고, 상처도 오래 가는 편이에요. 하지만 그만큼 다른 사람의 아픔도 잘 이해해요. 힘들 때 혼자 끙끙 앓다가 어느 순간 털고 일어나요.', tip:'💡 확언이 특히 잘 맞는 유형이에요! 매일 조금씩 나를 채워가면 달라져요.' };
+        if(s.N <= 35) return { title:'🌧️ 단단한 회복력', desc:'웬만한 일에는 흔들리지 않는 정서적 안정감이 있어요. 힘든 일도 비교적 빨리 털고 일어나는 편이에요. 주변에서 당신에게 안정감을 느끼는 사람이 많아요.', tip:'💡 너무 괜찮은 척하지 않아도 돼요. 힘들 때 도움 요청하는 것도 강점이에요.', video:{ url:'https://youtube.com/shorts/TqLR5ZaaBpY', label:'힘들 때 딱 한 사람만 있으면 됩니다' } };
+        if(s.N <= 55) return { title:'🌧️ 균형 잡힌 감정', desc:'감정이 있지만 잘 조절하는 편이에요. 힘든 일이 있으면 잠깐 흔들리다가 다시 자리를 잡아요. 혼자 정리하는 시간이 필요한 타입이에요.', tip:'💡 정리가 됐을 때 가까운 사람에게 털어놓아 보세요. 혼자보다 더 빨리 회복돼요.', video:{ url:'https://youtube.com/shorts/TqLR5ZaaBpY', label:'힘들 때 딱 한 사람만 있으면 됩니다' } };
+        return { title:'🌧️ 깊이 느끼는 감성가', desc:'감정을 깊이 느끼고, 상처도 오래 가는 편이에요. 하지만 그만큼 다른 사람의 아픔도 잘 이해해요. 힘들 때 혼자 끙끙 앓다가 어느 순간 털고 일어나요.', tip:'💡 확언이 특히 잘 맞는 유형이에요! 매일 조금씩 나를 채워가면 달라져요.', video:{ url:'https://youtube.com/shorts/xwh3GA5FMO0', label:'상처 받았을 때 가장 먼저 해야 할 것' } };
     }
 
     function getMoneyStyle(s){
@@ -3896,8 +3896,8 @@
 
     function getRseStyle(rse){
         if(rse >= 75) return { title:'🌱 건강한 자존감', score: rse, desc:'나 자신을 있는 그대로 받아들이고 소중히 여기는 사람이에요. 타인의 시선에 크게 흔들리지 않고 내 중심이 잡혀 있어요.', tip:'💡 이 자존감을 유지하는 게 중요해요. 확언이 그 힘이 돼줄 거예요!' };
-        if(rse >= 50) return { title:'🌱 성장 중인 자존감', score: rse, desc:'남들 눈에는 괜찮아 보이지만, 속으로는 나를 더 사랑하고 싶은 마음이 있어요. 좋은 날도 있고 흔들리는 날도 있는, 그게 바로 지금의 나예요.', tip:'💡 확언이 딱 맞는 유형이에요! 매일 조금씩 나에게 좋은 말을 건네주세요.' };
-        return { title:'🌱 회복이 필요한 자존감', score: rse, desc:'지금은 나 자신을 소중히 여기기가 조금 어려운 시기인 것 같아요. 그런데 이걸 알아챈 것 자체가 이미 시작이에요. 천천히 괜찮아질 거예요.', tip:'💡 매일 확언 하나씩, 작은 것부터 시작해보세요. 뇌는 반드시 변해요.' };
+        if(rse >= 50) return { title:'🌱 성장 중인 자존감', score: rse, desc:'남들 눈에는 괜찮아 보이지만, 속으로는 나를 더 사랑하고 싶은 마음이 있어요. 좋은 날도 있고 흔들리는 날도 있는, 그게 바로 지금의 나예요.', tip:'💡 확언이 딱 맞는 유형이에요! 매일 조금씩 나에게 좋은 말을 건네주세요.', video:{ url:'https://youtube.com/shorts/brz6XesFoN8', label:'거절당한 고통, 당신 잘못이 아닙니다' } };
+        return { title:'🌱 회복이 필요한 자존감', score: rse, desc:'지금은 나 자신을 소중히 여기기가 조금 어려운 시기인 것 같아요. 그런데 이걸 알아챈 것 자체가 이미 시작이에요. 천천히 괜찮아질 거예요.', tip:'💡 매일 확언 하나씩, 작은 것부터 시작해보세요. 뇌는 반드시 변해요.', video:{ url:'https://youtube.com/shorts/brz6XesFoN8', label:'거절당한 고통, 당신 잘못이 아닙니다' } };
     }
 
     function getViaStyle(strengths){
@@ -3991,6 +3991,15 @@
                 <div style="font-size:0.95em;font-weight:700;color:#1B4332;margin-bottom:8px;">${cat.title}</div>
                 <div style="font-size:0.88em;line-height:1.8;color:var(--text-color);margin-bottom:10px;">${cat.desc}</div>
                 <div style="background:#F0F7F4;border-radius:10px;padding:10px 14px;font-size:0.82em;color:#1B4332;">${cat.tip}</div>
+                ${cat.video ? `<a href="${cat.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;">
+                    <span style="font-size:1.2em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.82em;font-weight:700;color:#1B4332;">${cat.video.label}</div>
+                    </div>
+                    <span style="font-size:0.9em;color:#1B4332;">▶</span>
+                </a>` : ''}
             </div>`).join('')}
 
             <!-- 자존감 -->
@@ -4004,6 +4013,15 @@
                 </div>
                 <div style="font-size:0.88em;line-height:1.8;color:var(--text-color);margin-bottom:10px;">${rse.desc}</div>
                 <div style="background:#F0F7F4;border-radius:10px;padding:10px 14px;font-size:0.82em;color:#1B4332;">${rse.tip}</div>
+                ${rse.video ? `<a href="${rse.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;">
+                    <span style="font-size:1.2em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.82em;font-weight:700;color:#1B4332;">${rse.video.label}</div>
+                    </div>
+                    <span style="font-size:0.9em;color:#1B4332;">▶</span>
+                </a>` : ''}
                 <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: Rosenberg Self-Esteem Scale (Rosenberg, 1965)</div>
             </div>
 
