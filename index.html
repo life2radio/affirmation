@@ -3188,7 +3188,7 @@
                     </div>
                 </div>
                 <button id="ios-copy-btn" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:8px;">📋 링크 복사하기 (Safari에 붙여넣기)</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
             } else {
                 installContent = `
                 <div style="background:#F0F7F4;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:left;">
@@ -3199,12 +3199,12 @@
                     </div>
                 </div>
                 <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">확인했어요! 앱 시작하기 ✓</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
             }
         } else if(isAndroid){
             installContent = `
                 <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:60px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.1em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
-                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #CCCCCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">나중에 설치할게요</button>`;
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
         } else {
             installFromPromptDone();
             return;
