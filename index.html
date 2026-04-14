@@ -9414,9 +9414,51 @@ https://life2radio.github.io/affirmation/
         }
         setTimeout(linkLevelAndPoint, 1500);
 
-        // ★ 카카오톡 인앱브라우저 감지 (Android) → 크롬으로 열기 안내
-        const isKakaoAndroid = /KAKAOTALK/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
-        if(isKakaoAndroid){
+        // ★ #psych 해시 & 카카오톡 처리 — 가장 먼저 실행
+        const _hasPsychHash = window.location.hash === '#psych';
+        const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+        const _isAndroid = /Android/i.test(navigator.userAgent);
+
+        if(_hasPsychHash && _isKakao){
+            // #psych 링크 + 카톡 → 심리테스트 전용 크롬 이동 팝업
+            history.replaceState(null, '', window.location.pathname);
+            const psychUrl = 'https://life2radio.github.io/affirmation/#psych';
+            const pm = document.createElement('div');
+            pm.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
+            pm.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:12px;">🧠</div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:8px;">크롬에서 열어야 결과가 저장돼요!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
+                        카카오톡에서는 심리테스트 결과가<br>
+                        저장되지 않아요.<br>
+                        아래 버튼을 누르면<br>
+                        <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
+                        크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
+                    </div>
+                    <button id="psych-chrome-btn2" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                        📋 주소 복사 + 크롬으로 열기
+                    </button>
+                    <button onclick="this.closest('div').parentNode.remove();window.initApp();setTimeout(()=>startPsychTest(),500);" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
+                        그냥 여기서 할게요 (결과 저장 안 됨)
+                    </button>
+                </div>`;
+            document.body.appendChild(pm);
+            document.getElementById('psych-chrome-btn2').addEventListener('click', function(){
+                const t = document.createElement('textarea');
+                t.value = psychUrl; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); document.body.removeChild(t);
+                if(navigator.clipboard) navigator.clipboard.writeText(psychUrl).catch(()=>{});
+                this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
+                this.style.background = '#2E7D32';
+                setTimeout(()=>{
+                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                }, 400);
+            });
+            // initApp은 "그냥 여기서" 버튼 클릭 시에만 실행
+
+        } else if(_isKakao && _isAndroid && !_hasPsychHash){
+            // 일반 카톡 → 기존 설치 안내 팝업
             const appUrl = 'https://life2radio.github.io/affirmation/';
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
@@ -9438,139 +9480,53 @@ https://life2radio.github.io/affirmation/
                     </button>
                 </div>`;
             document.body.appendChild(modal);
-
             document.getElementById('kakao-chrome-btn').addEventListener('click', function(){
-                // 주소 복사
-                if(navigator.clipboard){
-                    navigator.clipboard.writeText(appUrl).catch(()=>{
-                        const t = document.createElement('textarea');
-                        t.value = appUrl; document.body.appendChild(t);
-                        t.select(); document.execCommand('copy');
-                        document.body.removeChild(t);
-                    });
-                } else {
-                    const t = document.createElement('textarea');
-                    t.value = appUrl; document.body.appendChild(t);
-                    t.select(); document.execCommand('copy');
-                    document.body.removeChild(t);
-                }
-                // 크롬으로 열기
-                const btn = document.getElementById('kakao-chrome-btn');
-                btn.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
-                btn.style.background = '#2E7D32';
+                const t = document.createElement('textarea');
+                t.value = appUrl; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); document.body.removeChild(t);
+                if(navigator.clipboard) navigator.clipboard.writeText(appUrl).catch(()=>{});
+                this.textContent = '✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
+                this.style.background = '#2E7D32';
                 setTimeout(()=>{
-                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end', '_blank');
+                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
                 }, 400);
             });
+            window.initApp();
+
+        } else {
+            // 일반 크롬/사파리
+            window.initApp();
+
+            if(_hasPsychHash){
+                history.replaceState(null, '', window.location.pathname);
+                setTimeout(()=>{ startPsychTest(); }, 1200);
+            }
         }
 
-        window.initApp();
-
         // ★ 뒤로가기 처리 시스템
-        // 모달/팝업 열릴 때 history state 쌓고
-        // 뒤로가기 누르면 모달 닫기 (앱 밖으로 안 나가게)
-
-        // 초기 state 설정
         history.replaceState({ page: 'app' }, '');
-
-        // 모달 열릴 때 자동으로 history state 추가
         const _origAppendChild = document.body.appendChild.bind(document.body);
         document.body.appendChild = function(el){
             const result = _origAppendChild(el);
-            if(el && el.id && (
-                el.id === 'psych-modal' ||
-                el.id === 'nickname-modal' ||
-                el.id.includes('modal')
-            )){
+            if(el && el.id && (el.id === 'psych-modal' || el.id === 'nickname-modal' || el.id.includes('modal'))){
                 history.pushState({ modal: el.id }, '');
             }
             return result;
         };
-
-        // 뒤로가기 이벤트
         window.addEventListener('popstate', function(e){
-            // 열려있는 모달 찾기
-            const modals = [
-                'psych-modal',
-                'nickname-modal',
-                'bgm-modal',
-            ];
+            const modals = ['psych-modal','nickname-modal','bgm-modal'];
             for(const id of modals){
                 const el = document.getElementById(id);
-                if(el){
-                    el.remove();
-                    return;
-                }
+                if(el){ el.remove(); return; }
             }
-
-            // style이 fixed인 오버레이 팝업 찾기
             const overlays = document.querySelectorAll('div[style*="position:fixed"]');
             if(overlays.length > 0){
-                // 가장 마지막(위에 있는) 오버레이 닫기
                 overlays[overlays.length - 1].remove();
                 history.pushState({ page: 'app' }, '');
                 return;
             }
-
-            // 팝업 없으면 → 앱 홈으로
             history.pushState({ page: 'app' }, '');
         });
-
-        // ★ #psych 해시로 진입 시 처리
-        if(window.location.hash === '#psych'){
-            const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
-            if(isKakao){
-                // 카톡 인앱이면 → #psych URL 그대로 크롬으로 보내기
-                const psychUrl = 'https://life2radio.github.io/affirmation/#psych';
-                const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
-                modal.innerHTML = `
-                    <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
-                        <div style="font-size:48px;margin-bottom:12px;">🧠</div>
-                        <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:8px;">크롬에서 열어야 결과가 저장돼요!</div>
-                        <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
-                            카카오톡에서는 심리테스트 결과가<br>
-                            저장되지 않아요.<br>
-                            아래 버튼을 누르면<br>
-                            <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
-                            크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
-                        </div>
-                        <button id="psych-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
-                            📋 주소 복사 + 크롬으로 열기
-                        </button>
-                        <button onclick="this.closest('div').parentNode.remove();setTimeout(()=>startPsychTest(),300);" style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
-                            그냥 여기서 할게요 (결과 저장 안 됨)
-                        </button>
-                    </div>`;
-                document.body.appendChild(modal);
-
-                document.getElementById('psych-chrome-btn').addEventListener('click', function(){
-                    if(navigator.clipboard){
-                        navigator.clipboard.writeText(psychUrl).catch(()=>{
-                            const t=document.createElement('textarea');
-                            t.value=psychUrl; document.body.appendChild(t);
-                            t.select(); document.execCommand('copy');
-                            document.body.removeChild(t);
-                        });
-                    } else {
-                        const t=document.createElement('textarea');
-                        t.value=psychUrl; document.body.appendChild(t);
-                        t.select(); document.execCommand('copy');
-                        document.body.removeChild(t);
-                    }
-                    const btn=document.getElementById('psych-chrome-btn');
-                    btn.textContent='✅ 복사됐어요! 크롬 주소창에 붙여넣기 하세요';
-                    btn.style.background='#2E7D32';
-                    setTimeout(()=>{
-                        window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
-                    }, 400);
-                });
-            } else {
-                // 크롬이면 → 바로 심리테스트 소개 오픈
-                setTimeout(()=>{ startPsychTest(); }, 1200);
-            }
-            history.replaceState(null, '', window.location.pathname);
-        }
     });
 
 </script>
