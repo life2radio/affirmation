@@ -3451,125 +3451,188 @@
     }
 
     window.startPsychTest = function(){
-        // 소개 페이지 먼저 보여주기
         const existing = document.getElementById('psych-modal');
         if(existing) existing.remove();
+
+        const saved = safeGetItem('psych_result_v2','');
+        const done = !!saved;
+        let prevResult = null;
+        if(done) try { prevResult = JSON.parse(saved); } catch(e){}
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+        const resultBanner = done && prevResult ? `
+            <div style="background:#F0F7F4;border:2px solid #1B4332;border-radius:16px;padding:20px;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                    <span style="font-size:2.5em;">${prevResult.animal.animal}</span>
+                    <div>
+                        <div style="font-size:0.75em;color:#1B4332;font-weight:700;">내 결과</div>
+                        <div style="font-size:1.1em;font-weight:900;color:#1B4332;">${prevResult.animal.name}</div>
+                        <div style="font-size:0.82em;color:#2D6A4F;">"${prevResult.animal.title}"</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <button onclick="viewMyPsychResult()" style="min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">📋 전체 결과 보기</button>
+                    <button onclick="sharePsychMyResult()" style="min-height:44px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">${prevResult.animal.animal} 내 결과 공유</button>
+                </div>
+                <button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;margin-bottom:8px;">💌 친구에게 테스트 추천하기</button>
+                ${isStandalone
+                    ? `<button onclick="downloadPsychResult()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:1px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📥 결과지 이미지 저장</button>`
+                    : `<button onclick="document.getElementById('psych-modal').remove();showInstallPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📥 결과지 저장하려면 → 앱 설치하기</button>`}
+                <div style="text-align:center;margin-top:10px;">
+                    <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
+                </div>
+            </div>` : '';
 
         const modal = document.createElement('div');
         modal.id = 'psych-modal';
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
         modal.innerHTML = `
         <div style="min-height:100vh;display:flex;flex-direction:column;">
-
-            <!-- 헤더 -->
             <div style="background:#1B4332;padding:16px 20px;display:flex;align-items:center;gap:12px;">
                 <button onclick="document.getElementById('psych-modal').remove();"
                     style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                 <span style="font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">인생2막라디오 × 확언 유형 검사</span>
             </div>
-
-            <!-- 히어로 섹션 -->
             <div style="background:linear-gradient(160deg,#1B4332 0%,#2D6A4F 60%,#1B4332 100%);padding:40px 24px 36px;text-align:center;">
-                <div style="font-size:70px;margin-bottom:16px;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));">🧠</div>
+                <div style="font-size:70px;margin-bottom:16px;">🧠</div>
                 <div style="font-size:0.8em;color:#C9A84C;font-weight:700;letter-spacing:1px;margin-bottom:10px;">3가지 과학 검사 기반</div>
-                <div style="font-size:1.7em;font-weight:900;color:#fff;line-height:1.3;margin-bottom:12px;">
-                    나는 어떤<br>사람일까?
-                </div>
-                <div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.8;">
-                    연애·일·관계·돈·자존감까지<br>
-                    <b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요
-                </div>
+                <div style="font-size:1.7em;font-weight:900;color:#fff;line-height:1.3;margin-bottom:12px;">나는 어떤<br>사람일까?</div>
+                <div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.8;">연애·일·관계·돈·자존감까지<br><b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요</div>
             </div>
-
-            <!-- 신뢰 배지 -->
             <div style="background:#F0F7F4;padding:14px 20px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
-                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
-                    🔬 세계 학술 검증
-                </div>
-                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
-                    📊 3가지 심리검사 통합
-                </div>
-                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
-                    ⏱️ 약 5분 소요
-                </div>
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">🔬 세계 학술 검증</div>
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">📊 3가지 심리검사 통합</div>
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">⏱️ 약 5분 소요</div>
             </div>
-
             <div style="padding:20px;">
-
-            <!-- 이런 걸 알 수 있어요 -->
+            ${resultBanner}
             <div style="margin-bottom:20px;">
                 <div style="font-size:1em;font-weight:700;color:var(--text-color);margin-bottom:12px;">✅ 이런 걸 알 수 있어요</div>
-                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-modal-preview">
-                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-modal-preview"></div>
             </div>
-
-            <!-- 검사 소개 -->
             <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:20px;border:1px solid var(--border-color);">
                 <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:12px;">🔬 어떤 검사로 분석하나요?</div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <div style="display:flex;gap:12px;align-items:flex-start;">
-                        <div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div>
-                        <div>
-                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-10 성격 검사</div>
-                            <div style="font-size:0.75em;color:var(--text-muted);">세계에서 가장 많이 쓰이는 성격 검사 · Rammstedt & John (2007)</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:12px;align-items:flex-start;">
-                        <div style="background:#C9A84C;color:#1B4332;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">RSE</div>
-                        <div>
-                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">Rosenberg 자존감 척도</div>
-                            <div style="font-size:0.75em;color:var(--text-muted);">60년간 검증된 자존감 측정 도구 · Rosenberg (1965)</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:12px;align-items:flex-start;">
-                        <div style="background:#2D6A4F;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">VIA</div>
-                        <div>
-                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">VIA 강점 검사</div>
-                            <div style="font-size:0.75em;color:var(--text-muted);">긍정심리학 기반 강점 발견 · Peterson & Seligman (2004)</div>
-                        </div>
-                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-10 성격 검사</div><div style="font-size:0.75em;color:var(--text-muted);">Rammstedt & John (2007)</div></div></div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#C9A84C;color:#1B4332;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">RSE</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">Rosenberg 자존감 척도</div><div style="font-size:0.75em;color:var(--text-muted);">Rosenberg (1965)</div></div></div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;"><div style="background:#2D6A4F;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">VIA</div><div><div style="font-size:0.85em;font-weight:700;color:var(--text-color);">VIA 강점 검사</div><div style="font-size:0.75em;color:var(--text-muted);">Peterson & Seligman (2004)</div></div></div>
                 </div>
             </div>
-
-            <!-- 16가지 동물 -->
-            <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:20px;border:1px solid var(--border-color);">
-                <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:4px;">🐾 16가지 동물 유형 중 나는?</div>
-                <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:12px;">검사 결과에 따라 딱 맞는 유형이 나와요</div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
-                    ${['🦉 올빼미','🦊 여우','🦁 사자','🐬 돌고래',
-                       '🐘 코끼리','🦋 나비','🐺 늑대','🐯 호랑이',
-                       '🐋 고래','🦅 독수리','🐆 표범','🦢 백조',
-                       '🐢 거북이','🐝 꿀벌','🐱 고양이','🦌 사슴'].map(a=>`
-                    <div style="background:var(--bg-color);border-radius:10px;padding:8px 4px;font-size:0.78em;color:var(--text-muted);border:1px solid var(--border-color);">
-                        ${a.split(' ')[0]}<br>
-                        <span style="font-size:0.85em;">${a.split(' ')[1]}</span>
-                    </div>`).join('')}
-                </div>
-            </div>
-
-            <!-- 뇌과학 한마디 -->
             <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:18px;margin-bottom:24px;text-align:center;">
                 <div style="font-size:0.78em;color:#C9A84C;font-weight:700;margin-bottom:8px;">🧠 뇌과학이 말하는 자기이해의 힘</div>
-                <div style="font-size:0.88em;color:#fff;line-height:1.8;">
-                    "자기 자신을 정확히 이해하는 사람은<br>
-                    그렇지 않은 사람보다 정서 조절 능력이<br>
-                    <b style="color:#C9A84C;">최대 40% 더 높습니다"</b>
-                </div>
-                <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:8px;">— Duval & Wicklund, 1972 · 자기인식 이론</div>
+                <div style="font-size:0.88em;color:#fff;line-height:1.8;">"자기 자신을 정확히 이해하는 사람은<br>정서 조절 능력이 <b style="color:#C9A84C;">최대 40% 더 높습니다"</b></div>
+                <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:8px;">— Duval & Wicklund, 1972</div>
             </div>
-
-            <!-- 시작 버튼 -->
-            <button onclick="psychStartReal()"
+            <button onclick="${done ? 'psychStartReal()' : 'psychStartReal()'}"
                 style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:12px;">
-                🧠 지금 바로 시작하기 →
+                ${done ? '🔄 다시 테스트하기' : '🧠 지금 바로 시작하기 →'}
             </button>
-            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">
-                약 5분 소요 · 무료 · 결과 저장됨
-            </div>
-
+            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">약 5분 소요 · 무료 · 결과 저장됨</div>
             </div>
         </div>`;
         document.body.appendChild(modal);
+        setTimeout(renderPsychPreview, 100);
+    }
+
+    // ★ 전체 결과 다시 보기
+    window.viewMyPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const result = JSON.parse(saved);
+        document.getElementById('psych-modal')?.remove();
+        showPsychResult(result);
+    }
+
+    // ★ 결과지 이미지 저장 (앱 설치 시에만)
+    window.downloadPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const r = JSON.parse(saved);
+        const s = r.scores;
+
+        // Canvas로 결과 카드 생성
+        const canvas = document.createElement('canvas');
+        canvas.width = 800; canvas.height = 1000;
+        const ctx = canvas.getContext('2d');
+
+        // 배경
+        const grad = ctx.createLinearGradient(0,0,0,1000);
+        grad.addColorStop(0,'#1B4332');
+        grad.addColorStop(1,'#2D6A4F');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,800,1000);
+
+        // 동물
+        ctx.font = '120px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(r.animal.animal, 400, 200);
+
+        // 유형명
+        ctx.fillStyle = '#C9A84C';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText(r.animal.name, 400, 270);
+
+        // 타이틀
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = '26px sans-serif';
+        ctx.fillText('"' + r.animal.title + '"', 400, 316);
+
+        // 구분선
+        ctx.strokeStyle = 'rgba(201,168,76,0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(80,340); ctx.lineTo(720,340); ctx.stroke();
+
+        // Big5 바
+        const axes = [['외향성',s.E],['개방성',s.O],['친화성',s.A],['성실성',s.C],['안정성',100-s.N]];
+        ctx.textAlign = 'left';
+        axes.forEach(([label, score], i) => {
+            const y = 380 + i*60;
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.font = '18px sans-serif';
+            ctx.fillText(label, 80, y);
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.roundRect(80, y+10, 540, 16, 8);
+            ctx.fill();
+            ctx.fillStyle = '#C9A84C';
+            ctx.roundRect(80, y+10, Math.round(540*score/100), 16, 8);
+            ctx.fill();
+            ctx.fillStyle = '#C9A84C';
+            ctx.textAlign = 'right';
+            ctx.font = 'bold 18px sans-serif';
+            ctx.fillText(score+'%', 660, y+2);
+            ctx.textAlign = 'left';
+        });
+
+        // 자존감
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '18px sans-serif';
+        ctx.fillText('자존감 점수', 80, 700);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.roundRect(80, 710, 540, 16, 8); ctx.fill();
+        ctx.fillStyle = '#4CAF50';
+        ctx.roundRect(80, 710, Math.round(540*s.RSE/100), 16, 8); ctx.fill();
+        ctx.fillStyle = '#4CAF50';
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(s.RSE+'점', 660, 702);
+
+        // 출처
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('BFI-10 · Rosenberg · VIA 기반 · 인생2막라디오', 400, 780);
+
+        // 앱 링크
+        ctx.fillStyle = '#C9A84C';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('life2radio.github.io/affirmation/', 400, 830);
+
+        // 다운로드
+        const link = document.createElement('a');
+        link.download = `인생확언_${r.animal.name}_결과지.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('📥 결과지가 저장됐어요!');
     }
 
     window.psychStartReal = function(){
