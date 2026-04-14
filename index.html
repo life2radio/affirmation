@@ -725,26 +725,71 @@
             <div id="psych-section-in-fav" style="margin:24px 0 16px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
                     <div style="flex:1;height:1px;background:var(--border-color);"></div>
-                    <span style="font-size:0.8em;color:var(--text-muted);white-space:nowrap;">나를 더 알고 싶다면</span>
+                    <span style="font-size:0.8em;color:var(--text-muted);white-space:nowrap;">나를 더 깊이 알고 싶다면</span>
                     <div style="flex:1;height:1px;background:var(--border-color);"></div>
                 </div>
-                <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px 20px;text-align:center;">
-                    <div style="font-size:36px;margin-bottom:10px;">🧠</div>
-                    <div style="font-size:1.1em;font-weight:900;color:#fff;margin-bottom:6px;">나는 어떤 확언 유형일까?</div>
-                    <div style="font-size:0.82em;color:rgba(255,255,255,0.75);line-height:1.8;margin-bottom:16px;">
-                        Big 5 성격이론 기반 · 12문항<br>
-                        16가지 동물 유형 중 나는?
+                <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px 20px;">
+                    <!-- 상단 타이틀 -->
+                    <div style="text-align:center;margin-bottom:18px;">
+                        <div style="font-size:40px;margin-bottom:8px;">🧠</div>
+                        <div style="font-size:1.2em;font-weight:900;color:#fff;margin-bottom:6px;">나는 어떤 사람일까?</div>
+                        <div style="font-size:0.85em;color:#C9A84C;font-weight:700;">3가지 과학 검사로 알아보는 나의 진짜 모습</div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;">
-                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦉 올빼미</div>
-                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦊 여우</div>
-                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🦁 사자</div>
-                        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:6px;font-size:0.75em;color:rgba(255,255,255,0.8);">🐬 돌고래</div>
+
+                    <!-- 효과/장점 리스트 -->
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+                        <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                            <span style="font-size:1.1em;flex-shrink:0;">💕</span>
+                            <div>
+                                <div style="font-size:0.85em;font-weight:700;color:#fff;">연애·일·관계·돈 스타일 분석</div>
+                                <div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:2px;">내가 왜 그런 선택을 하는지 이유를 알게 돼요</div>
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                            <span style="font-size:1.1em;flex-shrink:0;">📊</span>
+                            <div>
+                                <div style="font-size:0.85em;font-weight:700;color:#fff;">자존감 점수 측정 + 30일 변화 추적</div>
+                                <div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:2px;">확언이 나를 얼마나 바꾸는지 숫자로 확인</div>
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+                            <span style="font-size:1.1em;flex-shrink:0;">✨</span>
+                            <div>
+                                <div style="font-size:0.85em;font-weight:700;color:#fff;">나만의 핵심 강점 발견</div>
+                                <div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-top:2px;">내가 몰랐던 나의 슈퍼파워를 알게 돼요</div>
+                            </div>
+                        </div>
                     </div>
-                    <button onclick="startPsychTest()" style="width:100%;min-height:48px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
-                        🧠 테스트 시작하기 →
+
+                    <!-- 동물 유형 미리보기 -->
+                    <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;margin-bottom:16px;">
+                        <div style="font-size:0.75em;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:8px;">16가지 동물 유형 중 나는?</div>
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;font-size:0.78em;color:rgba(255,255,255,0.85);">
+                            <div>🦉<br>올빼미</div>
+                            <div>🦊<br>여우</div>
+                            <div>🦁<br>사자</div>
+                            <div>🐬<br>돌고래</div>
+                            <div>🐘<br>코끼리</div>
+                            <div>🦋<br>나비</div>
+                            <div>🐺<br>늑대</div>
+                            <div>🐯<br>호랑이</div>
+                            <div>🐋<br>고래</div>
+                            <div>🦅<br>독수리</div>
+                            <div>🐆<br>표범</div>
+                            <div>🦢<br>백조</div>
+                            <div>🐢<br>거북이</div>
+                            <div>🐝<br>꿀벌</div>
+                            <div>🐱<br>고양이</div>
+                            <div>🦌<br>사슴</div>
+                        </div>
+                    </div>
+
+                    <button onclick="startPsychTest()" style="width:100%;min-height:52px;background:#C9A84C;color:#1B4332;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">
+                        🧠 지금 바로 시작하기 →
                     </button>
-                    <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:10px;">출처: Big 5 (Costa & McCrae, 1992)</div>
+                    <div style="font-size:0.72em;color:rgba(255,255,255,0.45);margin-top:10px;text-align:center;">
+                        BFI-10 · Rosenberg · VIA 검사 기반 · 약 5분 소요
+                    </div>
                 </div>
             </div>
         </div>
@@ -923,24 +968,24 @@
         <div id="view-psych" class="view-section">
             <div style="padding:24px 20px;text-align:center;">
                 <div style="font-size:48px;margin-bottom:12px;">🧠</div>
-                <div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:8px;">나는 어떤 확언 유형일까?</div>
+                <div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:8px;">나는 어떤 사람일까?</div>
                 <div style="font-size:0.9em;color:var(--text-muted);line-height:1.8;margin-bottom:24px;">
-                    Big 5 성격 이론 기반<br>
-                    12문항으로 알아보는 나의 확언 동물 유형
+                    3가지 과학 검사로 알아보는<br>
+                    연애·일·관계·자존감·강점 분석
                 </div>
                 <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:20px;border:1px solid var(--border-color);text-align:left;">
                     <div style="font-size:0.85em;font-weight:700;color:var(--primary-color);margin-bottom:12px;">🐾 16가지 동물 유형 중 나는?</div>
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;font-size:0.78em;color:var(--text-muted);">
-                        <div>🦉 올빼미</div><div>🐢 거북이</div><div>🦌 사슴</div><div>🐱 고양이</div>
-                        <div>🐋 고래</div><div>🐺 늑대</div><div>🦊 여우</div><div>🐆 표범</div>
-                        <div>🐘 코끼리</div><div>🐬 돌고래</div><div>🦢 백조</div><div>🐝 꿀벌</div>
-                        <div>🦁 사자</div><div>🦅 독수리</div><div>🦋 나비</div><div>🐯 호랑이</div>
+                        <div>🦉 올빼미</div><div>🦊 여우</div><div>🦁 사자</div><div>🐬 돌고래</div>
+                        <div>🐘 코끼리</div><div>🦋 나비</div><div>🐺 늑대</div><div>🐯 호랑이</div>
+                        <div>🐋 고래</div><div>🦅 독수리</div><div>🐆 표범</div><div>🦢 백조</div>
+                        <div>🐢 거북이</div><div>🐝 꿀벌</div><div>🐱 고양이</div><div>🦌 사슴</div>
                     </div>
                 </div>
                 <button onclick="startPsychTest()" style="width:100%;min-height:56px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1.05em;font-weight:700;cursor:pointer;">
-                    🧠 테스트 시작하기 →
+                    🧠 지금 바로 시작하기 →
                 </button>
-                <div style="font-size:0.78em;color:var(--text-muted);margin-top:12px;">약 5분 소요 · 출처: Big 5 (Costa & McCrae, 1992)</div>
+                <div style="font-size:0.78em;color:var(--text-muted);margin-top:12px;">BFI-10 · Rosenberg · VIA · 약 5분 소요 · 무료</div>
             </div>
         </div>
 
@@ -1136,12 +1181,21 @@
 
             <!-- 심리테스트 -->
             <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid var(--border-color);">
-                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🧠 나의 확언 동물 유형 테스트</div>
-                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">Big 5 성격이론 기반 · 16가지 동물 유형 중 나는 어떤 유형일까요?</div>
-                <button onclick="switchView('favorites'); setTimeout(()=>{document.getElementById('psych-section-in-fav').scrollIntoView({behavior:'smooth'});},400);"
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🧠 나는 어떤 사람일까?</div>
+                <div style="font-size:0.85em;color:var(--text-muted);margin-bottom:6px;line-height:1.7;">
+                    연애·일·관계·자존감·강점까지<br>
+                    3가지 과학 검사로 알아보는 나의 진짜 모습
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+                    <span style="background:#F0F7F4;color:#1B4332;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">BFI-10 성격검사</span>
+                    <span style="background:#FFF8E7;color:#856404;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">Rosenberg 자존감</span>
+                    <span style="background:#F0F7F4;color:#1B4332;border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:700;">VIA 강점검사</span>
+                </div>
+                <button onclick="startPsychTest()"
                     style="width:100%;min-height:48px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">
-                    🧠 심리테스트 하러 가기 →
+                    🧠 지금 바로 시작하기 →
                 </button>
+                <div style="font-size:0.72em;color:var(--text-muted);margin-top:8px;text-align:center;">16가지 동물 유형 · 약 5분 소요 · 무료</div>
             </div>
 
             <!-- 앱 초기화 (맨 아래 - 위험 구역) -->
@@ -1156,9 +1210,16 @@
             </div>
 
             <!-- 버전 -->
-            <!-- ★ 10단계: 알림 설정 -->
-            <div style="background:#FFFFFF;border-radius:16px;padding:22px;margin-bottom:16px;border:1px solid #E8E5E0;">
-                <div style="font-size:20px;font-weight:bold;color:var(--primary-color);margin-bottom:6px;">⏰ 매일 확언 알림 설정</div>
+            <!-- ★ 10단계: 알림 설정 (아코디언) -->
+            <div style="background:#FFFFFF;border-radius:16px;margin-bottom:16px;border:1px solid #E8E5E0;overflow:hidden;">
+                <div onclick="toggleNotifGuide()" style="padding:20px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:1em;font-weight:700;color:var(--primary-color);">⏰ 매일 확언 알림 설정</div>
+                        <div style="font-size:0.82em;color:var(--text-muted);margin-top:3px;">클릭해서 알림 설정하기</div>
+                    </div>
+                    <span id="notif-guide-arrow" style="font-size:1.2em;color:var(--text-muted);transition:transform 0.3s;">▼</span>
+                </div>
+                <div id="notif-guide-body" style="display:none;padding:0 22px 22px;">
                 <div style="font-size:14px;color:#888;margin-bottom:18px;line-height:1.6;">매일 같은 시간에 확언을 읽는 습관이 뇌를 바꿉니다.</div>
 
                 <!-- 안내 박스 -->
@@ -1194,6 +1255,7 @@
                         📬 아침편지 알림 받기
                     </button>
                 </div>
+                </div><!-- /notif-guide-body -->
             </div>
 
             <!-- 홈화면 추가 안내 (아코디언) -->
@@ -3113,6 +3175,7 @@
             document.getElementById('view-favorites').classList.add('active');
             document.getElementById('nav-favorites').classList.add('active');
             renderFavoritesPage();
+            renderPsychPreview(); // ★ 심리테스트 미리보기 카드 렌더링
         } else if(viewName==='memo'){
             document.getElementById('view-memo').classList.add('active');
             document.getElementById('nav-memo').classList.add('active');
@@ -3285,7 +3348,225 @@
     let pStep = 0;
     const P_TOTAL = INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length;
 
+    // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
+    function renderPsychPreview(){
+        const el = document.getElementById('psych-preview-list');
+        if(!el) return;
+        const saved = safeGetItem('psych_result_v2','');
+        const done = !!saved;
+        let result = null;
+        if(done) try { result = JSON.parse(saved); } catch(e){}
+
+        const CATEGORIES = [
+            { icon:'💕', title:'연애 스타일', desc:'나는 어떤 방식으로 사랑하는 사람인가?', key:'love' },
+            { icon:'💼', title:'일 스타일', desc:'내가 빛나는 환경은 어떤 곳인가?', key:'work' },
+            { icon:'👥', title:'관계 스타일', desc:'친구 사이에서 나는 어떤 존재인가?', key:'friend' },
+            { icon:'🌧️', title:'위기 대처법', desc:'힘들 때 나는 어떻게 회복하는가?', key:'hard' },
+            { icon:'💰', title:'소비 성향', desc:'돈과 나의 관계는 어떠한가?', key:'money' },
+            { icon:'🌱', title:'자존감 점수', desc:'지금 내 자존감은 몇 점인가?', key:'rse' },
+            { icon:'✨', title:'핵심 강점', desc:'내가 몰랐던 나의 슈퍼파워는?', key:'via' },
+        ];
+
+        el.innerHTML = CATEGORIES.map(cat => {
+            if(done && result){
+                return `<div onclick="showCategoryDetail('${cat.key}')"
+                    style="background:var(--card-bg);border-radius:12px;padding:12px 14px;border:1px solid #1B4332;
+                    display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.2s;"
+                    onmouseover="this.style.background='#F0F7F4'" onmouseout="this.style.background='var(--card-bg)'">
+                    <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.88em;font-weight:700;color:#1B4332;">${cat.title}</div>
+                        <div style="font-size:0.78em;color:var(--text-muted);margin-top:1px;">${cat.desc}</div>
+                    </div>
+                    <span style="font-size:0.8em;color:#1B4332;font-weight:700;white-space:nowrap;">결과 보기 🔓</span>
+                </div>`;
+            } else {
+                return `<div style="background:var(--card-bg);border-radius:12px;padding:12px 14px;border:1px solid var(--border-color);
+                    display:flex;align-items:center;gap:12px;opacity:0.7;">
+                    <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
+                    <div>
+                        <div style="font-size:0.88em;font-weight:700;color:var(--text-color);">${cat.title}</div>
+                        <div style="font-size:0.78em;color:var(--text-muted);margin-top:1px;">${cat.desc}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:1.1em;color:var(--text-muted);">🔒</span>
+                </div>`;
+            }
+        }).join('');
+    }
+
+    // ★ 카테고리별 결과 팝업
+    window.showCategoryDetail = function(key){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved) return;
+        const result = JSON.parse(saved);
+        const s = result.scores;
+
+        const catData = {
+            love:   getLoveStyle(s),
+            work:   getWorkStyle(s),
+            friend: getFriendStyle(s),
+            hard:   getHardStyle(s),
+            money:  getMoneyStyle(s),
+            rse:    getRseStyle(s.RSE),
+            via:    getViaStyle(result.viaStrengths),
+        };
+
+        const cat = catData[key];
+        const title = cat.title;
+        const desc = cat.desc;
+        const tip = cat.tip || '';
+        const extra = key === 'rse'
+            ? `<div style="background:var(--border-color);border-radius:6px;height:10px;margin:10px 0;">
+                <div style="background:linear-gradient(90deg,#C9A84C,#1B4332);height:100%;border-radius:6px;width:${cat.score}%;"></div>
+               </div>
+               <div style="text-align:center;font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:6px;">${cat.score}점 / 100점</div>`
+            : key === 'via'
+            ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                ${(cat.strengths||[]).map((s,i)=>`<span style="background:${i===0?'#1B4332':'var(--border-color)'};color:${i===0?'#fff':'var(--text-color)'};padding:4px 12px;border-radius:20px;font-size:0.82em;font-weight:700;">${i===0?'👑 ':''}${s}</span>`).join('')}
+               </div>`
+            : '';
+
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:var(--bg-color);border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;">
+                <div style="width:40px;height:4px;background:var(--border-color);border-radius:2px;margin:0 auto 20px;"></div>
+                <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:14px;">${title}</div>
+                ${extra}
+                <div style="font-size:0.92em;line-height:1.9;color:var(--text-color);margin-bottom:14px;">${desc}</div>
+                ${tip ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.85em;color:#1B4332;margin-bottom:18px;">${tip}</div>` : ''}
+                <button onclick="this.closest('div[style*=fixed]').remove()"
+                    style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                    닫기
+                </button>
+            </div>`;
+        modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+    }
+
     window.startPsychTest = function(){
+        // 소개 페이지 먼저 보여주기
+        const existing = document.getElementById('psych-modal');
+        if(existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+        modal.innerHTML = `
+        <div style="min-height:100vh;display:flex;flex-direction:column;">
+
+            <!-- 헤더 -->
+            <div style="background:#1B4332;padding:16px 20px;display:flex;align-items:center;gap:12px;">
+                <button onclick="document.getElementById('psych-modal').remove();"
+                    style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
+                <span style="font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">인생2막라디오 × 확언 유형 검사</span>
+            </div>
+
+            <!-- 히어로 섹션 -->
+            <div style="background:linear-gradient(160deg,#1B4332 0%,#2D6A4F 60%,#1B4332 100%);padding:40px 24px 36px;text-align:center;">
+                <div style="font-size:70px;margin-bottom:16px;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));">🧠</div>
+                <div style="font-size:0.8em;color:#C9A84C;font-weight:700;letter-spacing:1px;margin-bottom:10px;">3가지 과학 검사 기반</div>
+                <div style="font-size:1.7em;font-weight:900;color:#fff;line-height:1.3;margin-bottom:12px;">
+                    나는 어떤<br>사람일까?
+                </div>
+                <div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.8;">
+                    연애·일·관계·돈·자존감까지<br>
+                    <b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요
+                </div>
+            </div>
+
+            <!-- 신뢰 배지 -->
+            <div style="background:#F0F7F4;padding:14px 20px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
+                    🔬 세계 학술 검증
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
+                    📊 3가지 심리검사 통합
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.78em;color:#1B4332;font-weight:700;">
+                    ⏱️ 약 5분 소요
+                </div>
+            </div>
+
+            <div style="padding:20px;">
+
+            <!-- 이런 걸 알 수 있어요 -->
+            <div style="margin-bottom:20px;">
+                <div style="font-size:1em;font-weight:700;color:var(--text-color);margin-bottom:12px;">✅ 이런 걸 알 수 있어요</div>
+                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-preview-list">
+                </div>
+            </div>
+
+            <!-- 검사 소개 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:20px;border:1px solid var(--border-color);">
+                <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:12px;">🔬 어떤 검사로 분석하나요?</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-10 성격 검사</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);">세계에서 가장 많이 쓰이는 성격 검사 · Rammstedt & John (2007)</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#C9A84C;color:#1B4332;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">RSE</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">Rosenberg 자존감 척도</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);">60년간 검증된 자존감 측정 도구 · Rosenberg (1965)</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#2D6A4F;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">VIA</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">VIA 강점 검사</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);">긍정심리학 기반 강점 발견 · Peterson & Seligman (2004)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 16가지 동물 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:20px;border:1px solid var(--border-color);">
+                <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:4px;">🐾 16가지 동물 유형 중 나는?</div>
+                <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:12px;">검사 결과에 따라 딱 맞는 유형이 나와요</div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+                    ${['🦉 올빼미','🦊 여우','🦁 사자','🐬 돌고래',
+                       '🐘 코끼리','🦋 나비','🐺 늑대','🐯 호랑이',
+                       '🐋 고래','🦅 독수리','🐆 표범','🦢 백조',
+                       '🐢 거북이','🐝 꿀벌','🐱 고양이','🦌 사슴'].map(a=>`
+                    <div style="background:var(--bg-color);border-radius:10px;padding:8px 4px;font-size:0.78em;color:var(--text-muted);border:1px solid var(--border-color);">
+                        ${a.split(' ')[0]}<br>
+                        <span style="font-size:0.85em;">${a.split(' ')[1]}</span>
+                    </div>`).join('')}
+                </div>
+            </div>
+
+            <!-- 뇌과학 한마디 -->
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:18px;margin-bottom:24px;text-align:center;">
+                <div style="font-size:0.78em;color:#C9A84C;font-weight:700;margin-bottom:8px;">🧠 뇌과학이 말하는 자기이해의 힘</div>
+                <div style="font-size:0.88em;color:#fff;line-height:1.8;">
+                    "자기 자신을 정확히 이해하는 사람은<br>
+                    그렇지 않은 사람보다 정서 조절 능력이<br>
+                    <b style="color:#C9A84C;">최대 40% 더 높습니다"</b>
+                </div>
+                <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:8px;">— Duval & Wicklund, 1972 · 자기인식 이론</div>
+            </div>
+
+            <!-- 시작 버튼 -->
+            <button onclick="psychStartReal()"
+                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:12px;">
+                🧠 지금 바로 시작하기 →
+            </button>
+            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">
+                약 5분 소요 · 무료 · 결과 저장됨
+            </div>
+
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+    }
+
+    window.psychStartReal = function(){
         pA = {}; pStep = 0;
         showPsychStep(0);
     }
@@ -3450,6 +3731,7 @@
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr() };
         safeSetItem('psych_result_v2', JSON.stringify(result));
+        renderPsychPreview(); // ★ 미리보기 잠금 해제
 
         // 구글 시트 전송
         sendPsychToSheet(result);
@@ -3955,6 +4237,15 @@
     window.toggleInstallGuide = function(){
         const body = document.getElementById('install-guide-body');
         const arrow = document.getElementById('install-guide-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+
+    // 알림 가이드 아코디언
+    window.toggleNotifGuide = function(){
+        const body = document.getElementById('notif-guide-body');
+        const arrow = document.getElementById('notif-guide-arrow');
         const isOpen = body.style.display !== 'none';
         body.style.display = isOpen ? 'none' : 'block';
         arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
