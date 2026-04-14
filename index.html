@@ -7352,7 +7352,19 @@ https://life2radio.github.io/affirmation/
 
     window.nextOnboarding = function(){
         if(obStep < ONBOARDING_STEPS.length - 1){
-            showOnboardingStep(obStep + 1);
+            // 4단계(닉네임) 이미 등록됐으면 스킵
+            const nextStep = obStep + 1;
+            if(ONBOARDING_STEPS[nextStep].isNickname){
+                const nick = safeGetItem('my_nickname','');
+                const email = safeGetItem('my_email','');
+                if(nick && email){
+                    // 이미 등록 → 온보딩 완료
+                    document.getElementById('onboarding-overlay').style.display = 'none';
+                    safeSetItem('onboarding_done','1');
+                    return;
+                }
+            }
+            showOnboardingStep(nextStep);
         } else {
             const nickInput  = document.getElementById('ob-nick-input');
             const emailInput = document.getElementById('ob-email-input');
