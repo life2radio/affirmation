@@ -27,14 +27,14 @@
     <meta property="og:site_name"   content="인생2막라디오">
     <meta property="og:title"       content="365일 오늘의 확언 | 인생2막라디오">
     <meta property="og:description" content="새로운 나를 만나는 365일의 여정. 홈화면에 설치하면 앱처럼 매일 열 수 있어요.">
-    <meta property="og:image"       content="https://life2radio.github.io/affirmation/og-image-v2.png">
+    <meta property="og:image"       content="https://life2radio.github.io/affirmation/og-image-v3.png">
     <meta property="og:url"         content="https://life2radio.github.io/affirmation">
     <meta property="og:locale"      content="ko_KR">
     <!-- 트위터/X -->
     <meta name="twitter:card"        content="summary_large_image">
     <meta name="twitter:title"       content="365일 오늘의 확언 | 인생2막라디오">
     <meta name="twitter:description" content="새로운 나를 만나는 365일의 여정. 홈화면에 추가하면 매일 바로 열려요.">
-    <meta name="twitter:image"       content="https://life2radio.github.io/affirmation/og-image-v2.png">
+    <meta name="twitter:image"       content="https://life2radio.github.io/affirmation/og-image-v3.png">
     <!-- 카카오톡 -->
     <meta property="kakao:title"     content="365일 오늘의 확언">
     <meta property="kakao:description" content="인생2막라디오와 함께 매일 확언으로 나를 채워보세요 🌿">
@@ -3165,10 +3165,12 @@
 
     window.switchView = function switchView(viewName, _fromBack){
         if(typeof window.stopTTS==='function')stopTTS();
-        // 뷰 히스토리 스택 관리
+        // 뷰 히스토리 스택 관리 (뒤로가기용)
         if(!_fromBack){
             if(window._currentView && window._currentView !== viewName){
                 window._viewHistory.push(window._currentView);
+                // 최대 20개만 유지
+                if(window._viewHistory.length > 20) window._viewHistory.shift();
             }
         }
         window._currentView = viewName;
@@ -10640,54 +10642,71 @@ https://life2radio.github.io/affirmation/
         history.pushState(null, null, location.href);
 
         window.addEventListener('popstate', function(e){
-            // 항상 dummy state 다시 push (다음 뒤로가기를 위해)
+            // 다음 뒤로가기도 가로채기 위해 즉시 dummy state 재push
             history.pushState(null, null, location.href);
 
-            // 1순위: 열린 팝업/모달/오버레이 닫기
-            const fixedEls = Array.from(document.querySelectorAll('body > div'))
-                .filter(el => {
-                    const s = el.style;
-                    return s.position === 'fixed'
-                        && s.display !== 'none'
-                        && !el.id.includes('onboarding')
-                        && el.id !== 'main-app'
-                        && el.id !== 'toast-container';
-                });
-            if(fixedEls.length > 0){
-                const last = fixedEls[fixedEls.length - 1];
-                last.style.display = 'none';
-                try { last.remove(); } catch(e){}
+            // ── 1순위: 검색 모달 ──
+            var searchModal = document.getElementById('search-modal');
+            if(searchModal && searchModal.style.display !== 'none'){
+                searchModal.style.display = 'none';
                 return;
             }
 
-            // 2순위: 특수 UI 닫기
-            const specials = ['share-modal','share-app-modal','bgm-modal'];
-            for(const id of specials){
-                const el = document.getElementById(id);
-                if(el && el.style.display !== 'none'){
-                    el.style.display = 'none';
-                    return;
+            // ── 2순위: 공유 모달들 ──
+            var shareModal = document.getElementById('share-modal');
+            if(shareModal && shareModal.style.display !== 'none'){
+                shareModal.style.display = 'none';
+                return;
+            }
+            var shareAppModal = document.getElementById('share-app-modal');
+            if(shareAppModal && shareAppModal.style.display !== 'none'){
+                shareAppModal.style.display = 'none';
+                return;
+            }
+
+            // ── 3순위: BGM 모달 ──
+            var bgmModal = document.getElementById('bgm-modal');
+            if(bgmModal && bgmModal.style.display !== 'none'){
+                bgmModal.style.display = 'none';
+                return;
+            }
+
+            // ── 4순위: 기타 팝업 (style 속성에 fixed 포함된 것) ──
+            var skipIds = ['main-app','onboarding-overlay','search-modal',
+                'share-modal','share-app-modal','bgm-modal','toast-container'];
+            var allDivs = document.querySelectorAll('body > div');
+            var popup = null;
+            for(var i = allDivs.length - 1; i >= 0; i--){
+                var el = allDivs[i];
+                if(skipIds.indexOf(el.id) !== -1) continue;
+                var css = el.getAttribute('style') || '';
+                if(css.indexOf('fixed') !== -1 && el.style.display !== 'none'){
+                    popup = el; break;
                 }
             }
-
-            // 3순위: 이전 뷰로
-            if(window._viewHistory && window._viewHistory.length > 0){
-                const prev = window._viewHistory.pop();
-                switchView(prev, true);
+            if(popup){
+                try { popup.remove(); } catch(er){ popup.style.display = 'none'; }
                 return;
             }
 
-            // 4순위: 홈이 아니면 홈으로
+            // ── 5순위: 이전 뷰로 이동 ──
+            if(window._viewHistory && window._viewHistory.length > 0){
+                var prev = window._viewHistory.pop();
+                window.switchView(prev, true);
+                return;
+            }
+
+            // ── 6순위: 홈이 아니면 홈으로 ──
             if(window._currentView && window._currentView !== 'home'){
                 window._viewHistory = [];
-                switchView('home', true);
+                window.switchView('home', true);
                 return;
             }
 
-            // 5순위: 홈에서 뒤로가기
+            // ── 7순위: 홈에서 두 번 뒤로가기 ──
             if(window._backPressedOnce){
                 window._backPressedOnce = false;
-                history.go(-(history.length));
+                window.history.go(-(window.history.length));
                 return;
             }
             window._backPressedOnce = true;
