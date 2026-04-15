@@ -3437,11 +3437,13 @@
 
     const INFO_ITEMS = [
         { key:'route', text:'이 앱을 어떻게 알게 됐어요?',
-          opts:['유튜브 영상','지인 추천','카톡 공유','인터넷 검색','기타'] },
+          opts:['유튜브 영상','지인 추천','카톡 공유','인터넷 검색','기타'],
+          extraKey:'route_etc', extraTrigger:'기타', extraPlaceholder:'어떻게 알게 됐는지 적어주세요 (선택)' },
         { key:'age', text:'나이대가 어떻게 되세요?',
-          opts:['30대','40대','50대','60대','70대 이상'] },
+          opts:['20대 이하','30대','40대','50대','60대','70대 이상'] },
         { key:'region', text:'어디에 사세요?',
-          opts:['서울','경기/인천','충청','전라','경상','강원/제주','해외'] },
+          opts:['서울','경기/인천','충청','전라','경상','강원/제주','해외'],
+          extraKey:'region_abroad', extraTrigger:'해외', extraPlaceholder:'어느 나라/도시에 사세요? (선택)' },
     ];
 
     const EMOJI_SCALE = ['😫','😟','😐','🙂','😊','😄','🤩'];
@@ -4336,19 +4338,28 @@
 
         if(type === 'info'){
             const sel = pA['info_'+data.key];
-            contentHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
-                ${data.opts.map(o=>`
-                <button onclick="pA['info_${data.key}']='${o}';showPsychStep(${step});"
-                    style="padding:16px;border-radius:12px;
-                    border:${sel===o?'3px solid #1B4332':'2px solid var(--border-color)'};
-                    background:${sel===o?'#E8F5E9':'var(--card-bg)'};
-                    color:${sel===o?'#1B4332':'var(--text-color)'};
-                    font-size:${pFontSize==='large'?'1.1em':'0.95em'};
-                    font-weight:${sel===o?'700':'400'};cursor:pointer;text-align:left;
-                    box-shadow:${sel===o?'0 0 0 3px rgba(27,67,50,0.2)':'none'};
-                    transition:all 0.15s;">
-                    <span style="margin-right:8px">${sel===o?'✅':'⬜'}</span>${o}</button>`).join('')}
-            </div>`;
+            const extraVal = data.extraKey ? (pA[data.extraKey]||'') : '';
+            const showExtra = data.extraKey && sel === data.extraTrigger;
+            contentHTML = '<div style="display:flex;flex-direction:column;gap:8px;">'
+                + data.opts.map(function(o){
+                    const picked = sel===o;
+                    return '<button onclick="pA[\'info_'+data.key+'\']=' + JSON.stringify(o) + ';showPsychStep('+step+');"'
+                        +' style="padding:16px;border-radius:12px;'
+                        +'border:'+(picked?'3px solid #1B4332':'2px solid var(--border-color)')+';'
+                        +'background:'+(picked?'#E8F5E9':'var(--card-bg)')+';'
+                        +'color:'+(picked?'#1B4332':'var(--text-color)')+';'
+                        +'font-size:'+(pFontSize==='large'?'1.1em':'0.95em')+';'
+                        +'font-weight:'+(picked?'700':'400')+';cursor:pointer;text-align:left;'
+                        +'box-shadow:'+(picked?'0 0 0 3px rgba(27,67,50,0.2)':'none')+';'
+                        +'transition:all 0.15s;">'
+                        +'<span style="margin-right:8px">'+(picked?'✅':'⬜')+'</span>'+o+'</button>';
+                }).join('')
+                + (showExtra ? '<div style="margin-top:8px;">'
+                    + '<input id="psych-extra-'+data.key+'" type="text" value="'+extraVal+'" placeholder="'+data.extraPlaceholder+'"'
+                    + ' oninput="pA[\''+data.extraKey+'\'] = this.value;"'
+                    + ' style="width:100%;padding:12px 14px;font-size:'+(pFontSize==='large'?'1.1em':'0.95em')+';border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;outline:none;">'
+                    + '</div>' : '')
+                + '</div>';
         }
         else if(type === 'bfi' || type === 'rse'){
             const key = type+'_'+data.id;
@@ -4471,7 +4482,74 @@
         if(type === 'via' && pA['via_'+data.id] === undefined){ showToast('선택해주세요!'); return; }
 
         if(step < getPTotal() - 1){ showPsychStep(step + 1); }
-        else { calcAndShowResult(); }
+        else { showPsychEmailStep(); }
+    }
+
+    function showPsychEmailStep(){
+        // 이미 이메일 있으면 바로 결과
+        const savedEmail = safeGetItem('my_email','');
+        if(savedEmail){
+            calcAndShowResult();
+            return;
+        }
+
+        const existing = document.getElementById('psych-modal');
+        if(existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;display:flex;flex-direction:column;';
+        modal.innerHTML =
+            '<div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">'
+            + '<div style="display:flex;align-items:center;gap:12px;">'
+            + '<button id="psych-email-close" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>'
+            + '<div style="flex:1;text-align:center;font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">거의 다 됐어요! 🎉</div>'
+            + '</div></div>'
+            + '<div style="flex:1;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">'
+            + '<div style="font-size:64px;margin-bottom:16px;">📧</div>'
+            + '<div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:10px;">결과를 이메일로 받아보세요!</div>'
+            + '<div style="font-size:0.9em;color:var(--text-muted);line-height:1.8;margin-bottom:28px;">'
+            + '이메일을 등록하면 결과가 저장되고<br>30일 후 변화를 비교할 수 있어요.<br>'
+            + '<span style="color:#C9A84C;font-weight:700;">이메일 없이도 결과 확인 가능해요!</span>'
+            + '</div>'
+            + '<div style="width:100%;max-width:360px;">'
+            + '<button id="psych-google-btn" style="width:100%;padding:14px;font-size:1em;border:1.5px solid #4285F4;border-radius:12px;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">'
+            + '<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>'
+            + '구글 계정에서 이메일 가져오기</button>'
+            + '<input id="psych-email-input" type="email" placeholder="또는 이메일 직접 입력"'
+            + ' style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:12px;">'
+            + '<button onclick="window._savePsychEmail()" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">등록하고 결과 보기 🎉</button>'
+            + '<button onclick="calcAndShowResult()" style="width:100%;min-height:48px;background:none;border:1px solid #ddd;border-radius:14px;font-size:0.9em;color:var(--text-muted);cursor:pointer;">이메일 없이 결과 보기</button>'
+            + '</div></div>';
+        document.body.appendChild(modal);
+        document.getElementById('psych-email-close').addEventListener('click', function(){
+            document.getElementById('psych-modal').remove();
+        });
+
+        // 구글 버튼 이벤트
+        document.getElementById('psych-google-btn').addEventListener('click', function(){
+            window._googleOneTap();
+            // postMessage로 이메일 수신 후 자동 입력
+            window.addEventListener('message', function _pe(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _pe);
+                    const inp = document.getElementById('psych-email-input');
+                    if(inp && e.data.email) inp.value = e.data.email;
+                    showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
+                }
+            });
+        });
+    }
+
+    window._savePsychEmail = function(){
+        const val = (document.getElementById('psych-email-input')?.value || '').trim();
+        if(val){
+            safeSetItem('my_email', val);
+            const ni = document.getElementById('nickname-input');
+            const ei = document.getElementById('user-email-input');
+            if(ei) ei.value = val;
+        }
+        calcAndShowResult();
     }
 
     function calcAndShowResult(){
