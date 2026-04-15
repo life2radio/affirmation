@@ -4281,8 +4281,27 @@
         const link = document.createElement('a');
         link.download = `인생확언_${r.animal.name}_결과지.png`;
         link.href = fc.toDataURL('image/png');
-        link.click();
-        showToast('📥 결과지가 저장됐어요!');
+
+        // ★ 모바일 저장: share API 또는 새 탭 열기
+        if(navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)){
+            fc.toBlob(function(blob){
+                const file = new File([blob], `인생확언_${r.animal.name}_결과지.png`, {type:'image/png'});
+                if(navigator.canShare && navigator.canShare({files:[file]})){
+                    navigator.share({files:[file], title:r.animal.name+'형 결과지'}).catch(()=>{
+                        // share 실패 시 새 탭
+                        window.open(fc.toDataURL('image/png'), '_blank');
+                    });
+                } else {
+                    window.open(fc.toDataURL('image/png'), '_blank');
+                }
+            }, 'image/png');
+        } else {
+            // PC: 일반 다운로드
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        showToast('📥 이미지를 저장하거나 공유해보세요!');
     }
     window.psychStartReal = function(mode){
         window._psychMode = mode || 'full'; // 전역으로 저장
