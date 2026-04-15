@@ -3688,39 +3688,15 @@
                 📊 <b>정확도 약 90%</b> (BFI-44 기준)<br>
                 🔄 30일 후 재검사로 변화를 숫자로 확인할 수 있어요
             </div>
-            <!-- 모드 선택 -->
-            <div style="background:#F0F7F4;border-radius:16px;padding:18px;margin-bottom:12px;">
-                <div style="font-size:0.88em;font-weight:700;color:#1B4332;text-align:center;margin-bottom:14px;">
-                    검사 방식을 선택해주세요
-                </div>
-                <div style="display:flex;flex-direction:column;gap:10px;">
-                    <button onclick="document.getElementById('psych-modal').remove();_doPsychStart('quick')"
-                        style="width:100%;min-height:68px;background:#fff;color:#1B4332;border:2px solid #1B4332;
-                        border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;
-                        display:flex;align-items:center;padding:0 18px;gap:14px;text-align:left;">
-                        <span style="font-size:1.8em;">⚡</span>
-                        <div>
-                            <div style="font-size:1.05em;font-weight:900;color:#1B4332;">빠른 테스트</div>
-                            <div style="font-size:0.82em;color:#666;margin-top:2px;">약 5분 · 20문항 · 핵심 결과 확인</div>
-                        </div>
-                    </button>
-                    <button onclick="document.getElementById('psych-modal').remove();_doPsychStart('full')"
-                        style="width:100%;min-height:68px;background:#1B4332;color:#fff;border:none;
-                        border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;
-                        display:flex;align-items:center;padding:0 18px;gap:14px;text-align:left;">
-                        <span style="font-size:1.8em;">🔬</span>
-                        <div>
-                            <div style="font-size:1.05em;font-weight:900;">정밀 테스트</div>
-                            <div style="font-size:0.82em;color:rgba(255,255,255,0.75);margin-top:2px;">약 12분 · 66문항 · 정확도 90% 완전 분석</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
+            <button onclick="${done ? 'psychStartReal()' : 'psychStartReal()'}"
+                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:10px;">
+                ${done ? '🔄 다시 테스트하기' : '🧠 지금 바로 시작하기 →'}
+            </button>
             <button onclick="sharePsychInvite()"
                 style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:12px;">
                 📤 친구에게 심리테스트 추천하기
             </button>
-            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">무료 · 결과 저장됨</div>
+            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">약 10분 소요 · 무료 · 결과 저장됨</div>
             </div>
         </div>`;
         document.body.appendChild(modal);
@@ -4253,7 +4229,7 @@
         link.click();
         showToast('📥 결과지가 저장됐어요!');
     }
-    window.psychStartReal = function(mode){
+    window.psychStartReal = function(){
         // 이전 검사 날짜 확인
         const lastDate = safeGetItem('psych_last_date', '');
         if(lastDate){
@@ -4285,7 +4261,7 @@
                                 style="flex:1;min-height:48px;background:#F0F0F0;color:#555;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 나중에 할게요
                             </button>
-                            <button onclick="this.closest('div[style*=fixed]').remove();window._doPsychStart('${mode}');"
+                            <button onclick="this.closest('div[style*=fixed]').remove();_doPsychStart();"
                                 style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 지금 할게요
                             </button>
@@ -4295,7 +4271,7 @@
                 return;
             }
         }
-        _doPsychStart(mode);
+        _doPsychStart();
     }
 
     window._doPsychStart = function(mode){
@@ -4340,26 +4316,58 @@
             const sel = pA['info_'+data.key];
             const extraVal = data.extraKey ? (pA[data.extraKey]||'') : '';
             const showExtra = data.extraKey && sel === data.extraTrigger;
-            contentHTML = '<div style="display:flex;flex-direction:column;gap:8px;">'
-                + data.opts.map(function(o){
-                    const picked = sel===o;
-                    return '<button onclick="pA[\'info_'+data.key+'\']=' + JSON.stringify(o) + ';showPsychStep('+step+');"'
-                        +' style="padding:16px;border-radius:12px;'
-                        +'border:'+(picked?'3px solid #1B4332':'2px solid var(--border-color)')+';'
-                        +'background:'+(picked?'#E8F5E9':'var(--card-bg)')+';'
-                        +'color:'+(picked?'#1B4332':'var(--text-color)')+';'
-                        +'font-size:'+(pFontSize==='large'?'1.1em':'0.95em')+';'
-                        +'font-weight:'+(picked?'700':'400')+';cursor:pointer;text-align:left;'
-                        +'box-shadow:'+(picked?'0 0 0 3px rgba(27,67,50,0.2)':'none')+';'
-                        +'transition:all 0.15s;">'
-                        +'<span style="margin-right:8px">'+(picked?'✅':'⬜')+'</span>'+o+'</button>';
-                }).join('')
-                + (showExtra ? '<div style="margin-top:8px;">'
-                    + '<input id="psych-extra-'+data.key+'" type="text" value="'+extraVal+'" placeholder="'+data.extraPlaceholder+'"'
-                    + ' oninput="pA[\''+data.extraKey+'\'] = this.value;"'
-                    + ' style="width:100%;padding:12px 14px;font-size:'+(pFontSize==='large'?'1.1em':'0.95em')+';border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;outline:none;">'
-                    + '</div>' : '')
-                + '</div>';
+            const fontSize = pFontSize==='large' ? '1.1em' : '0.95em';
+
+            // 버튼을 DOM으로 생성 (onclick 문자열 문제 회피)
+            const wrapDiv = document.createElement('div');
+            wrapDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+
+            data.opts.forEach(function(o){
+                const picked = sel === o;
+                const btn = document.createElement('button');
+                btn.style.cssText = 'padding:16px;border-radius:12px;'
+                    + 'border:' + (picked ? '3px solid #1B4332' : '2px solid var(--border-color)') + ';'
+                    + 'background:' + (picked ? '#E8F5E9' : 'var(--card-bg)') + ';'
+                    + 'color:' + (picked ? '#1B4332' : 'var(--text-color)') + ';'
+                    + 'font-size:' + fontSize + ';'
+                    + 'font-weight:' + (picked ? '700' : '400') + ';'
+                    + 'cursor:pointer;text-align:left;'
+                    + 'box-shadow:' + (picked ? '0 0 0 3px rgba(27,67,50,0.2)' : 'none') + ';'
+                    + 'transition:all 0.15s;';
+                btn.innerHTML = '<span style="margin-right:8px">' + (picked?'✅':'⬜') + '</span>' + o;
+                btn.addEventListener('click', (function(opt){ return function(){
+                    pA['info_'+data.key] = opt;
+                    showPsychStep(step);
+                }; })(o));
+                wrapDiv.appendChild(btn);
+            });
+
+            // 기타/해외 직접입력 칸
+            if(showExtra){
+                const inputDiv = document.createElement('div');
+                inputDiv.style.marginTop = '8px';
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.value = extraVal;
+                inp.placeholder = data.extraPlaceholder || '';
+                inp.style.cssText = 'width:100%;padding:12px 14px;font-size:' + fontSize
+                    + ';border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;outline:none;';
+                inp.addEventListener('input', function(){ pA[data.extraKey] = this.value; });
+                inputDiv.appendChild(inp);
+                wrapDiv.appendChild(inputDiv);
+            }
+
+            contentHTML = wrapDiv.outerHTML;
+            // 이벤트는 렌더링 후 재바인딩 필요 → outerHTML 대신 직접 삽입
+            window._infoBuildFn = function(container){
+                container.innerHTML = '';
+                container.appendChild(wrapDiv);
+                if(showExtra){
+                    const inp2 = container.querySelector('input[type=text]');
+                    if(inp2) inp2.addEventListener('input', function(){ pA[data.extraKey] = this.value; });
+                }
+            };
+            contentHTML = '<div id="psych-info-wrap"></div>';
         }
         else if(type === 'bfi' || type === 'rse'){
             const key = type+'_'+data.id;
@@ -4465,6 +4473,12 @@
                 </button>
             </div>`;
         document.body.appendChild(modal);
+        // ★ info DOM 바인딩 (기타/해외 입력창 포함)
+        if(window._infoBuildFn){
+            const wrap = document.getElementById('psych-info-wrap');
+            if(wrap){ window._infoBuildFn(wrap); }
+            window._infoBuildFn = null;
+        }
         // ★ 스크롤 위치 복원
         if(_savedScroll > 0){
             requestAnimationFrame(function(){
