@@ -3467,7 +3467,8 @@
 
     let pA = {}; // psychAnswers
     let pStep = 0;
-    let pMode = 'full'; // 'full' | 'quick'
+    let pMode = 'full';
+    let pFontSize = 'normal'; // 'normal' | 'large' // 'full' | 'quick'
     const P_TOTAL = INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length;
     function getPTotal(){ return INFO_ITEMS.length + (pMode==='quick'?BFI_ITEMS_SHORT:BFI_ITEMS).length + (pMode==='quick'?RSE_ITEMS_SHORT:RSE_ITEMS).length + (pMode==='quick'?VIA_ITEMS_SHORT:VIA_ITEMS).length; }
     function getBFI(){ return pMode==='quick' ? BFI_ITEMS_SHORT : BFI_ITEMS; }
@@ -4280,7 +4281,7 @@
                                 style="flex:1;min-height:48px;background:#F0F0F0;color:#555;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 나중에 할게요
                             </button>
-                            <button onclick="this.closest('div[style*=fixed]').remove();_doPsychStart(mode);"
+                            <button onclick="this.closest('div[style*=fixed]').remove();window._doPsychStart('${mode}');"
                                 style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 지금 할게요
                             </button>
@@ -4293,9 +4294,9 @@
         _doPsychStart(mode);
     }
 
-    function _doPsychStart(mode){
+    window._doPsychStart = function(mode){
         pMode = mode || 'full';
-        safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
+        // ★ psych_last_date는 결과 계산 시에만 저장 (중간에 종료해도 30일 제한 없음)
         pA = {}; pStep = 0;
         showPsychStep(0);
     }
@@ -4330,11 +4331,16 @@
             const sel = pA['info_'+data.key];
             contentHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
                 ${data.opts.map(o=>`
-                <button onclick="pA['info_${data.key}']='${o}';showPsychStep(${step})"
-                    style="padding:13px 16px;border-radius:12px;border:2px solid ${sel===o?'#1B4332':'var(--border-color)'};
-                    background:${sel===o?'#F0F7F4':'var(--card-bg)'};color:${sel===o?'#1B4332':'var(--text-color)'};
-                    font-size:0.95em;font-weight:${sel===o?'700':'400'};cursor:pointer;text-align:left;">
-                    ${sel===o?'✅ ':''}${o}</button>`).join('')}
+                <button onclick="pA['info_${data.key}']='${o}';showPsychStep(${step});"
+                    style="padding:16px;border-radius:12px;
+                    border:${sel===o?'3px solid #1B4332':'2px solid var(--border-color)'};
+                    background:${sel===o?'#E8F5E9':'var(--card-bg)'};
+                    color:${sel===o?'#1B4332':'var(--text-color)'};
+                    font-size:${pFontSize==='large'?'1.1em':'0.95em'};
+                    font-weight:${sel===o?'700':'400'};cursor:pointer;text-align:left;
+                    box-shadow:${sel===o?'0 0 0 3px rgba(27,67,50,0.2)':'none'};
+                    transition:all 0.15s;">
+                    <span style="margin-right:8px">${sel===o?'✅':'⬜'}</span>${o}</button>`).join('')}
             </div>`;
         }
         else if(type === 'bfi' || type === 'rse'){
@@ -4358,17 +4364,20 @@
                     ${LABELS.map((lb,i) => {
                         const v = i+1;
                         const picked = sel===v;
-                        return '<button onclick="pA[\''+key+'\']='+(v)+'; setTimeout(function(){psychGoNext('+step+');},200);"'
-                            +' style="width:100%;min-height:62px;border-radius:16px;'
-                            +'border:'+(picked?'3px solid #1B4332':'2px solid #e0e0e0')+';'
-                            +'background:'+(picked?'#1B4332':lb.bg)+';'
-                            +'color:'+(picked?'#fff':'#333')+';'
+                        const btnFontSz = pFontSize==='large' ? '1.25em' : '1.05em';
+                        const btnH = pFontSize==='large' ? '72px' : '62px';
+                        return '<button onclick="pA[\''+key+'\']='+(v)+'; showPsychStep('+step+');"'
+                            +' style="width:100%;min-height:'+btnH+';border-radius:16px;'
+                            +'border:'+(picked?'4px solid #1B4332':'2px solid #e0e0e0')+';'
+                            +'background:'+(picked?'#E8F5E9':lb.bg)+';'
+                            +'color:'+(picked?'#1B4332':'#333')+';'
                             +'font-weight:'+(picked?'900':'600')+';'
                             +'cursor:pointer;display:flex;align-items:center;'
-                            +'gap:14px;padding:0 18px;transition:all 0.1s;">'
-                            +'<span style="font-size:1.8em;min-width:36px;text-align:center;">'+(lb.e)+'</span>'
-                            +'<span style="flex:1;font-size:1.05em;text-align:left;">'+(lb.t)+'</span>'
-                            +'<span style="font-size:0.82em;opacity:'+(picked?'0.8':'0.45')+';min-width:24px;text-align:right;">'+(v)+'점</span>'
+                            +'gap:14px;padding:0 18px;transition:all 0.15s;'
+                            +'box-shadow:'+(picked?'0 0 0 3px rgba(27,67,50,0.25)':'none')+';">'
+                            +'<span style="font-size:2em;min-width:40px;text-align:center;">'+(picked?'✅':lb.e)+'</span>'
+                            +'<span style="flex:1;font-size:'+btnFontSz+';text-align:left;line-height:1.4;">'+(lb.t)+'</span>'
+                            +'<span style="font-size:0.85em;opacity:'+(picked?'1':'0.45')+';min-width:28px;text-align:right;font-weight:700;color:'+(picked?'#1B4332':'#aaa')+';">'+(v)+'점</span>'
                             +'</button>';
                     }).join('')}
                     </div>
@@ -4379,13 +4388,18 @@
             const sel = pA[key];
             contentHTML = `<div style="display:flex;flex-direction:column;gap:12px;">
                 ${data.opts.map((o,i)=>`
-                <button onclick="pA['${key}']=${i};setTimeout(function(){psychGoNext(${step});},150);"
-                    style="padding:20px 18px;border-radius:16px;border:${sel===i?'3px solid #1B4332':'2px solid #ddd'};
-                    background:${sel===i?'#1B4332':'var(--card-bg)'};color:${sel===i?'#fff':'var(--text-color)'};
-                    font-size:1.1em;font-weight:${sel===i?'900':'600'};cursor:pointer;text-align:left;line-height:1.6;
-                    display:flex;align-items:center;gap:12px;">
-                    <span style="font-size:1.2em">${sel===i?'✅':'⬜'}</span>
-                    <span>${o}</span>
+                <button onclick="pA['${key}']=${i};showPsychStep(${step});"
+                    style="padding:20px 18px;border-radius:16px;
+                    border:${sel===i?'4px solid #1B4332':'2px solid #ddd'};
+                    background:${sel===i?'#E8F5E9':'var(--card-bg)'};
+                    color:${sel===i?'#1B4332':'var(--text-color)'};
+                    font-size:${pFontSize==='large'?'1.25em':'1.1em'};
+                    font-weight:${sel===i?'900':'600'};cursor:pointer;text-align:left;line-height:1.6;
+                    display:flex;align-items:center;gap:12px;
+                    box-shadow:${sel===i?'0 0 0 3px rgba(27,67,50,0.25)':'none'};
+                    transition:all 0.15s;">
+                    <span style="font-size:1.4em">${sel===i?'✅':'⬜'}</span>
+                    <span style="flex:1">${o}</span>
                     </button>`).join('')}
             </div>`;
         }
@@ -4407,6 +4421,10 @@
                             <div style="background:#C9A84C;height:100%;border-radius:4px;width:${progress}%;transition:width 0.3s;"></div>
                         </div>
                     </div>
+                    <button onclick="pFontSize=pFontSize==='large'?'normal':'large';showPsychStep(${step});"
+                        style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:0.85em;font-weight:700;cursor:pointer;padding:6px 10px;white-space:nowrap;">
+                        ${pFontSize==='large'?'🔡 보통':'🔠 크게'}
+                    </button>
                 </div>
             </div>
             <div style="flex:1;padding:24px 20px 100px;">
@@ -4415,7 +4433,7 @@
                         ${step+1}번 문항
                     </span>
                 </div>
-                <div style="font-size:1.25em;font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.7;">
+                <div style="font-size:${pFontSize==='large'?'1.5em':'1.25em'};font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.7;">
                     ${data.text}
                 </div>
                 ${contentHTML}
@@ -4444,6 +4462,8 @@
     }
 
     function calcAndShowResult(){
+        // ★ 결과 완료 시에만 날짜 저장
+        safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
         // BFI-44 채점
         const bfi = { E:[], O:[], A:[], C:[], N:[] };
         getBFI().forEach(item => {
