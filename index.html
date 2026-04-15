@@ -2847,7 +2847,7 @@
         modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
     };
 
-    window.goToFav = function(dc){
+    window.goToFav = function(dc, bypassCap){
         // 해당 day로 이동
         if(currentMode==='A'){
             let minDateA=new Date(todayObj.getFullYear(),0,1);
@@ -2860,7 +2860,8 @@
                 selectedDateObj=new Date(minDateB.getTime()+(dc-1)*86400000);
             }
         }
-        if(selectedDateObj>todayObj) selectedDateObj=new Date(todayObj);
+        // ★ bypassCap=true면 미래 날짜도 허용
+        if(!bypassCap && selectedDateObj>todayObj) selectedDateObj=new Date(todayObj);
         switchView('home');
     }
 
@@ -3479,28 +3480,22 @@
     function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
     function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
 
-    // ★ 동물 유형별 추천 확언 - 날짜 제한 없이 테마 첫 확언으로 이동
+    // ★ 동물 유형별 추천 확언 - 직접 day 번호로 이동
     function goToAnimalTheme(animalEmoji){
-        var themeMap = {
-            '🦁':'용기','🐘':'가족과 나','🦋':'완성된 나','🐺':'관계 맺기',
-            '🐋':'감정의 주인 되기','🐆':'삶의 주도권','🦊':'습관과 뇌의 과학',
-            '🐢':'습관과 뇌의 과학','🦉':'상처받은 나를 이해하기','🐯':'용기',
-            '🦌':'자존감의 회복','🦅':'삶의 주도권','🐝':'관계를 다시 보다',
-            '🦢':'완성된 나','🐱':'자존감의 회복','🦒':'새로 시작하는 나'
+        // 동물 → 시작 day 번호 직접 매핑
+        var dayMap = {
+            '🦁':213,'🐘':121,'🦋':335,'🐺':274,
+            '🐋':91, '🐆':244,'🦊':182,'🐢':182,
+            '🦉':60, '🐯':213,'🦌':152,'🦅':244,
+            '🐝':32, '🦢':335,'🐱':152,'🦒':1
         };
-        var targetTheme = themeMap[animalEmoji] || '새로 시작하는 나';
-        // 테마의 첫 번째 항목 찾기 (날짜 제한 없음)
-        var pick = affirmationsData.find(function(d){ return d.theme === targetTheme; });
-        if(!pick) pick = affirmationsData[0];
-        // ★ 날짜 제한 없이 직접 day 번호로 이동 (캡 우회)
-        window._forceAffirmDay = pick.day;
-        var minA = new Date(todayObj.getFullYear(),0,1);
-        selectedDateObj = new Date(minA.getTime() + (pick.day-1)*86400000);
-        switchView('home');
+        var targetDay = dayMap[animalEmoji] || 1;
+        // ★ bypassCap=true로 미래 날짜도 허용
+        goToFav(targetDay, true);
         setTimeout(function(){
             var el = document.getElementById('affirmation-view');
             if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-        }, 400);
+        }, 500);
     }
 
         // ★ 동물 유형별 추천 확언 day 매핑
@@ -6395,9 +6390,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
             sv.style.display='none';av.style.display='block';
             let minA=new Date(todayObj.getFullYear(),0,1);
             if(selectedDateObj<minA)selectedDateObj=new Date(minA);
-            if(selectedDateObj>todayObj && !window._forceAffirmDay) selectedDateObj=new Date(todayObj);
-            dayCount = window._forceAffirmDay || Math.floor((selectedDateObj-minA)/86400000)+1;
-            window._forceAffirmDay = null;
+            if(selectedDateObj>todayObj) selectedDateObj=new Date(todayObj);
+            dayCount=Math.floor((selectedDateObj-minA)/86400000)+1;
             document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
             document.getElementById('day-label').innerText=`365일 중 ${dayCount}일째`;
             document.getElementById('day-label').onclick=()=>switchView('calendar');
