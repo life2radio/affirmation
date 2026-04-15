@@ -1217,7 +1217,7 @@
                 <button onclick="confirmReset()" style="background:#FFF0F0;color:#D32F2F;border:2px solid #D32F2F;border-radius:12px;padding:12px 24px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">⚠️ 모든 데이터 초기화</button>
             </div>
 
-            <!-- 버전 -->
+            <!-- 앱 데이터 초기화 -->
             <!-- ★ 10단계: 알림 설정 (아코디언) -->
             <div style="background:#FFFFFF;border-radius:16px;margin-bottom:16px;border:1px solid #E8E5E0;overflow:hidden;">
                 <div onclick="toggleNotifGuide()" style="padding:20px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
@@ -3938,245 +3938,249 @@
         const s = r.scores;
 
         const W = 800;
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const FONT = "'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif";
+        const PAD = 56;
+        const BAR_W = W - PAD*2;
 
-        // 폰트 설정 (한국어 최우선)
-        const FONT = "'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif";
+        // ─── 텍스트 줄바꿈 함수 (픽셀 단위) ───
+        function wrapText(ctx, text, maxW){
+            const lines = [];
+            let cur = '';
+            for(let i=0; i<text.length; i++){
+                const test = cur + text[i];
+                if(ctx.measureText(test).width > maxW){
+                    if(cur) lines.push(cur);
+                    cur = text[i];
+                } else { cur = test; }
+            }
+            if(cur) lines.push(cur);
+            return lines;
+        }
 
-        // Big5 설명 (짧고 명확하게 한 줄씩)
+        // ─── Big5 상세 설명 ───
         const bfi5 = [
             { label:'외향성', score:s.E,
-              desc: s.E>=65 ? '사람과 함께할 때 에너지가 충전되는 외향형이에요.'
-                  : s.E<40  ? '혼자만의 시간에서 에너지를 회복하는 내향형이에요.'
-                  :           '내향과 외향의 균형을 가진 양방향형이에요.' },
+              hi:'사람들과 함께할 때 에너지가 충전돼요. 활발하고 사교적이며 새로운 만남을 즐겨요. 도파민 보상 체계가 활성화되어 긍정적 정서가 높아요.',
+              mid:'내향과 외향의 균형을 가진 양방향형이에요. 상황에 따라 혼자도, 사람들과도 편안하게 지낼 수 있어요.',
+              lo:'혼자만의 시간에서 에너지를 회복하는 내향형이에요. 깊은 사색과 집중력이 뛰어나고 소수의 깊은 관계를 선호해요.' },
             { label:'개방성', score:s.O,
-              desc: s.O>=65 ? '창의적이고 호기심이 넘치며 새로운 경험을 즐겨요.'
-                  : s.O<40  ? '실용적이고 안정적인 것을 선호하는 현실주의자예요.'
-                  :           '새로운 것과 익숙한 것 사이에서 균형을 잡아요.' },
+              hi:'창의적이고 호기심이 넘쳐요. 새로운 아이디어와 경험을 사랑하며 예술적 감수성이 풍부해요.',
+              mid:'새로운 것과 익숙한 것 사이에서 균형을 잘 잡아요. 실용성과 창의성을 적절히 활용해요.',
+              lo:'실용적이고 안정적인 것을 선호해요. 검증된 방식과 익숙한 환경에서 최고의 결과를 내요.' },
             { label:'친화성', score:s.A,
-              desc: s.A>=65 ? '따뜻하고 배려심이 깊으며 조화를 소중히 여겨요.'
-                  : s.A<40  ? '독립적이고 직설적이며 결과를 중시해요.'
-                  :           '협력과 독립 사이에서 유연하게 대응해요.' },
+              hi:'따뜻하고 배려심이 깊어요. 타인과 협력하고 조화를 소중히 여기며 공감 능력이 탁월해요.',
+              mid:'협력과 독립 사이에서 유연하게 대응해요. 상황에 맞게 배려와 주장을 균형 있게 발휘해요.',
+              lo:'독립적이고 자기 기준이 명확해요. 직설적이며 결과를 중시하는 실용적인 사고를 가졌어요.' },
             { label:'성실성', score:s.C,
-              desc: s.C>=65 ? '체계적이고 목표 지향적이며 책임감이 강해요.'
-                  : s.C<40  ? '자유롭고 즉흥적이며 유연한 적응력이 강점이에요.'
-                  :           '계획성과 유연성의 균형을 갖고 있어요.' },
-            { label:'안정성', score:100-s.N,
-              desc: (100-s.N)>=65 ? '스트레스 상황에서도 침착하고 안정적이에요.'
-                  : (100-s.N)<40  ? '감수성이 풍부하고 감정을 깊이 느끼는 편이에요.'
-                  :                 '감정과 안정감 사이에서 균형을 유지해요.' },
+              hi:'체계적이고 목표 지향적이에요. 시작한 일은 반드시 끝내는 강한 책임감과 자기절제력이 있어요.',
+              mid:'계획성과 유연성의 균형을 갖고 있어요. 중요한 일엔 체계를 갖추고 상황에 따라 유연하게 대응해요.',
+              lo:'자유롭고 즉흥적이에요. 창의성과 유연한 적응력이 강점이며 새로운 방식을 탐구하기를 좋아해요.' },
+            { label:'정서안정성', score:100-s.N,
+              hi:'스트레스 상황에서도 침착하고 안정적이에요. 어려운 상황에서 주변에 심리적 안정감을 줘요.',
+              mid:'감정과 안정감 사이에서 균형을 유지해요. 힘든 상황에서도 비교적 빠르게 회복하는 편이에요.',
+              lo:'감수성이 풍부하고 감정을 깊이 느끼는 편이에요. 예술적 감수성과 공감 능력이 탁월해요.' },
         ];
 
-        // 자존감 설명
-        const rseLevel = s.RSE>=75?'높음':s.RSE>=50?'평균':s.RSE>=25?'낮음':'매우 낮음';
-        const rseDesc = s.RSE>=75 ? '자신을 있는 그대로 받아들이는 안정적인 자기가치감이에요.'
-            : s.RSE>=50 ? '좋은 날과 흔들리는 날이 공존해요. 꾸준한 확언이 도움이 돼요.'
-            :             '지금 자기가치감이 낮은 시기예요. 매일 확언으로 나를 채워가요.';
+        const rseDesc = s.RSE>=75 ? '자신을 있는 그대로 받아들이는 안정적인 자기가치감을 갖고 있어요. 타인의 비판에 흔들리지 않는 내적 중심이 잡혀 있어요.'
+            : s.RSE>=50 ? '좋은 날과 흔들리는 날이 공존해요. 확언을 꾸준히 실천하면 자존감이 단계적으로 높아질 수 있어요.'
+            : '지금 자기가치감이 낮은 시기를 보내고 있어요. 매일 확언으로 나를 채워가면 반드시 변화가 시작돼요.';
 
-        // 높이 계산
-        const PAD = 60;
-        const SECTION_H = 90; // 각 Big5 항목 높이
-        const introLines = Math.ceil((r.animal.desc||r.animal.tagline||'').length / 28) + 1;
+        // ─── 높이 계산을 위한 임시 캔버스 ───
+        const tmpC = document.createElement('canvas');
+        tmpC.width = W; tmpC.height = 100;
+        const tmpCtx = tmpC.getContext('2d');
 
-        const totalH =
-            180 +           // 배지+동물+이름
-            introLines*26 + 40 + // 소개글
-            50 +            // Big5 타이틀
-            bfi5.length * SECTION_H + 20 + // Big5 항목들
-            120 +           // 자존감
-            80 +            // VIA
-            60;             // 푸터
+        // 소개글 줄 수 계산
+        tmpCtx.font = '15px ' + FONT;
+        const introText = r.animal.desc || r.animal.tagline || '';
+        const introLines = wrapText(tmpCtx, introText, BAR_W);
 
-        canvas.width = W;
-        canvas.height = totalH;
+        // Big5 설명 줄 수 계산
+        tmpCtx.font = '14px ' + FONT;
+        let bfiDescLines = 0;
+        for(const item of bfi5){
+            const desc = item.score>=60?item.hi:item.score<40?item.lo:item.mid;
+            bfiDescLines += wrapText(tmpCtx, desc, BAR_W).length;
+        }
 
-        // ─── 배경 ───
+        // RSE 설명 줄 수 계산
+        const rseLines = wrapText(tmpCtx, rseDesc, BAR_W).length;
+
+        const totalH = 
+            80  +               // 배지
+            130 +               // 동물+이름
+            introLines*24+50 +  // 소개글
+            50  +               // Big5 타이틀
+            bfi5.length*85 +    // Big5 항목 (레이블+바)
+            bfiDescLines*22+bfi5.length*16 + // Big5 설명
+            40  +               // 구분선
+            50  +               // RSE 타이틀
+            60  +               // RSE 바+점수
+            rseLines*22+20 +    // RSE 설명
+            40  +               // VIA 구분
+            70  +               // VIA
+            60;                 // 푸터
+
+        // ─── 실제 캔버스 ───
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = totalH;
+        const ctx = canvas.getContext('2d');
+
+        // 배경
         const grad = ctx.createLinearGradient(0,0,0,totalH);
         grad.addColorStop(0,'#152E20');
-        grad.addColorStop(0.5,'#1B4332');
-        grad.addColorStop(1,'#0D2010');
+        grad.addColorStop(0.4,'#1B4332');
+        grad.addColorStop(1,'#0D1F13');
         ctx.fillStyle = grad;
         ctx.fillRect(0,0,W,totalH);
 
         // 원 장식
-        ctx.beginPath(); ctx.arc(W-40,50,160,0,Math.PI*2);
-        ctx.fillStyle='rgba(212,168,67,0.04)'; ctx.fill();
-        ctx.beginPath(); ctx.arc(40,totalH-60,130,0,Math.PI*2);
+        ctx.beginPath(); ctx.arc(W-40,50,180,0,Math.PI*2);
+        ctx.fillStyle='rgba(212,168,67,0.05)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(40,totalH-60,140,0,Math.PI*2);
         ctx.fillStyle='rgba(45,106,79,0.1)'; ctx.fill();
 
-        // ─── 상단 배지 ───
-        const bx=W/2-150, bw=300, bh=34;
-        ctx.fillStyle='rgba(212,168,67,0.18)';
-        ctx.beginPath(); ctx.roundRect(bx,20,bw,bh,17); ctx.fill();
-        ctx.strokeStyle='rgba(212,168,67,0.45)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.roundRect(bx,20,bw,bh,17); ctx.stroke();
-        ctx.fillStyle='#C9A84C';
-        ctx.font = 'bold 14px ' + FONT;
-        ctx.textAlign='center';
-        ctx.fillText('인생2막라디오  ·  성격 분석 결과', W/2, 43);
+        let Y = 24;
 
-        // ─── 동물 이모지 ───
+        // ─── 배지 ───
+        const badgeTxt = '인생2막라디오  ·  성격 분석 결과';
+        ctx.font = 'bold 14px ' + FONT;
+        ctx.textAlign = 'center';
+        const bW = ctx.measureText(badgeTxt).width + 50;
+        ctx.fillStyle = 'rgba(212,168,67,0.18)';
+        ctx.beginPath(); ctx.roundRect(W/2-bW/2, Y, bW, 34, 17); ctx.fill();
+        ctx.strokeStyle = 'rgba(212,168,67,0.45)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.roundRect(W/2-bW/2, Y, bW, 34, 17); ctx.stroke();
+        ctx.fillStyle = '#C9A84C';
+        ctx.fillText(badgeTxt, W/2, Y+22);
+        Y += 50;
+
+        // ─── 동물 ───
         ctx.font = '72px serif';
-        ctx.fillText(r.animal.animal, W/2, 130);
+        ctx.fillText(r.animal.animal, W/2, Y+72);
+        Y += 88;
 
         // ─── 유형명 ───
-        ctx.fillStyle='#C9A84C';
-        ctx.font = 'bold 36px ' + FONT;
-        ctx.fillText(r.animal.name, W/2, 182);
-
-        ctx.fillStyle='rgba(255,255,255,0.82)';
-        ctx.font = '19px ' + FONT;
-        ctx.fillText('"' + r.animal.title + '"', W/2, 212);
-
-        ctx.fillStyle='rgba(255,255,255,0.38)';
-        ctx.font = '14px ' + FONT;
-        ctx.fillText('MBTI 유사: ' + (r.animal.mbti||'-'), W/2, 234);
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 34px '+FONT;
+        ctx.fillText(r.animal.name, W/2, Y);
+        Y += 36;
+        ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='18px '+FONT;
+        ctx.fillText('"' + r.animal.title + '"', W/2, Y);
+        Y += 26;
+        ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='13px '+FONT;
+        ctx.fillText('MBTI 유사: ' + (r.animal.mbti||'-'), W/2, Y);
+        Y += 30;
 
         // ─── 소개글 ───
-        let curY = 264;
-        const introText = r.animal.desc || r.animal.tagline || '';
-        ctx.fillStyle='rgba(255,255,255,0.72)';
-        ctx.font = '15px ' + FONT;
+        ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='15px '+FONT;
         ctx.textAlign='left';
-
-        // 간단한 줄바꿈 (글자 수 기준)
-        const CHR_PER_LINE = 34;
-        for(let i=0; i<introText.length; i+=CHR_PER_LINE){
-            ctx.fillText(introText.slice(i, i+CHR_PER_LINE), PAD, curY);
-            curY += 24;
-        }
-        curY += 18;
+        const iLines = wrapText(ctx, introText, BAR_W);
+        for(const ln of iLines){ ctx.fillText(ln, PAD, Y); Y += 24; }
+        Y += 28;
 
         // ─── 구분선 ───
         ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(PAD,curY); ctx.lineTo(W-PAD,curY); ctx.stroke();
-        curY += 26;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 28;
 
         // ─── Big5 타이틀 ───
-        ctx.fillStyle='#C9A84C';
-        ctx.font = 'bold 17px ' + FONT;
-        ctx.textAlign='center';
-        ctx.fillText('🧠  성격 5요인 분석 (BFI-44)', W/2, curY);
-        curY += 32;
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('🧠  성격 5요인 분석 (BFI-44)', W/2, Y);
+        Y += 34;
 
-        // ─── Big5 항목 ───
+        // ─── Big5 항목들 ───
         for(const item of bfi5){
-            const { label, score, desc } = item;
+            const {label, score} = item;
             const isBorder = score>=42&&score<=58;
+            const descText = score>=60?item.hi:score<40?item.lo:item.mid;
 
+            // 레이블 + 점수
             ctx.textAlign='left';
-            ctx.fillStyle='rgba(255,255,255,0.88)';
-            ctx.font = 'bold 17px ' + FONT;
-            ctx.fillText(label + (isBorder?' ⚠':''), PAD, curY);
-
-            const scoreClr = isBorder?'#FFC107':'#C9A84C';
-            ctx.fillStyle=scoreClr;
-            ctx.textAlign='right';
-            ctx.font = 'bold 17px ' + FONT;
-            ctx.fillText(score+'%', W-PAD, curY);
-            curY += 12;
+            ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 16px '+FONT;
+            ctx.fillText(label+(isBorder?' ⚠':''), PAD, Y);
+            ctx.fillStyle=isBorder?'#FFC107':'#C9A84C';
+            ctx.textAlign='right'; ctx.font='bold 16px '+FONT;
+            ctx.fillText(score+'%', W-PAD, Y);
+            Y += 12;
 
             // 바 배경
-            const barX=PAD, barW=W-PAD*2, barH=14;
             ctx.fillStyle='rgba(255,255,255,0.1)';
-            ctx.beginPath(); ctx.roundRect(barX,curY,barW,barH,7); ctx.fill();
-
+            ctx.beginPath(); ctx.roundRect(PAD,Y,BAR_W,14,7); ctx.fill();
             // 50% 기준선
             ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
-            ctx.beginPath();
-            ctx.moveTo(barX+barW/2, curY-1);
-            ctx.lineTo(barX+barW/2, curY+barH+1);
-            ctx.stroke();
-
+            ctx.beginPath(); ctx.moveTo(PAD+BAR_W/2,Y-1); ctx.lineTo(PAD+BAR_W/2,Y+15); ctx.stroke();
             // 바 채우기
-            ctx.fillStyle = isBorder?'#FFC107':score>=65?'#52B788':score<40?'#6aad8a':'#40916C';
-            ctx.beginPath();
-            ctx.roundRect(barX, curY, Math.round(barW*score/100), barH, 7);
-            ctx.fill();
-            curY += barH + 10;
+            ctx.fillStyle=isBorder?'#FFC107':score>=65?'#52B788':score<40?'#74C69D':'#40916C';
+            ctx.beginPath(); ctx.roundRect(PAD,Y,Math.round(BAR_W*score/100),14,7); ctx.fill();
+            Y += 22;
 
-            // 설명
+            // 설명 (여러 줄)
+            ctx.fillStyle='rgba(255,255,255,0.52)'; ctx.font='13px '+FONT;
             ctx.textAlign='left';
-            ctx.fillStyle='rgba(255,255,255,0.48)';
-            ctx.font = '13px ' + FONT;
-            ctx.fillText(desc, PAD, curY);
-            curY += 30;
+            const dLines = wrapText(ctx, descText, BAR_W);
+            for(const dl of dLines){ ctx.fillText(dl, PAD, Y); Y += 20; }
+            Y += 16;
         }
 
         // ─── 자존감 ───
         ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(PAD,curY); ctx.lineTo(W-PAD,curY); ctx.stroke();
-        curY += 24;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 26;
 
-        ctx.fillStyle='#C9A84C';
-        ctx.font='bold 17px ' + FONT;
-        ctx.textAlign='center';
-        ctx.fillText('🌱  자존감 (Rosenberg Self-Esteem Scale)', W/2, curY);
-        curY += 26;
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('🌱  자존감 (Rosenberg Self-Esteem Scale)', W/2, Y);
+        Y += 28;
 
-        ctx.textAlign='left';
-        ctx.fillStyle='rgba(255,255,255,0.88)';
-        ctx.font='bold 17px ' + FONT;
-        ctx.fillText('자존감 점수', PAD, curY);
-
+        const rseLevel = s.RSE>=75?'높음':s.RSE>=50?'평균':s.RSE>=25?'낮음':'매우 낮음';
         const rseClr = s.RSE>=75?'#52B788':s.RSE>=50?'#C9A84C':'#FF8A80';
-        ctx.fillStyle=rseClr;
-        ctx.textAlign='right';
-        ctx.fillText(s.RSE+'점  ·  '+rseLevel, W-PAD, curY);
-        curY += 12;
+        ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 16px '+FONT;
+        ctx.fillText('자존감 점수', PAD, Y);
+        ctx.fillStyle=rseClr; ctx.textAlign='right';
+        ctx.fillText(s.RSE+'점  ·  '+rseLevel, W-PAD, Y);
+        Y += 12;
 
         ctx.fillStyle='rgba(255,255,255,0.1)';
-        ctx.beginPath(); ctx.roundRect(PAD,curY,W-PAD*2,14,7); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(PAD,Y,BAR_W,14,7); ctx.fill();
         ctx.fillStyle=rseClr;
-        ctx.beginPath(); ctx.roundRect(PAD,curY,Math.round((W-PAD*2)*s.RSE/100),14,7); ctx.fill();
-        curY += 24;
+        ctx.beginPath(); ctx.roundRect(PAD,Y,Math.round(BAR_W*s.RSE/100),14,7); ctx.fill();
+        Y += 24;
 
-        ctx.textAlign='left';
-        ctx.fillStyle='rgba(255,255,255,0.48)';
-        ctx.font='13px '+FONT;
-        ctx.fillText(rseDesc, PAD, curY);
-        curY += 30;
+        ctx.fillStyle='rgba(255,255,255,0.52)'; ctx.font='13px '+FONT; ctx.textAlign='left';
+        const rLines = wrapText(ctx, rseDesc, BAR_W);
+        for(const rl of rLines){ ctx.fillText(rl, PAD, Y); Y += 20; }
+        Y += 26;
 
-        // ─── VIA 강점 ───
+        // ─── VIA ───
         ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(PAD,curY); ctx.lineTo(W-PAD,curY); ctx.stroke();
-        curY += 24;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 26;
 
-        ctx.fillStyle='#C9A84C';
-        ctx.font='bold 17px '+FONT;
-        ctx.textAlign='center';
-        ctx.fillText('✨  핵심 강점 (VIA)', W/2, curY);
-        curY += 26;
-
-        ctx.fillStyle='rgba(255,255,255,0.75)';
-        ctx.font='16px '+FONT;
-        ctx.fillText((r.viaStrengths||[]).slice(0,3).join('   ·   '), W/2, curY);
-        curY += 38;
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('✨  핵심 강점 (VIA Character Strengths)', W/2, Y);
+        Y += 28;
+        ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='17px '+FONT;
+        ctx.fillText((r.viaStrengths||[]).slice(0,3).join('   ·   '), W/2, Y);
+        Y += 36;
 
         // ─── 푸터 ───
         ctx.strokeStyle='rgba(201,168,67,0.2)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(PAD,curY); ctx.lineTo(W-PAD,curY); ctx.stroke();
-        curY += 18;
-
-        ctx.fillStyle='rgba(255,255,255,0.22)';
-        ctx.font='12px '+FONT;
-        ctx.fillText('BFI-44  ·  Rosenberg  ·  VIA 기반  ·  정확도 약 90%  ·  세계 52개국 검증', W/2, curY);
-        curY += 22;
-
-        ctx.fillStyle='#C9A84C';
-        ctx.font='bold 14px '+FONT;
-        ctx.fillText('life2radio.github.io/affirmation/', W/2, curY);
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 18;
+        ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.font='12px '+FONT;
+        ctx.fillText('BFI-44  ·  Rosenberg  ·  VIA 기반  ·  정확도 약 90%  ·  세계 52개국 검증', W/2, Y);
+        Y += 22;
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 14px '+FONT;
+        ctx.fillText('life2radio.github.io/affirmation/', W/2, Y);
 
         // 실제 높이로 크롭
-        const finalH = curY + 30;
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = W; finalCanvas.height = finalH;
-        finalCanvas.getContext('2d').drawImage(canvas,0,0);
+        const finalH = Y + 28;
+        const fc = document.createElement('canvas');
+        fc.width = W; fc.height = finalH;
+        fc.getContext('2d').drawImage(canvas,0,0);
 
         const link = document.createElement('a');
         link.download = `인생확언_${r.animal.name}_결과지.png`;
-        link.href = finalCanvas.toDataURL('image/png');
+        link.href = fc.toDataURL('image/png');
         link.click();
         showToast('📥 결과지가 저장됐어요!');
     }
@@ -5090,6 +5094,13 @@ https://life2radio.github.io/affirmation/?psych=1`;
                 <button onclick="window._saveNicknameModal()" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
                     등록하고 시작하기 🌿
                 </button>
+                <div style="margin-top:12px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;" onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;">
+                    <input type="checkbox" id="nm-privacy-agree" style="width:16px;height:16px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
+                    <span style="font-size:12px;color:#aaa;line-height:1.6;">
+                        이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.<br>
+                        <span style="color:#C9A84C;">수집 정보는 외부에 제공되지 않으며 언제든 삭제 가능해요.</span>
+                    </span>
+                </div>
             </div>`;
         document.body.appendChild(modal);
 
@@ -5116,6 +5127,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
         const email = (document.getElementById('nm-email')?.value || '').trim();
         if(!nick){ showToast('이름을 입력해주세요!'); return; }
         if(!email){ showToast('이메일을 입력해주세요!'); return; }
+        const agreed = document.getElementById('nm-privacy-agree');
+        if(agreed && !agreed.checked){ showToast('개인정보 수집 동의를 체크해주세요!'); return; }
         safeSetItem('my_nickname', nick);
         safeSetItem('my_email', email);
         const ni = document.getElementById('nickname-input');
@@ -7961,6 +7974,10 @@ https://life2radio.github.io/affirmation/
                     </button>
                     <input id="ob-email-input" type="email" placeholder="또는 직접 입력"
                         style="width:100%;padding:12px 14px;font-size:0.95em;border:1.5px solid #C8DDD2;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;">
+                    <div style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;" onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;">
+                        <input type="checkbox" id="ob-privacy-agree" style="width:15px;height:15px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
+                        <span style="font-size:11px;color:#aaa;line-height:1.6;text-align:left;">이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.</span>
+                    </div>
                     <div style="font-size:11px;color:#aaa;margin-top:6px;text-align:center;">이름 필수 · 이메일 필수</div>`;
                 document.getElementById('onboarding-next').parentNode.insertBefore(nickArea, document.getElementById('onboarding-next'));
             }
@@ -8005,6 +8022,10 @@ https://life2radio.github.io/affirmation/
             }
             if(!emailInput || !emailInput.value.trim()){
                 showToast('이메일을 입력해주세요!'); return;
+            }
+            const obAgree = document.getElementById('ob-privacy-agree');
+            if(obAgree && !obAgree.checked){
+                showToast('개인정보 수집 동의를 체크해주세요!'); return;
             }
             safeSetItem('my_nickname', nickInput.value.trim());
             safeSetItem('my_email', emailInput.value.trim());
