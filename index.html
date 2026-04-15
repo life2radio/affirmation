@@ -5019,17 +5019,30 @@ https://life2radio.github.io/affirmation/?psych=1`;
             }, 500);
             setTimeout(function(){ clearInterval(timer); if(popup && !popup.closed) popup.close(); }, 30000);
         } else {
-            // 모바일: 리디렉션 방식 (팝업 차단됨)
-            // ★ 리디렉션 전에 키 미리 저장 (돌아왔을 때 첫방문 팝업/레벨업 방지)
-            const isStandalone2 = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-            safeSetItem(isStandalone2 ? 'pt_first_standalone' : 'pt_first_visit', '1');
-            safeSetItem('install_prompt_v10', '1');
-            safeSetItem('oauth_in_progress', '1');
-            // 현재 입력된 이름 임시 저장
-            const nickEl = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
-            if(nickEl && nickEl.value) safeSetItem('oauth_pending_nick_tmp', nickEl.value);
-            // 구글로 이동 (돌아오면 access_token이 hash에 있음)
-            window.location.href = url;
+            // 모바일: 새 탭으로 열기 (앱 닫힘 방지)
+            const nickEl2 = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
+            if(nickEl2 && nickEl2.value) safeSetItem('oauth_pending_nick_tmp', nickEl2.value);
+            const newTab = window.open(url, '_blank');
+            if(!newTab){
+                // 새 탭 차단된 경우 리디렉션으로 폴백
+                const isStandalone2 = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+                safeSetItem(isStandalone2 ? 'pt_first_standalone' : 'pt_first_visit', '1');
+                safeSetItem('oauth_in_progress', '1');
+                window.location.href = url;
+            }
+            // 새 탭에서 postMessage로 이메일 전달받기
+            window.addEventListener('message', function _oauthMsg(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _oauthMsg);
+                    const emailEl = document.getElementById('nm-email') || document.getElementById('ob-email-input');
+                    const nickEl3 = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
+                    if(emailEl && e.data.email) emailEl.value = e.data.email;
+                    if(nickEl3 && !nickEl3.value && e.data.name) nickEl3.value = e.data.name;
+                    safeSetItem('oauth_pending_email','');
+                    safeSetItem('oauth_pending_name','');
+                    showToast('✅ 구글 계정 정보가 입력됐어요! 이름 확인 후 저장해주세요 😊');
+                }
+            });
         }
     }
 
@@ -5094,13 +5107,13 @@ https://life2radio.github.io/affirmation/?psych=1`;
                 <button onclick="window._saveNicknameModal()" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
                     등록하고 시작하기 🌿
                 </button>
-                <div style="margin-top:12px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;" onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;">
-                    <input type="checkbox" id="nm-privacy-agree" style="width:16px;height:16px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
+                <label for="nm-privacy-agree" style="margin-top:12px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="nm-privacy-agree" style="width:18px;height:18px;min-width:18px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
                     <span style="font-size:12px;color:#aaa;line-height:1.6;">
                         이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.<br>
                         <span style="color:#C9A84C;">수집 정보는 외부에 제공되지 않으며 언제든 삭제 가능해요.</span>
                     </span>
-                </div>
+                </label>
             </div>`;
         document.body.appendChild(modal);
 
@@ -5343,6 +5356,10 @@ https://life2radio.github.io/affirmation/?psych=1`;
         initBanner();
         renderPointBar();
         switchView('home');
+        // ★ 기존 등록 완료 사용자: 첫 방문 포인트 미지급 시 지급
+        if(safeGetItem('onboarding_done','') === '1'){
+            setTimeout(function(){ checkFirstVisit(); }, 1500);
+        }
     }
 
     function showInstallPrompt(){
@@ -7974,10 +7991,10 @@ https://life2radio.github.io/affirmation/
                     </button>
                     <input id="ob-email-input" type="email" placeholder="또는 직접 입력"
                         style="width:100%;padding:12px 14px;font-size:0.95em;border:1.5px solid #C8DDD2;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;">
-                    <div style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;" onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;">
-                        <input type="checkbox" id="ob-privacy-agree" style="width:15px;height:15px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
+                    <label for="ob-privacy-agree" style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="ob-privacy-agree" style="width:18px;height:18px;min-width:18px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
                         <span style="font-size:11px;color:#aaa;line-height:1.6;text-align:left;">이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.</span>
-                    </div>
+                    </label>
                     <div style="font-size:11px;color:#aaa;margin-top:6px;text-align:center;">이름 필수 · 이메일 필수</div>`;
                 document.getElementById('onboarding-next').parentNode.insertBefore(nickArea, document.getElementById('onboarding-next'));
             }
@@ -10544,23 +10561,30 @@ https://life2radio.github.io/affirmation/
         }
         setTimeout(linkLevelAndPoint, 1500);
 
-        // ★ 구글 OAuth 리디렉션 처리 (모바일에서 팝업→리디렉션 발생 시)
+        // ★ 구글 OAuth 처리
         const _oauthHash = window.location.hash;
         if(_oauthHash && _oauthHash.includes('access_token')){
-            // OAuth 리디렉션으로 돌아온 경우 → 토큰 추출 후 이메일 저장
             const _oauthParams = new URLSearchParams(_oauthHash.substring(1));
             const _oauthToken = _oauthParams.get('access_token');
             if(_oauthToken){
-                // URL에서 hash 제거
                 history.replaceState(null, '', window.location.pathname);
-                // 이메일 가져오기
                 fetch('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + _oauthToken)
                     .then(function(r){ return r.json(); })
                     .then(function(info){
                         if(info.email){
-                            // 이메일/이름 저장
-                            safeSetItem('oauth_pending_email', info.email);
-                            if(info.name) safeSetItem('oauth_pending_name', info.name);
+                            // 새 탭에서 열린 경우: opener에게 postMessage 후 탭 닫기
+                            if(window.opener && !window.opener.closed){
+                                window.opener.postMessage({
+                                    type: 'oauth_email',
+                                    email: info.email,
+                                    name: info.name || ''
+                                }, '*');
+                                setTimeout(function(){ window.close(); }, 500);
+                            } else {
+                                // 리디렉션으로 온 경우: 기존 방식
+                                safeSetItem('oauth_pending_email', info.email);
+                                if(info.name) safeSetItem('oauth_pending_name', info.name);
+                            }
                         }
                     }).catch(function(){});
             }
