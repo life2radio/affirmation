@@ -1,0 +1,8726 @@
+    /* =========================================================
+       ★ 새 에피소드 업로드 시 아래 3개만 수정하세요
+       title을 빈 문자열로 두면 배너가 자동으로 숨겨집니다
+       ========================================================= */
+    // ★★★ 구글 스프레드시트 연동 설정 ★★★
+    // 스프레드시트 배포 후 아래 URL을 교체하세요
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwaacDnfTuhiO_QCpHzPmex_ZFkr1RGsX1_Nmprp3CzIRjBINfa8tmC7gsCZkQNniz9/exec';
+
+    async function loadSheetData(){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        try{
+            const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
+            const data = await res.json();
+
+            // ① 시크릿 코드
+            if(data.secretCodes) Object.assign(SECRET_CODES, data.secretCodes);
+
+            // ② Shorts 영상
+            if(data.shorts){
+                data.shorts.forEach(s=>{
+                    const found = SHORTS_DATA.find(d=> d.ep === s.ep);
+                    if(found){ found.url=s.url; found.title=s.title; found.theme=s.theme; }
+                    else if(s.url) SHORTS_DATA.push(s);
+                });
+            }
+
+            // ③ 에피소드 배너 (최신 1개)
+            if(data.episode && data.episode.title){
+                latestEpisode.title = data.episode.title;
+                latestEpisode.url   = data.episode.url;
+                latestEpisode.date  = data.episode.date;
+                renderEpisodeBanner();
+            }
+
+            // ④ 핵심 질문 (테마별 덮어쓰기)
+            if(data.questions){
+                data.questions.forEach(q=>{
+                    THEME_QUESTIONS[q.theme] = {
+                        q:    q.question,
+                        type: q.type || 'episode',
+                        url:  q.url  || ''
+                    };
+                });
+            }
+
+            // ⑤ 앱 설정
+            if(data.settings){
+                if(data.settings.channelUrl) {}
+                if(data.settings.hallOfFame){
+                    window._sheetHallOfFame = data.settings.hallOfFame;
+                }
+                // PDF 링크 저장
+                ['pdf_url_1','pdf_url_2','pdf_url_3','pdf_url_4'].forEach(key=>{
+                    if(data.settings[key]) safeSetItem(key, data.settings[key]);
+                });
+            }
+
+            // ⑥ 시크릿 특별 콘텐츠 (날짜별)
+            if(data.secretContents){
+                window.SECRET_CONTENTS = data.secretContents;
+            }
+
+        } catch(e){
+            // 카톡/인앱브라우저에서는 CORS로 실패할 수 있음 — 조용히 무시
+        }
+    }
+
+    const latestEpisode = {
+        title: "",
+        url: "https://www.youtube.com/@SecondActRadio",
+        date: ""
+    };
+
+    /* =========================================================
+       데이터
+       ========================================================= */
+
+    let currentMode = 'A';
+    let selectedDateObj = new Date();
+    selectedDateObj.setHours(0,0,0,0);
+    let todayObj = new Date();
+    todayObj.setHours(0,0,0,0);
+    let isToday = true;
+    let currentOracleDayCount = 1; // 오라클에서 현재 보여주는 dayCount
+
+    /* === 유틸 (TOP's 스마트 데이터 어댑터) === */
+    function safeGetItem(k, d) {
+        let val = appState.get('cache', k);
+        if (val !== null) return val;
+        try { const i = localStorage.getItem(k); if(i !== null) { appState.set('cache', k, i); return i; } return d; } catch(e) { return d; }
+    }
+    function safeSetItem(k, v) {
+        appState.set('cache', k, v);
+        try { localStorage.setItem(k, v); } catch(e) {}
+    }
+    function safeGetJSON(k, d) {
+        let val = appState.get('json', k);
+        if (val !== null) return val;
+        try { const i = localStorage.getItem(k); if(i) { const p = JSON.parse(i); appState.set('json', k, p); return p; } return d; } catch(e) { return d; }
+    }
+    function safeSetJSON(k, v) {
+        appState.set('json', k, v);
+        try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {}
+    }
+    function getFormatDate(d){return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
+    function getTodayStr(){return getFormatDate(todayObj);}
+
+    /* ===== ★ 6단계: 확언 카드 공유 ===== */
+    window.openShareCard = function(){
+        const affirmEl = document.getElementById('affirmation-text');
+        const themeEl  = document.getElementById('theme-text');
+        if(!affirmEl || affirmEl.closest('.blurred-content')) {
+            showToast('먼저 기분을 선택해 확언을 열어주세요!');
+            return;
+        }
+        const affirmText = affirmEl.innerText;
+        const themeText  = themeEl ? themeEl.innerText.replace(/["""]/g,'') : '';
+        const dayText    = document.getElementById('day-label').innerText;
+
+        drawShareCard(affirmText, themeText, dayText);
+        document.getElementById('share-modal').style.display = 'flex';
+    }
+
+    function drawShareCard(affirmText, themeText, dayText){
+        const canvas = document.getElementById('share-canvas');
+        const W = 800, H = 800;
+        canvas.width  = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // 배경
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, '#1B4332');
+        grad.addColorStop(1, '#0D2B20');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // 장식 원
+        ctx.beginPath(); ctx.arc(W-80, 80, 180, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(212,168,67,0.07)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(80, H-80, 140, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(212,168,67,0.05)'; ctx.fill();
+
+        // ── 레이아웃 영역 정의 ──
+        const TOP_PAD    = 70;   // 상단 여백
+        const BOT_ZONE   = 160; // 하단 워터마크 영역 높이
+        const SIDE_PAD   = 70;   // 좌우 여백
+        const TEXT_TOP   = 210;  // 확언 텍스트 시작 Y
+        const TEXT_BOT   = H - BOT_ZONE - 20; // 확언 텍스트 끝 Y (최대)
+
+        // 골드 상단 선
+        ctx.strokeStyle = '#D4A843'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(SIDE_PAD, TOP_PAD); ctx.lineTo(W-SIDE_PAD, TOP_PAD); ctx.stroke();
+
+        // 골드 하단 선 (워터마크 위)
+        ctx.beginPath(); ctx.moveTo(SIDE_PAD, H-BOT_ZONE); ctx.lineTo(W-SIDE_PAD, H-BOT_ZONE); ctx.stroke();
+
+        // 날짜
+        ctx.fillStyle = '#D4A843';
+        ctx.font = 'bold 30px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(dayText, W/2, TOP_PAD + 48);
+
+        // 테마
+        ctx.fillStyle = 'rgba(212,168,67,0.8)';
+        ctx.font = '26px "Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+        ctx.fillText(themeText, W/2, TOP_PAD + 88);
+
+        // 구분선
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(120, TOP_PAD+108); ctx.lineTo(W-120, TOP_PAD+108); ctx.stroke();
+
+        // 확언 텍스트 — 글자 수에 따라 폰트 크기 자동 조절
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        const textAreaH = TEXT_BOT - TEXT_TOP;
+        const maxWidth  = W - SIDE_PAD*2 - 20;
+
+        // 폰트 크기 자동 조절 (긴 텍스트는 작게)
+        let fontSize = affirmText.length < 20 ? 88 : affirmText.length < 35 ? 76 : affirmText.length < 50 ? 66 : affirmText.length < 90 ? 54 : affirmText.length < 130 ? 44 : 36;
+        let lineHeight = fontSize * 1.65;
+        ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+
+        // 줄 나누기
+        const rawLines = splitLines(ctx, affirmText, maxWidth);
+        // 총 높이가 영역 초과 시 폰트 더 줄이기
+        while(rawLines.length * lineHeight > textAreaH && fontSize > 20){
+            fontSize -= 2;
+            lineHeight = fontSize * 1.65;
+            ctx.font = `bold ${fontSize}px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+        }
+
+        // 수직 중앙 정렬
+        const totalH = rawLines.length * lineHeight;
+        const startY = TEXT_TOP + (textAreaH - totalH) / 2 + fontSize;
+        rawLines.forEach((line, i)=>{
+            ctx.fillText(line, W/2, startY + i * lineHeight);
+        });
+
+        // ── 하단 워터마크 영역 ──
+        const wmY = H - BOT_ZONE + 20;
+        const qrSize = 80;
+        const qrX = W - SIDE_PAD - qrSize - 10;
+        const qrY = H - BOT_ZONE + (BOT_ZONE - qrSize - 24) / 2;
+
+        // QR 패턴
+        drawQRPattern(ctx, qrX, qrY, qrSize, '#D4A843');
+
+        // 채널명
+        ctx.fillStyle = 'rgba(212,168,67,0.9)';
+        ctx.font = `bold 24px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.fillText('🌿 인생2막라디오 · 365일 확언', SIDE_PAD + 10, wmY + 36);
+
+        // 채널 주소
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = `18px "Apple SD Gothic Neo","Malgun Gothic",sans-serif`;
+        ctx.fillText('youtube.com/@SecondActRadio', SIDE_PAD + 10, wmY + 66);
+    }
+
+    // 줄 나누기 함수 (한 줄 최대 maxWidth)
+    function splitLines(ctx, text, maxWidth){
+        const chars = text.split('');
+        const lines  = [];
+        let line = '';
+        for(let c of chars){
+            const test = line + c;
+            if(ctx.measureText(test).width > maxWidth && line !== ''){
+                lines.push(line);
+                line = c;
+            } else { line = test; }
+        }
+        if(line) lines.push(line);
+        return lines;
+    }
+
+    function drawQRPattern(ctx, x, y, size, color){
+        // QR코드 느낌의 패턴 (실제 QR 대신 시각적 표현)
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(x-4, y-4, size+8, size+8);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(x, y, size, size);
+
+        // QR 픽셀 패턴
+        const pattern = [
+            [1,1,1,1,1,1,1,0,0,1,0,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,0,0,1,0,0,1,0,1,1,1,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,1,1,1,0,1,0,0,0,1,0,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0],
+            [0,1,0,1,1,0,1,1,0,0,1,0,1,0,1,1,0,1,0],
+            [1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,0,1,0,1],
+            [0,1,1,0,1,0,1,0,1,0,1,0,1,1,0,1,0,1,0],
+            [0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,1,0,1],
+            [1,1,1,1,1,1,1,0,0,1,1,0,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,1,1,0,1],
+            [1,0,1,1,1,0,1,0,1,0,1,0,0,0,1,1,1,0,1],
+            [1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,0,0,1,0,0,1,1,1,1,1,1,1],
+        ];
+        const cell = size / pattern.length;
+        ctx.fillStyle = '#1B4332';
+        pattern.forEach((row, ri)=>{
+            row.forEach((val, ci)=>{
+                if(val) ctx.fillRect(x + ci*cell, y + ri*cell, cell-0.5, cell-0.5);
+            });
+        });
+
+        // QR 아래 라벨
+        ctx.fillStyle = color;
+        ctx.font = `bold ${Math.floor(size*0.18)}px "Apple SD Gothic Neo", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('채널 바로가기', x + size/2, y + size + 18);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxY){
+        const sentences = text.split('. ');
+        let lines = [];
+        for(let s=0; s<sentences.length; s++){
+            let sentence = sentences[s] + (s < sentences.length-1 ? '.' : '');
+            let testLine = '';
+            for(let c=0; c<sentence.length; c++){
+                testLine += sentence[c];
+                if(ctx.measureText(testLine).width > maxWidth){
+                    lines.push(testLine.slice(0,-1));
+                    testLine = sentence[c];
+                }
+            }
+            if(testLine) lines.push(testLine);
+        }
+        lines = lines.slice(0, 8);
+        let startY = y;
+        for(let l of lines){
+            if(maxY && startY > maxY) break;
+            ctx.fillText(l.trim(), x, startY);
+            startY += lineHeight;
+        }
+    }
+
+    window.downloadCard = function(){
+        const canvas = document.getElementById('share-canvas');
+        const link = document.createElement('a');
+        const dayText = document.getElementById('day-label').innerText.replace(/\s/g,'_');
+        link.download = `확언카드_${dayText}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('💚 카드가 저장됐어요!');
+    }
+
+    window.shareCard = function(){
+        addPoint(1,'확언카드공유','share_card');
+        window._sendShareLog('확언카드공유');
+        const canvas = document.getElementById('share-canvas');
+        canvas.toBlob(async (blob) => {
+            if(navigator.share && navigator.canShare){
+                const file = new File([blob], '확언카드.png', {type:'image/png'});
+                if(navigator.canShare({files:[file]})){
+                    try{
+                        await navigator.share({
+                            files: [file],
+                            title: '오늘의 확언',
+                            text: '인생2막라디오 365일 확언 🌿'
+                        });
+                    } catch(e){ downloadCard(); }
+                } else { downloadCard(); }
+            } else { downloadCard(); }
+        }, 'image/png');
+    }
+    let toastTimer = null;
+    function showToast(msg){
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+    }
+
+    /* ===== ★ 5단계: 에피소드 배너 ===== */
+    function initBanner(){
+        if(!latestEpisode.title) return;
+        const todayStr = getTodayStr();
+        const hidden = safeGetItem('banner_hidden_date','');
+        if(hidden === todayStr) return;
+        document.getElementById('banner-title-text').textContent = '🎙 새 에피소드: ' + latestEpisode.title;
+        document.getElementById('episode-banner').style.display = 'block';
+    }
+    window.openEpisodeBanner = function(){
+        window.open(latestEpisode.url,'_blank');
+    }
+    window.closeBanner = function(){
+        document.getElementById('episode-banner').style.display = 'none';
+        safeSetItem('banner_hidden_date', getTodayStr());
+    }
+
+    /* ===== ★ 5단계: 즐겨찾기 ===== */
+    function getDayCountNow(){
+        // 현재 화면에 표시 중인 dayCount 반환
+        if(currentMode==='A'){
+            let minDateA=new Date(todayObj.getFullYear(),0,1);
+            return Math.floor((selectedDateObj-minDateA)/86400000)+1;
+        } else {
+            const startStr=safeGetItem('start_date_B',null);
+            if(!startStr) return 1;
+            let parts=startStr.split('-');
+            let minDateB=new Date(parts[0],parts[1]-1,parts[2]);
+            let dc=Math.floor((selectedDateObj-minDateB)/86400000)+1;
+            return dc<1?1:dc;
+        }
+    }
+
+    window.toggleFavorite = function(){
+        let favs = safeGetJSON('favorites',[]);
+        const dc = getDayCountNow();
+        const idx = favs.indexOf(dc);
+        if(idx === -1){
+            favs.push(dc);
+            safeSetJSON('favorites', favs);
+            addPoint(1,'즐겨찾기','fav_'+getTodayStr());
+            showToast('즐겨찾기에 추가됐어요!');
+        } else {
+            favs.splice(idx,1);
+            safeSetJSON('favorites', favs);
+            showToast('즐겨찾기에서 해제됐어요');
+        }
+        updateFavButton(dc);
+        renderDashboard();
+        // 미션용 카운트도 업데이트
+        let m=todayObj.getMonth()+1, y=todayObj.getFullYear();
+        let cnt=favs.length;
+        safeSetJSON('fav_count_total', cnt);
+        safeSetJSON(`fav_count_${y}_${m}`, favs.filter(d=>d<=366).length); // 간단히
+        checkMissions();
+    }
+
+    function updateFavButton(dc){
+        const btn = document.getElementById('btn-fav-main');
+        if(!btn) return;
+        const favs = safeGetJSON('favorites',[]);
+        if(favs.includes(dc)){
+            btn.textContent = '★ 저장됨 (다시 누르면 해제)';
+            btn.classList.add('saved');
+        } else {
+            btn.textContent = '즐겨찾기에 추가';
+            btn.classList.remove('saved');
+        }
+    }
+
+    window.renderFavoritesPage = function(){
+        const favs = safeGetJSON('favorites',[]);
+        const container = document.getElementById('fav-list');
+        if(favs.length === 0){
+            container.innerHTML = '<div class="fav-empty">아직 즐겨찾기한 확언이 없어요 🌿<br>확언 화면에서 ⭐를 눌러 저장해보세요.</div>';
+            return;
+        }
+        // 최신 저장 순서 (역순)
+        const sorted = [...favs].reverse();
+        let html = '';
+        sorted.forEach(dc => {
+            const dataIndex = (dc-1) % affirmationsData.length;
+            const data = affirmationsData[dataIndex];
+            const shortText = data.text.length>60 ? data.text.substring(0,60)+'...' : data.text;
+            html += `<div class="fav-card" onclick="openFavDetail(${dc})">
+                <div class="fav-card-top">
+                    <div class="fav-card-meta">
+                        <span class="fav-card-day">D${dc}</span>
+                        <span class="fav-card-theme">${data.theme}</span>
+                    </div>
+                    <button class="fav-card-del" onclick="event.stopPropagation();deleteFav(${dc})">삭제</button>
+                </div>
+                <div class="fav-card-text">${shortText}</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+
+    window.openFavDetail = function(dc){
+        const dataIndex = (dc-1) % affirmationsData.length;
+        const data = affirmationsData[dataIndex];
+        const old = document.getElementById('fav-detail-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'fav-detail-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:6000;display:flex;align-items:flex-end;justify-content:center;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:28px 22px 44px;width:100%;max-width:600px;box-sizing:border-box;max-height:85vh;overflow-y:auto;';
+        inner.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+            '<span style="font-size:0.85em;color:var(--text-muted);">📅 D' + dc + ' · ' + (data.theme||'') + '</span>' +
+            '<button id="fav-close-btn" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--text-muted);">✕</button>' +
+            '</div>' +
+            '<div style="font-size:1.05em;font-weight:600;color:var(--primary-color);line-height:1.9;margin-bottom:18px;">"' + (data.text||'') + '"</div>' +
+            '<div style="background:var(--card-bg);border-radius:12px;padding:14px;margin-bottom:16px;font-size:0.85em;color:var(--text-muted);line-height:1.7;">' +
+            '<div style="font-size:0.8em;font-weight:700;color:var(--primary-color);margin-bottom:4px;">🎯 오늘의 행동 지침</div>' +
+            (data.action||'') + '</div>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<button id="fav-speak-btn" style="flex:1;min-height:44px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">🔊 듣기</button>' +
+            '<button id="fav-goto-btn" style="flex:1;min-height:44px;background:var(--card-bg);color:var(--primary-color);border:1px solid var(--border-color);border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">📅 날짜로 이동</button>' +
+            '</div>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        document.getElementById('fav-close-btn').onclick = function(){ modal.remove(); };
+        document.getElementById('fav-speak-btn').onclick = function(){ speakTextOnce(data.text); showToast('🔊 재생 중...'); };
+        document.getElementById('fav-goto-btn').onclick = function(){ goToFav(dc); modal.remove(); };
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    window.goToFav = function(dc, bypassCap){
+        // 해당 day로 이동
+        if(currentMode==='A'){
+            let minDateA=new Date(todayObj.getFullYear(),0,1);
+            selectedDateObj=new Date(minDateA.getTime()+(dc-1)*86400000);
+        } else {
+            const startStr=safeGetItem('start_date_B',null);
+            if(startStr){
+                let parts=startStr.split('-');
+                let minDateB=new Date(parts[0],parts[1]-1,parts[2]);
+                selectedDateObj=new Date(minDateB.getTime()+(dc-1)*86400000);
+            }
+        }
+        // ★ bypassCap=true면 미래 날짜도 허용
+        if(!bypassCap && selectedDateObj>todayObj) selectedDateObj=new Date(todayObj);
+        // ★ bypassCap은 switchView 전에 반드시 설정 (renderScreen이 내부에서 실행됨)
+        window._bypassDateCap = !!bypassCap;
+        switchView('home');
+    }
+
+    window.deleteFav = function(dc){
+        let favs=safeGetJSON('favorites',[]);
+        favs=favs.filter(d=>d!==dc);
+        safeSetJSON('favorites',favs);
+        safeSetJSON('fav_count_total',favs.length);
+        renderFavoritesPage();
+        renderDashboard();
+        updateFavButton(getDayCountNow());
+        showToast('즐겨찾기에서 삭제됐어요');
+    }
+
+    let favTtsIndex=0;
+    let favTtsArray=[];
+    window.playFavsInOrder=function(loop){
+        const favs=safeGetJSON('favorites',[]);
+        if(!favs.length){showToast('즐겨찾기한 확언이 없어요');return;}
+        favTtsArray=[...favs];
+        favTtsIndex=0;
+        favTtsLoop=!!loop;
+        showToast(loop?'🔁 전체 무한반복 재생 중...':'▶️ 순서대로 재생 중...');
+        playNextFav();
+    }
+    window.playFavRandom=function(){
+        const favs=safeGetJSON('favorites',[]);
+        if(!favs.length){showToast('즐겨찾기한 확언이 없어요');return;}
+        const dc=favs[Math.floor(Math.random()*favs.length)];
+        const data=affirmationsData[(dc-1)%affirmationsData.length];
+        speakTextOnce(data.text);
+        showToast('🎲 '+data.theme);
+    }
+    let favTtsLoop = false;
+    function playNextFav(){
+        if(favTtsIndex>=favTtsArray.length){
+            if(favTtsLoop){ favTtsIndex=0; }
+            else { showToast('모두 들었어요 ✅'); return; }
+        }
+        const dc=favTtsArray[favTtsIndex];
+        const data=affirmationsData[(dc-1)%affirmationsData.length];
+        speakTextOnce(data.text,()=>{favTtsIndex++;setTimeout(playNextFav,1500);});
+    }
+    function speakTextOnce(text,cb){
+        if(!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang='ko-KR'; u.rate=0.85;
+        if(cb) u.onend=cb;
+        window.speechSynthesis.speak(u);
+    }
+
+    /* ===== ★ 5단계: 오라클 ===== */
+    window.openOracle = function(){
+        const rnd=Math.floor(Math.random()*affirmationsData.length);
+        const data=affirmationsData[rnd];
+        currentOracleDayCount=rnd+1;
+        document.getElementById('oracle-theme-text').textContent='"'+data.theme+'"';
+        document.getElementById('oracle-affirmation-text').textContent=data.text;
+        document.getElementById('oracle-action-text').textContent=data.action;
+        // 즐겨찾기 버튼 상태
+        const favs=safeGetJSON('favorites',[]);
+        const fb=document.getElementById('oracle-fav-btn');
+        if(favs.includes(currentOracleDayCount)){
+            fb.textContent='★ 저장됨';
+            fb.style.opacity='0.6';
+        } else {
+            fb.textContent='⭐ 저장';
+            fb.style.opacity='1';
+        }
+        document.getElementById('oracle-modal').style.display='flex';
+    }
+    window.favOracle=function(){
+        let favs=safeGetJSON('favorites',[]);
+        if(!favs.includes(currentOracleDayCount)){
+            favs.push(currentOracleDayCount);
+            safeSetJSON('favorites',favs);
+            safeSetJSON('fav_count_total',favs.length);
+            const fb=document.getElementById('oracle-fav-btn');
+            fb.textContent='★ 저장됨';
+            fb.style.opacity='0.6';
+            showToast('즐겨찾기에 추가됐어요!');
+            updateFavButton(getDayCountNow());
+            renderDashboard();
+        }
+    }
+    window.oracleOverlayClick=function(e){
+        if(e.target.id==='oracle-modal'){
+            document.getElementById('oracle-modal').style.display='none';
+        }
+    }
+
+    /* ===== ★ 5단계: 구독 유도 팝업 ===== */
+    function showSubscribeNudge(){
+        const shown=safeGetItem('subscribe_nudge_shown','');
+        if(shown==='true') return;
+        safeSetItem('subscribe_nudge_shown','true');
+        setTimeout(()=>{
+            document.getElementById('subscribe-modal').style.display='flex';
+        },400);
+    }
+
+    /* ===== 배경음악 ===== */
+    let audioCtx=null,bgmGainNode=null,bgmFilter=null,bgmSource=null,isBgmOn=false,bgmInitialized=false;
+    const VOL_NORMAL=0.3,VOL_DUCK=0.05;
+    function initAudioContext(){if(!audioCtx){try{const A=window.AudioContext||window.webkitAudioContext;audioCtx=new A();bgmGainNode=audioCtx.createGain();bgmGainNode.gain.value=0;bgmGainNode.connect(audioCtx.destination);}catch(e){}}}
+        let bgmType = parseInt(safeGetItem('bgm_type','0'))||0;
+    const BGM_TYPES = [
+        {label:'🌊 파도', icon:'🌊'},
+        {label:'🌧️ 빗소리', icon:'🌧️'},
+        {label:'🐦 새소리', icon:'🐦'},
+        {label:'🎵 음악상자', icon:'🎵'}
+    ];
+    function createBgmByType(type){
+        if(!audioCtx) return null;
+        try{
+            if(type===0) return createWaveSound();
+            if(type===1) return createRainSound();
+            if(type===2) return createBirdSound();
+            if(type===3) return createMusicBoxSound();
+        }catch(e){ return createWaveSound(); }
+        return createWaveSound();
+    }
+    function makePink(dur){
+        var sr=audioCtx.sampleRate,len=sr*dur,buf=audioCtx.createBuffer(1,len,sr),d=buf.getChannelData(0),b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+        for(var i=0;i<len;i++){var w=Math.random()*2-1;b0=0.99886*b0+w*0.0555179;b1=0.99332*b1+w*0.0750759;b2=0.96900*b2+w*0.1538520;b3=0.86650*b3+w*0.3104856;b4=0.55000*b4+w*0.5329522;b5=-0.7616*b5-w*0.0168980;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11;b6=w*0.115926;}
+        return buf;
+    }
+    function createWaveSound(){
+        var src=audioCtx.createBufferSource(),lp=audioCtx.createBiquadFilter(),amp=audioCtx.createGain(),mod=audioCtx.createOscillator(),mg=audioCtx.createGain();
+        src.buffer=makePink(8);src.loop=true;lp.type='lowpass';lp.frequency.value=300;mod.frequency.value=0.1;mod.type='sine';mg.gain.value=0.22;amp.gain.value=0.78;
+        mod.connect(mg);mg.connect(amp.gain);src.connect(lp);lp.connect(amp);amp.connect(bgmGainNode);mod.start(0);src.start(0);src._extra=[mod];return src;
+    }
+    function createRainSound(){
+        var src=audioCtx.createBufferSource();
+        var lp=audioCtx.createBiquadFilter();
+        var amp=audioCtx.createGain();
+        var mod=audioCtx.createOscillator();
+        var mg=audioCtx.createGain();
+        src.buffer=makePink(6); src.loop=true;
+        lp.type='lowpass'; lp.frequency.value=800;
+        mod.frequency.value=0.15; mod.type='sine';
+        mg.gain.value=0.12; amp.gain.value=0.55;
+        mod.connect(mg); mg.connect(amp.gain);
+        src.connect(lp); lp.connect(amp); amp.connect(bgmGainNode);
+        mod.start(0); src.start(0);
+        src._extra=[mod]; return src;
+    }
+    var _bt=[];
+    function _sb(){_bt.forEach(function(t){clearTimeout(t);});_bt=[];}
+    function _ch(f){
+        if(!audioCtx||!isBgmOn) return;
+        try{var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.setValueAtTime(f,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(f*1.3,audioCtx.currentTime+0.08);o.frequency.exponentialRampToValueAtTime(f*0.9,audioCtx.currentTime+0.2);g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(0.55,audioCtx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);o.connect(g);g.connect(bgmGainNode);o.start(audioCtx.currentTime);o.stop(audioCtx.currentTime+0.25);}catch(e){}
+    }
+    function createBirdSound(){
+        var src=audioCtx.createBufferSource(),lp=audioCtx.createBiquadFilter(),amp=audioCtx.createGain();
+        src.buffer=makePink(6);src.loop=true;lp.type='lowpass';lp.frequency.value=500;amp.gain.value=0.08;
+        src.connect(lp);lp.connect(amp);amp.connect(bgmGainNode);src.start(0);
+        _sb();
+        var freqs=[2400,3000,2800,3600,4000,3200];
+        function next(){
+            var t=setTimeout(function(){
+                if(!isBgmOn) return;
+                var f=freqs[Math.floor(Math.random()*freqs.length)];
+                var n=Math.floor(Math.random()*4)+2;
+                for(var i=0;i<n;i++){
+                    (function(ii){
+                        var bt=setTimeout(function(){ _ch(f+Math.random()*200); },ii*160);
+                        _bt.push(bt);
+                    })(i);
+                }
+                next();
+            }, 1000+Math.random()*2500);
+            _bt.push(t);
+        }
+        // isBgmOn이 true로 세팅된 후 시작
+        setTimeout(function(){ next(); }, 200);
+        return src;
+    }
+    var _mt=null;
+    function _sm(){if(_mt){clearTimeout(_mt);_mt=null;}}
+    function createMusicBoxSound(){
+        var scale=[523.25,587.33,659.25,783.99,880,1046.5],pats=[[0,2,4,5,4,2],[0,4,2,5],[5,3,1,0,2]],ni=0,pi=0,pat=pats[0];
+        function note(){if(!isBgmOn)return;try{var o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime;o.type='sine';o.frequency.value=scale[pat[ni%pat.length]];g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.18,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+1.8);o.connect(g);g.connect(bgmGainNode);o.start(t);o.stop(t+1.9);}catch(e){}ni++;if(ni%pat.length===0){pi=(pi+1)%pats.length;pat=pats[pi];}_mt=setTimeout(note,700+Math.random()*400);}
+        _mt=setTimeout(note,150);return null;
+    }
+    
+    window.selectBgmType = function(type){
+        bgmType = type;
+        safeSetItem('bgm_type', String(type));
+        // 재생 중이면 재시작
+        if(isBgmOn){
+            if(bgmSource){ _sb();_sm(); if(!bgmSource._isMusicBox&&!bgmSource._isBird){try{bgmSource.stop();}catch(e){}} bgmSource=null; }
+            bgmSource = createBgmByType(bgmType);
+        }
+        // UI 업데이트
+        updateBgmUI();
+        document.getElementById('bgm-selector-modal')?.remove();
+    };
+
+    window.openBgmSelector = function(){
+        const existing = document.getElementById('bgm-selector-modal');
+        if(existing){ existing.remove(); return; }
+
+        const modal = document.createElement('div');
+        modal.id = 'bgm-selector-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:6000;display:flex;align-items:flex-end;justify-content:center;';
+
+        const sheet = document.createElement('div');
+        sheet.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:20px 20px 40px;width:100%;max-width:600px;box-sizing:border-box;';
+        sheet.innerHTML = '<div style="text-align:center;font-weight:700;color:var(--primary-color);font-size:1em;margin-bottom:6px;">🎵 배경음악 선택</div>' +
+            '<div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:16px;">확언에 집중하는 데 도움이 되는 소리를 골라보세요</div>';
+
+        const options = [
+            {type:-1, icon:'🔇', label:'끄기', desc:'배경음악 없음'},
+            {type:0,  icon:'🌊', label:'파도', desc:'잔잔한 파도 소리'},
+            {type:1,  icon:'🌧️', label:'빗소리', desc:'잔잔한 빗소리'},
+            {type:2,  icon:'🐦', label:'새소리', desc:'자연 새소리'},
+            {type:3,  icon:'🎵', label:'음악상자', desc:'잔잔한 오르골'},
+        ];
+
+        options.forEach(function(opt){
+            const isActive = (opt.type === -1 && !isBgmOn) || (opt.type === bgmType && isBgmOn);
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;background:' + (isActive?'var(--card-bg)':'transparent') + ';margin-bottom:4px;border:' + (isActive?'1.5px solid var(--primary-color)':'1.5px solid transparent') + ';';
+            row.innerHTML = '<span style="font-size:24px;">' + opt.icon + '</span>' +
+                '<div style="flex:1;"><div style="font-size:0.9em;font-weight:' + (isActive?'700':'500') + ';color:var(--text-color);">' + opt.label + '</div>' +
+                '<div style="font-size:0.75em;color:var(--text-muted);">' + opt.desc + '</div></div>' +
+                (isActive ? '<span style="color:var(--primary-color);font-size:1.1em;">✓</span>' : '');
+            row.onclick = function(){
+                if(opt.type === -1){
+                    pauseBGM();
+                } else {
+                    bgmType = opt.type;
+                    safeSetItem('bgm_type', String(bgmType));
+                    if(bgmSource){ try{ bgmSource.stop(); }catch(e){} bgmSource=null; }
+                    playBGM();
+                }
+                updateBgmUI();
+                modal.remove();
+            };
+            sheet.appendChild(row);
+        });
+
+        modal.appendChild(sheet);
+        document.body.appendChild(modal);
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    function playBGM(){try{initAudioContext();if(!audioCtx)return;if(audioCtx.state==='suspended')audioCtx.resume();if(!bgmSource){bgmSource=createBgmByType(bgmType);}isBgmOn=true;safeSetItem('bgm_state','on');updateBgmUI();bgmGainNode.gain.setTargetAtTime(isTtsPlaying?VOL_DUCK:VOL_NORMAL,audioCtx.currentTime,0.5);}catch(e){}}
+    function pauseBGM(){try{_sb();_sm();isBgmOn=false;safeSetItem('bgm_state','off');updateBgmUI();if(bgmGainNode&&audioCtx){bgmGainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.5);setTimeout(()=>{if(!isBgmOn&&audioCtx.state==='running')audioCtx.suspend();},1000);}}catch(e){}}
+    window.toggleBGM=function(){if(!bgmInitialized){bgmInitialized=true;document.removeEventListener('click',unlockAudio);document.removeEventListener('touchstart',unlockAudio);}isBgmOn?pauseBGM():playBGM();}
+    function updateBgmUI(){
+        const btn=document.getElementById('btn-bgm'),ic=document.getElementById('bgm-icon'),tx=document.getElementById('bgm-text');
+        const hdrBtn=document.getElementById('header-bgm-btn');
+        if(isBgmOn){
+            if(btn){ btn.classList.add('on'); }
+            if(ic) ic.innerText = BGM_TYPES[bgmType]?.icon || '🎵';
+            if(tx) tx.innerText = '배경음악 · ' + (BGM_TYPES[bgmType]?.label || '');
+            if(hdrBtn) hdrBtn.textContent = BGM_TYPES[bgmType]?.icon || '🎵';
+            if(hdrBtn) hdrBtn.style.background = 'var(--accent-color)';
+            if(hdrBtn) hdrBtn.style.color = 'var(--primary-color)';
+        } else {
+            if(btn) btn.classList.remove('on');
+            if(ic) ic.innerText='🎵';
+            if(tx) tx.innerText='배경음악';
+            if(hdrBtn){ hdrBtn.textContent='🎵'; hdrBtn.style.background='var(--primary-color)'; hdrBtn.style.color='#fff'; }
+        }
+    }
+
+    function applyDucking(){if(isBgmOn&&bgmGainNode&&audioCtx)bgmGainNode.gain.setTargetAtTime(VOL_DUCK,audioCtx.currentTime,0.5);}
+    function removeDucking(){if(isBgmOn&&bgmGainNode&&audioCtx)bgmGainNode.gain.setTargetAtTime(VOL_NORMAL,audioCtx.currentTime,0.5);}
+    function unlockAudio(){
+        if(bgmInitialized) return;
+        try{
+            initAudioContext();
+            if(audioCtx){
+                // 아이폰/안드로이드 오디오 컨텍스트 강제 해제
+                audioCtx.resume().then(()=>{
+                    bgmInitialized = true;
+                    // 배경음악 자동 재생 설정 확인
+                    if(safeGetItem('bgm_state','off')==='on') playBGM();
+                }).catch(()=>{ bgmInitialized = true; });
+            } else {
+                bgmInitialized = true;
+            }
+        } catch(e){ bgmInitialized = true; }
+        // 리스너 제거
+        document.removeEventListener('click',    unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('touchend',   unlockAudio);
+        document.removeEventListener('keydown',    unlockAudio);
+    }
+    // 모바일 대응 — touchend 및 keydown도 추가
+    document.addEventListener('click',     unlockAudio, {once:true});
+    document.addEventListener('touchstart', unlockAudio, {once:true, passive:true});
+    document.addEventListener('touchend',   unlockAudio, {once:true, passive:true});
+    document.addEventListener('keydown',    unlockAudio, {once:true});
+
+    /* ===== TTS ===== */
+    let isTtsPlaying=false,isTtsLooping=false,ttsTimeout=null,currentAffirmation='';
+    window.playTTS=function(loop){try{if(!('speechSynthesis'in window)){alert('이 브라우저는 음성 낭독을 지원하지 않습니다.');return;}if(isTtsPlaying){if(isTtsLooping===loop){stopTTS();return;}else{stopTTS();}}window.speechSynthesis.cancel();clearTimeout(ttsTimeout);isTtsPlaying=true;isTtsLooping=loop;currentAffirmation=document.getElementById('affirmation-text').innerText.replace(/["']/g,'');updateTTSUI();applyDucking();speakText('따라 해보세요.',()=>{if(isTtsPlaying)speakAffirmation();});}catch(e){stopTTS();}}
+    function speakAffirmation(){speakText(currentAffirmation,()=>{if(isTtsPlaying){if(isTtsLooping){ttsTimeout=setTimeout(()=>{if(isTtsPlaying&&isTtsLooping)speakAffirmation();},3000);}else{stopTTS();}}});}
+    function speakText(text,cb){if(!isTtsPlaying)return;const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=0.85;u.volume=1.0;u.onend=()=>{if(cb)cb();};u.onerror=()=>{stopTTS();};window.speechSynthesis.speak(u);}
+    window.stopTTS=function(){try{isTtsPlaying=false;isTtsLooping=false;clearTimeout(ttsTimeout);if('speechSynthesis'in window)window.speechSynthesis.cancel();removeDucking();updateTTSUI();}catch(e){}}
+    function updateTTSUI(){const bl=document.getElementById('btn-listen'),bp=document.getElementById('btn-loop');if(!bl||!bp)return;if(isTtsPlaying){if(isTtsLooping){bp.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" style="margin-right:6px;flex-shrink:0;"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>정지';bp.classList.add('active-play');bl.disabled=true;}else{bl.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" style="margin-right:6px;flex-shrink:0;"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>정지';bl.classList.add('active-play');bp.disabled=true;}}else{bl.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>소리로 듣기';bl.classList.remove('active-play');bl.disabled=false;bp.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>무한재생';bp.classList.remove('active-play');bp.disabled=false;}}
+
+    /* ===== 화면 전환 ===== */
+    // ★ 뷰 히스토리 스택
+    window._viewHistory = [];
+    window._currentView = 'home';
+
+    window.switchView = function switchView(viewName, _fromBack){
+        if(typeof window.stopTTS==='function')stopTTS();
+        // 뷰 히스토리 스택 관리 (뒤로가기용)
+        if(!_fromBack){
+            if(window._currentView && window._currentView !== viewName){
+                window._viewHistory.push(window._currentView);
+                // 최대 20개만 유지
+                if(window._viewHistory.length > 20) window._viewHistory.shift();
+            }
+        }
+        window._currentView = viewName;
+        document.querySelectorAll('.view-section').forEach(el=>el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+        const titles={home:'오늘의 확언',calendar:'달력 및 통계',favorites:'내 최애 확언 ⭐',memo:'메모장',story:'사연 보내기',settings:'앱 설정',shorts:'오늘의 실천 📣',completion:'완주 축하합니다!'};
+        document.getElementById('main-header-title').innerText=titles[viewName]||'오늘의 확언';
+        if(viewName==='home'){
+            document.getElementById('view-home').classList.add('active');
+            document.getElementById('nav-home').classList.add('active');
+            renderScreen();
+        } else if(viewName==='calendar'){
+            document.getElementById('view-calendar').classList.add('active');
+            document.getElementById('nav-calendar').classList.add('active');
+            calYear=todayObj.getFullYear();calMonth=todayObj.getMonth()+1;
+            renderCalendar();renderDashboard();checkMissions();
+            renderEnhancedStats();
+            renderHallOfFame();
+            check300DayBanner();
+            renderDiaryPromoCard();
+            renderIdentityLabel(); // ★ 정체성 라벨
+            render100DayCertButton(); // ★ 100일 인증 버튼
+        } else if(viewName==='favorites'){
+            document.getElementById('view-favorites').classList.add('active');
+            document.getElementById('nav-favorites').classList.add('active');
+            renderFavoritesPage();
+            renderPsychPreview(); // ★ 심리테스트 미리보기 카드 렌더링
+        } else if(viewName==='memo'){
+            document.getElementById('view-memo').classList.add('active');
+            document.getElementById('nav-memo').classList.add('active');
+            // ★ 필사 탭으로 초기화
+            switchMemoTab('write');
+        } else if(viewName==='psych'){
+            document.getElementById('view-psych').classList.add('active');
+            const navPsych = document.getElementById('nav-psych');
+            if(navPsych) navPsych.classList.add('active');
+        } else if(viewName==='story'){
+            setTimeout(initStoryKakaoUI, 100);
+            document.getElementById('view-story').classList.add('active');
+            document.getElementById('nav-story').classList.add('active');
+            initStoryView();
+        } else if(viewName==='shorts'){
+            document.getElementById('view-shorts').classList.add('active');
+            document.getElementById('nav-shorts').classList.add('active');
+            setTimeout(renderShortsPointSummary, 100);
+            // 풀잎(레벨2) 미만이면 잠금 안내
+            if(getLevel(getPoints()) < 2){
+                document.getElementById('shorts-declaration-area').innerHTML = `
+                    <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:24px 20px;margin-bottom:16px;">
+                        <div style="font-size:0.78em;color:#C9A84C;font-weight:700;letter-spacing:1px;text-align:center;margin-bottom:10px;">🔓 풀잎 등급 달성 시 오픈</div>
+                        <div style="font-size:1.1em;font-weight:700;color:#fff;text-align:center;margin-bottom:14px;">마음이 힘들 때 꺼내 먹는<br>🧪 확언 처방전</div>
+                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                💔 거절당한 날 → 자존감 회복 확언 영상
+                            </div>
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                😔 자신이 없을 때 → 자기확신 확언 영상
+                            </div>
+                            <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:0.85em;color:rgba(255,255,255,0.9);">
+                                🌀 불안하고 흔들릴 때 → 마음 안정 확언 영상
+                            </div>
+                        </div>
+                        <div style="background:rgba(201,168,76,0.15);border-radius:12px;padding:12px 14px;margin-bottom:14px;border-left:3px solid #C9A84C;">
+                            <div style="font-size:0.8em;font-weight:700;color:#C9A84C;margin-bottom:6px;">🧠 뇌과학이 증명한 효과</div>
+                            <div style="font-size:0.76em;color:rgba(255,255,255,0.8);line-height:1.8;">
+                                확언 콘텐츠를 보면 뇌의 <b style="color:#C9A84C;">vmPFC(내측 전전두엽)</b>가 활성화되며,<br>
+                                스트레스 반응이 줄고 <b style="color:#C9A84C;">실제 행동 변화</b>로 이어집니다.<br>
+                                <span style="font-size:0.88em;opacity:0.7;">— Falk et al., PNAS 2015 · Dutcher et al., SCAN 2020</span>
+                            </div>
+                        </div>
+                        <div style="background:rgba(201,168,76,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;text-align:center;">
+                            <div style="font-size:0.8em;color:#C9A84C;font-weight:700;">🌱 현재: ${LEVELS[getLevel(getPoints())].emoji} ${LEVELS[getLevel(getPoints())].name}</div>
+                            <div style="font-size:0.76em;color:rgba(255,255,255,0.7);margin-top:2px;">풀잎까지 <b style="color:#C9A84C;">${Math.max(0,150-getPoints())}PT</b> 남았어요! (약 6일)</div>
+                        </div>
+                        <button onclick="switchView('home')" style="width:100%;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:12px;padding:12px;font-size:0.9em;font-weight:700;cursor:pointer;">🌿 오늘 확언 보러 가기</button>
+                    </div>
+                    <div style="font-size:0.78em;color:var(--text-muted);text-align:center;margin-top:8px;line-height:1.6;">
+                        풀잎 달성 후 <b>실천 탭</b>을 다시 누르면 확언 처방전이 열려요 🌿
+                    </div>`;
+            } else {
+                initShortsView();
+            }
+        } else if(viewName==='settings'){
+            document.getElementById('view-settings').classList.add('active');
+            initSettings();
+        } else if(viewName==='completion'){
+            document.getElementById('view-celebration').classList.add('active');
+            document.getElementById('nav-calendar').classList.add('active');
+        }
+        window.scrollTo(0,0);
+    }
+
+    // ====================================================
+    // ★ 심리테스트 전체 시스템
+    // ====================================================
+    // ====================================================
+    // ★ 심리테스트 v3.0 — BFI-44 + Rosenberg + VIA
+    // 출처: John, Donahue & Kentle (1991) / Rosenberg (1965) / Peterson & Seligman (2004)
+    // ====================================================
+
+    // 16가지 동물 유형 (E/O/A/C 4축 조합)
+
+    // BFI-44 문항 (John, Donahue & Kentle, 1991) — 세계 표준 성격 검사
+
+    const EMOJI_SCALE = ['😫','😟','😐','🙂','😊','😄','🤩'];
+
+    // ★ 빠른 테스트용 단축 문항
+    const BFI_ITEMS_SHORT = [
+        // ── E 외향성 4문항 (BFI-44: E1,E8,E3,E2) ──
+        { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
+        { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
+        { id:'E3',  axis:'E', rev:false, text:'나는 활기차고 에너지가 넘쳐요' },
+        { id:'E2',  axis:'E', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
+        // ── O 개방성 4문항 (BFI-44: O1,O2,O5,O9) ──
+        { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
+        { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
+        { id:'O5',  axis:'O', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
+        { id:'O9',  axis:'O', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
+        // ── A 친화성 4문항 (BFI-44: A2,A7,A5,A3) ──
+        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
+        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
+        { id:'A5',  axis:'A', rev:false, text:'나는 일반적으로 다른 사람을 믿는 편이에요' },
+        { id:'A3',  axis:'A', rev:true,  text:'나는 다른 사람과 다툴 때가 있어요' },
+        // ── C 성실성 4문항 (BFI-44: C1,C6,C5,C9) ──
+        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
+        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
+        { id:'C5',  axis:'C', rev:true,  text:'나는 게으른 편이에요' },
+        { id:'C9',  axis:'C', rev:true,  text:'나는 쉽게 주의가 산만해지는 편이에요' },
+        // ── N 정서안정성 4문항 (BFI-44: N1,N4,N5,N7) ──
+        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
+        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
+        { id:'N5',  axis:'N', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
+        { id:'N7',  axis:'N', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
+    ];
+    const RSE_ITEMS_SHORT = [
+        // ★ 모두 정방향 (높은 점수 = 높은 자존감, 역문항 없음)
+        { id:'R1', rev:false, text:'나는 내가 적어도 다른 사람만큼 가치 있는 사람이라고 생각해요' },
+        { id:'R2', rev:false, text:'나는 좋은 자질을 많이 가지고 있다고 생각해요' },
+        { id:'R4', rev:false, text:'나는 대부분의 사람들처럼 일을 잘 할 수 있어요' },
+        { id:'R6', rev:false, text:'나는 나 자신에 대해 긍정적인 태도를 가지고 있어요' },
+        { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
+        { id:'Rx', rev:false, text:'나는 나 자신을 충분히 좋아하고 존중해요' },
+    ];
+    const VIA_ITEMS_SHORT = VIA_ITEMS.slice(0, 14);
+
+    let pA = {}; // psychAnswers
+    let pStep = 0;
+    let pMode = 'full';
+    let pFontSize = 'normal'; // 'normal' | 'large' // 'full' | 'quick'
+    const P_TOTAL = INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length;
+    function getPTotal(){ return INFO_ITEMS.length + (pMode==='quick'?BFI_ITEMS_SHORT:BFI_ITEMS).length + (pMode==='quick'?RSE_ITEMS_SHORT:RSE_ITEMS).length + (pMode==='quick'?VIA_ITEMS_SHORT:VIA_ITEMS).length; }
+    function getBFI(){ return pMode==='quick' ? BFI_ITEMS_SHORT : BFI_ITEMS; }
+    function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
+    function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
+
+    // ★ 동물 유형별 추천 확언 - 직접 day 번호로 이동
+    function goToAnimalTheme(animalEmoji){
+        // 동물 → 시작 day 번호 직접 매핑
+        var dayMap = {
+            '🦁':213,'🐘':121,'🦋':335,'🐺':274,
+            '🐋':91, '🐆':244,'🦊':182,'🐢':182,
+            '🦉':60, '🐯':213,'🦌':152,'🦅':244,
+            '🐝':32, '🦢':335,'🐱':152,'🦒':1
+        };
+        var targetDay = dayMap[animalEmoji] || 1;
+        // ★ bypassCap=true로 미래 날짜도 허용
+        goToFav(targetDay, true);
+        setTimeout(function(){
+            var el = document.getElementById('affirmation-view');
+            if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+        }, 500);
+    }
+
+        // ★ 동물 유형별 추천 확언 day 매핑
+    function getAnimalAffirmationDay(animalEmoji){
+        const MAP = {
+            '🦁': 213,  // 사자 → 용기 (Day 213)
+            '🐘': 121,  // 코끼리 → 가족과 나 (Day 121)
+            '🦋': 335,  // 나비 → 완성된 나 (Day 335)
+            '🐺': 274,  // 늑대 → 관계 맺기 (Day 274)
+            '🐋': 91,   // 고래 → 감정의 주인 되기 (Day 91)
+            '🐆': 244,  // 표범 → 삶의 주도권 (Day 244)
+            '🦊': 182,  // 여우 → 습관과 뇌의 과학 (Day 182)
+            '🐢': 182,  // 거북이 → 습관과 뇌의 과학 (Day 182)
+            '🦉': 60,   // 올빼미 → 상처받은 나를 이해하기 (Day 60)
+            '🐯': 213,  // 호랑이 → 용기 (Day 213)
+            '🦌': 152,  // 사슴 → 자존감의 회복 (Day 152)
+            '🦅': 244,  // 독수리 → 삶의 주도권 (Day 244)
+            '🐝': 32,   // 꿀벌 → 관계를 다시 보다 (Day 32)
+            '🦢': 335,  // 백조 → 완성된 나 (Day 335)
+            '🐱': 152,  // 고양이 → 자존감의 회복 (Day 152)
+            '🦒': 1,    // 기린 → 새로 시작하는 나 (Day 1)
+        };
+        return MAP[animalEmoji] || 1;
+    }
+
+        // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
+    function renderPsychPreview(){
+        const CATEGORIES = [
+            { icon:'💕', title:'연애 스타일', desc:'나는 어떤 방식으로 사랑하는 사람인가?', key:'love' },
+            { icon:'💼', title:'일 스타일', desc:'내가 빛나는 환경은 어떤 곳인가?', key:'work' },
+            { icon:'👥', title:'관계 스타일', desc:'친구 사이에서 나는 어떤 존재인가?', key:'friend' },
+            { icon:'🌧️', title:'위기 대처법', desc:'힘들 때 나는 어떻게 회복하는가?', key:'hard' },
+            { icon:'💰', title:'소비 성향', desc:'돈과 나의 관계는 어떠한가?', key:'money' },
+            { icon:'🌱', title:'자존감 점수', desc:'지금 내 자존감은 몇 점인가?', key:'rse' },
+            { icon:'✨', title:'핵심 강점', desc:'내가 몰랐던 나의 슈퍼파워는?', key:'via' },
+        ];
+
+        const saved = safeGetItem('psych_result_v2','');
+        const done = !!saved;
+
+        const makeHTML = (done) => CATEGORIES.map(cat => {
+            if(done){
+                return `<div onclick="showCategoryDetail('${cat.key}')"
+                    style="background:var(--card-bg);border-radius:12px;padding:12px 14px;
+                    border:1px solid #1B4332;display:flex;align-items:center;gap:12px;cursor:pointer;">
+                    <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.88em;font-weight:700;color:#1B4332;">${cat.title}</div>
+                        <div style="font-size:0.78em;color:var(--text-muted);margin-top:1px;">${cat.desc}</div>
+                    </div>
+                    <span style="font-size:0.8em;color:#1B4332;font-weight:700;white-space:nowrap;">결과 보기 🔓</span>
+                </div>`;
+            } else {
+                return `<div style="background:var(--card-bg);border-radius:12px;padding:12px 14px;
+                    border:1px solid var(--border-color);display:flex;align-items:center;gap:12px;opacity:0.75;">
+                    <span style="font-size:1.3em;flex-shrink:0;">${cat.icon}</span>
+                    <div>
+                        <div style="font-size:0.88em;font-weight:700;color:var(--text-color);">${cat.title}</div>
+                        <div style="font-size:0.78em;color:var(--text-muted);margin-top:1px;">${cat.desc}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:1.1em;">🔒</span>
+                </div>`;
+            }
+        }).join('');
+
+        // 즐겨찾기 탭 카드 업데이트
+        const el = document.getElementById('psych-preview-list');
+        if(el) el.innerHTML = makeHTML(done);
+
+        // 심리테스트 모달 내부 카드 업데이트
+        const mel = document.getElementById('psych-modal-preview');
+        if(mel) mel.innerHTML = makeHTML(done);
+    }
+
+    // ★ 카테고리별 결과 팝업
+    window.showCategoryDetail = function(key){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved) return;
+        const result = JSON.parse(saved);
+        const s = result.scores;
+
+        const catData = {
+            love:   getLoveStyle(s),
+            work:   getWorkStyle(s),
+            friend: getFriendStyle(s),
+            hard:   getHardStyle(s),
+            money:  getMoneyStyle(s),
+            rse:    getRseStyle(s.RSE),
+            via:    getViaStyle(result.viaStrengths),
+        };
+
+        const cat = catData[key];
+        const title = cat.title;
+        const desc = cat.desc;
+        const tip = cat.tip || '';
+        const extra = key === 'rse'
+            ? `<div style="background:var(--border-color);border-radius:6px;height:10px;margin:10px 0;">
+                <div style="background:linear-gradient(90deg,#C9A84C,#1B4332);height:100%;border-radius:6px;width:${cat.score}%;"></div>
+               </div>
+               <div style="text-align:center;font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:6px;">${cat.score}점 / 100점</div>`
+            : key === 'via'
+            ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                ${(cat.strengths||[]).map((s,i)=>`<span style="background:${i===0?'#1B4332':'var(--border-color)'};color:${i===0?'#fff':'var(--text-color)'};padding:4px 12px;border-radius:20px;font-size:0.82em;font-weight:700;">${i===0?'👑 ':''}${s}</span>`).join('')}
+               </div>`
+            : '';
+
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:var(--bg-color);border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;">
+                <div style="width:40px;height:4px;background:var(--border-color);border-radius:2px;margin:0 auto 20px;"></div>
+                <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:14px;">${title}</div>
+                ${extra}
+                <div style="font-size:0.92em;line-height:1.9;color:var(--text-color);margin-bottom:14px;">${desc}</div>
+                ${tip ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.85em;color:#1B4332;margin-bottom:14px;">${tip}</div>` : ''}
+                ${cat.video ? `<a href="${cat.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:12px;text-decoration:none;margin-bottom:14px;">
+                    <span style="font-size:1.4em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;margin-bottom:2px;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.88em;font-weight:700;color:#1B4332;">${cat.video.label}</div>
+                    </div>
+                    <span style="font-size:1em;color:#1B4332;">▶</span>
+                </a>` : ''}
+                <button onclick="this.closest('div[style*=fixed]').remove()"
+                    style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                    닫기
+                </button>
+            </div>`;
+        modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+    }
+
+    window.startPsychTest = function(){
+        const existing = document.getElementById('psych-modal');
+        if(existing) existing.remove();
+
+        const saved = safeGetItem('psych_result_v2','');
+        const done = !!saved;
+        let prevResult = null;
+        if(done) try { prevResult = JSON.parse(saved); } catch(e){}
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+        const resultBanner = done && prevResult ? `
+            <div style="background:#F0F7F4;border:2px solid #1B4332;border-radius:16px;padding:20px;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                    <span style="font-size:2.5em;">${prevResult.animal.animal}</span>
+                    <div>
+                        <div style="font-size:0.75em;color:#1B4332;font-weight:700;">내 결과</div>
+                        <div style="font-size:1.1em;font-weight:900;color:#1B4332;">${prevResult.animal.name}</div>
+                        <div style="font-size:0.82em;color:#2D6A4F;">"${prevResult.animal.title}"</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <button onclick="viewMyPsychResult()" style="min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">📋 전체 결과 보기</button>
+                    <button onclick="sharePsychMyResult()" style="min-height:44px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">${prevResult.animal.animal} 내 결과 공유</button>
+                </div>
+                <button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;margin-bottom:8px;">💌 친구에게 테스트 추천하기</button>
+                ${isStandalone
+                    ? `<button onclick="downloadPsychPDF()" style="width:100%;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;margin-top:8px;">📄 결과지 PDF 저장</button>`
+                    : `<button onclick="document.getElementById('psych-modal').remove();installFromPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📲 앱 설치하기 → 결과 저장</button>`}
+                <div style="text-align:center;margin-top:10px;">
+                    <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
+                </div>
+            </div>` : '';
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+        modal.innerHTML = `
+        <div style="min-height:100vh;display:flex;flex-direction:column;">
+            <div style="background:#1B4332;padding:16px 20px;display:flex;align-items:center;gap:12px;">
+                <button onclick="document.getElementById('psych-modal').remove();"
+                    style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
+                <span style="font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">인생2막라디오 × 확언 유형 검사</span>
+            </div>
+            <div style="background:linear-gradient(160deg,#1B4332 0%,#2D6A4F 60%,#1B4332 100%);padding:32px 24px 28px;text-align:center;">
+                <div style="font-size:0.85em;color:#C9A84C;font-weight:700;letter-spacing:2px;margin-bottom:14px;">🧠 3가지 과학 검사 기반</div>
+                <div style="font-size:2.2em;font-weight:900;color:#fff;line-height:1.25;margin-bottom:14px;">나는 어떤<br>사람일까?</div>
+                <div style="font-size:0.92em;color:rgba(255,255,255,0.85);line-height:1.9;">일·관계·위기·소비·자존감까지<br><b style="color:#C9A84C;">내가 몰랐던 나의 진짜 모습</b>을 알게 돼요</div>
+            </div>
+            <div style="background:#F0F7F4;padding:14px 20px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">🔬 세계 52개국 검증</div>
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">📊 정확도 약 90%</div>
+                <div style="font-size:0.78em;color:#1B4332;font-weight:700;">⏱️ 약 10분 소요</div>
+            </div>
+            <div style="padding:20px;">
+            ${resultBanner}
+            <div style="margin-bottom:20px;">
+                <div style="font-size:1em;font-weight:700;color:var(--text-color);margin-bottom:12px;">✅ 이런 걸 알 수 있어요</div>
+                <div style="display:flex;flex-direction:column;gap:8px;" id="psych-modal-preview"></div>
+            </div>
+            <div style="background:var(--card-bg);border-radius:16px;padding:18px;margin-bottom:16px;border:1px solid var(--border-color);">
+                <div style="font-size:0.9em;font-weight:700;color:var(--text-color);margin-bottom:14px;">🔬 어떤 검사로 분석하나요?</div>
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#1B4332;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">Big 5</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">BFI-44 성격 검사</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);margin-top:2px;">John, Donahue & Kentle (1991)</div>
+                            <div style="font-size:0.75em;color:#1B4332;margin-top:4px;line-height:1.6;">전 세계 심리학자가 가장 많이 사용하는<br>표준 성격 검사. 44문항으로 외향성·개방성·<br>친화성·성실성·정서안정성을 정밀 측정해요.</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#C9A84C;color:#1B4332;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">RSE</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">Rosenberg 자존감 척도</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);margin-top:2px;">Rosenberg (1965)</div>
+                            <div style="font-size:0.75em;color:#1B4332;margin-top:4px;line-height:1.6;">60년간 전 세계 52개국에서 검증된<br>가장 신뢰도 높은 자존감 측정 도구.<br>신뢰도(α) 0.88로 학술적으로 검증돼 있어요.</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:flex-start;">
+                        <div style="background:#2D6A4F;color:#fff;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:700;white-space:nowrap;flex-shrink:0;">VIA</div>
+                        <div>
+                            <div style="font-size:0.85em;font-weight:700;color:var(--text-color);">VIA 강점 검사</div>
+                            <div style="font-size:0.75em;color:var(--text-muted);margin-top:2px;">Peterson & Seligman (2004)</div>
+                            <div style="font-size:0.75em;color:#1B4332;margin-top:4px;line-height:1.6;">긍정심리학의 창시자 셀리그만 교수팀이<br>개발한 강점 발견 도구. 나만의 슈퍼파워를<br>찾아드려요.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center;">
+                <div style="font-size:0.78em;color:#C9A84C;font-weight:700;margin-bottom:8px;">🧠 뇌과학이 말하는 자기이해의 힘</div>
+                <div style="font-size:0.88em;color:#fff;line-height:1.8;">"자기 자신을 정확히 이해하는 사람은<br>정서 조절 능력이 <b style="color:#C9A84C;">최대 40% 더 높습니다"</b></div>
+                <div style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:8px;">— Duval & Wicklund, 1972</div>
+            </div>
+            <div style="background:#FFF8E7;border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:0.8em;color:#7A5500;line-height:1.8;">
+                ⏱️ <b>약 10분 소요</b>  ·  🆓 완전 무료<br>
+                📊 <b>정확도 약 90%</b> (BFI-44 기준)<br>
+                🔄 30일 후 재검사로 변화를 숫자로 확인할 수 있어요
+            </div>
+            <div style="background:#F0F7F4;border-radius:16px;padding:16px;margin-bottom:12px;">
+                <div style="font-size:0.85em;font-weight:700;color:#1B4332;text-align:center;margin-bottom:12px;">
+                    검사 방식을 선택해주세요
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button id="psych-quick-btn"
+                        style="width:100%;min-height:64px;background:#fff;color:#1B4332;border:2px solid #1B4332;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 18px;gap:12px;text-align:left;">
+                        <span style="font-size:1.7em;">⚡</span>
+                        <div>
+                            <div style="font-size:1em;font-weight:900;">빠른 테스트</div>
+                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 8분 · 40문항</div>
+                        </div>
+                    </button>
+                    <button id="psych-full-btn"
+                        style="width:100%;min-height:64px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 18px;gap:12px;text-align:left;">
+                        <span style="font-size:1.7em;">🔬</span>
+                        <div>
+                            <div style="font-size:1em;font-weight:900;">정밀 테스트</div>
+                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 12분 · 66문항 · 정확도 90%</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <button onclick="sharePsychInvite()"
+                style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:12px;">
+                📤 친구에게 심리테스트 추천하기
+            </button>
+            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">약 10분 소요 · 무료 · 결과 저장됨</div>
+            </div>
+        </div>`;
+        document.body.appendChild(modal);
+        // ★ 빠른/정밀 버튼 이벤트 바인딩
+        var _qb = document.getElementById('psych-quick-btn');
+        var _fb = document.getElementById('psych-full-btn');
+        if(_qb) _qb.addEventListener('click', function(){
+            pMode = 'quick';
+            document.getElementById('psych-modal').remove();
+            psychStartReal('quick');
+        });
+        if(_fb) _fb.addEventListener('click', function(){
+            pMode = 'full';
+            document.getElementById('psych-modal').remove();
+            psychStartReal('full');
+        });
+        setTimeout(renderPsychPreview, 100);
+    }
+
+    // ★ 전체 결과 다시 보기
+    window.viewMyPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const result = JSON.parse(saved);
+        document.getElementById('psych-modal')?.remove();
+        showPsychResult(result);
+    }
+
+    // ★ 결과지 이미지 저장 (앱 설치 시에만)
+    window.downloadPsychPDF = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const r = JSON.parse(saved);
+        const s = r.scores;
+        const raw = r.rawScores || {};
+        const love   = getLoveStyle(s);
+        const work   = getWorkStyle(s);
+        const friend = getFriendStyle(s);
+        const hard   = getHardStyle(s);
+        const money  = getMoneyStyle(s);
+        const rse    = getRseStyle(s.RSE);
+        const via    = getViaStyle(r.viaStrengths);
+        const overall = getOverallDesc(s, r.animal);
+        const nick   = safeGetItem('my_nickname','') || '나';
+        const today  = getTodayStr();
+
+        const rseLevel = s.RSE>=75?'높음 — 안정적 자기가치감'
+            :s.RSE>=50?'평균 — 상황에 따라 변동'
+            :s.RSE>=25?'낮음 — 자기비판 경향':'매우 낮음';
+
+        // 경계선 요인
+        const borderAxes = [];
+        if(s.E>=42&&s.E<=58) borderAxes.push('외향성');
+        if(s.O>=42&&s.O<=58) borderAxes.push('개방성');
+        if(s.A>=42&&s.A<=58) borderAxes.push('친화성');
+        if(s.C>=42&&s.C<=58) borderAxes.push('성실성');
+        const borderHTML = borderAxes.length > 0
+            ? '<div class="border-alert">💡 <b>경계선 안내:</b> '+borderAxes.join(', ')+' 요인이 50% 근처에 있어요. 반대 유형의 특성도 함께 가질 수 있어요. 30일 후 재검사로 확인해보세요.</div>'
+            : '';
+
+        // Big5 바 HTML
+        const bfi5 = [
+            ['외향성','E','내향적','외향적','사람과 교류에서 에너지를 얻는 정도'],
+            ['개방성','O','실용 추구','변화 추구','새로운 경험과 창의성에 대한 개방도'],
+            ['친화성','A','독립적','관계 중심','타인을 배려하고 협력하는 경향'],
+            ['성실성','C','유연함','계획적','목표 지향적이고 체계적으로 행동하는 정도'],
+            ['안정성','N','예민함','안정적','정서 안정과 스트레스 대처 능력'],
+        ];
+        const barsHTML = bfi5.map(function(item){
+            const label=item[0], ax=item[1], low=item[2], high=item[3], tip=item[4];
+            const score = ax==='N' ? 100-s[ax] : s[ax];
+            const rawVal = ax==='N' ? (raw[ax]?(8-parseFloat(raw[ax])).toFixed(1):'-') : (raw[ax]||'-');
+            const isBorder = score>=42&&score<=58;
+            const desc = score>=65 ? high+'이 강한 편이에요' : score<40 ? low+'인 편이에요' : '중간 수준이에요 (경계형)';
+            return '<div class="bar-wrap">'
+                +'<div class="bar-header">'
+                +'<span class="bar-label">'+label+(isBorder?' ⚠️':'')+'</span>'
+                +'<span class="bar-score">'+score+'% <span class="bar-raw">('+rawVal+'점/7)</span></span>'
+                +'</div>'
+                +'<div class="bar-bg'+(isBorder?' bar-border':'')+'"><div class="bar-fill" style="width:'+score+'%"></div></div>'
+                +'<div class="bar-desc">'+desc+' · '+tip+'</div>'
+                +'</div>';
+        }).join('');
+
+        // VIA 강점 태그
+        const viaTagsHTML = (r.viaStrengths||[]).map(function(sv,i){
+            return '<span class="strength-tag '+(i>0?'sec':'')+'">'+( i===0?'👑 ':'')+sv+'</span>';
+        }).join('');
+
+        // 확언 방향
+        let afHTML = '';
+        if(s.RSE<60) afHTML += '<div class="af-item">💚 자기가치감 강화 — "나는 지금 이대로 충분하다"</div>';
+        if(s.N>60)   afHTML += '<div class="af-item">🌊 정서 안정 — "나는 감정을 인정하면서도 흔들리지 않는다"</div>';
+        if(s.C<45)   afHTML += '<div class="af-item">⚡ 실천력 강화 — "나는 오늘 작은 한 걸음을 완수한다"</div>';
+        if(s.A>=65&&s.N>=50) afHTML += '<div class="af-item">🤝 자기돌봄 — "나는 나 자신도 소중히 돌볼 자격이 있다"</div>';
+        if(s.E<45)   afHTML += '<div class="af-item">🌙 내향의 강점 — "나의 깊은 사고와 관찰력은 나만의 강점이다"</div>';
+        afHTML += '<div class="af-item">✨ 꾸준한 실천 — "매일 조금씩, 나는 반드시 변화한다"</div>';
+
+        const css = [
+            '*{margin:0;padding:0;box-sizing:border-box;}',
+            'body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:#F5F3EF;color:#333;font-size:14px;line-height:1.7;}',
+            '.page{max-width:100%;margin:0;padding:16px;box-sizing:border-box;}',
+            '.header{background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border-radius:20px;padding:40px 32px;text-align:center;margin-bottom:20px;}',
+            '.badge{display:inline-block;background:rgba(212,168,67,0.2);border:1px solid rgba(212,168,67,0.5);border-radius:20px;padding:6px 20px;font-size:12px;color:#C9A84C;font-weight:700;margin-bottom:16px;letter-spacing:2px;}',
+            '.animal{font-size:80px;margin-bottom:8px;}',
+            '.type-name{font-size:32px;font-weight:900;color:#C9A84C;margin-bottom:4px;}',
+            '.type-title{font-size:18px;color:rgba(255,255,255,0.85);margin-bottom:4px;}',
+            '.mbti{font-size:13px;color:rgba(255,255,255,0.5);}',
+            '.intro{font-size:15px;color:rgba(255,255,255,0.9);margin-top:14px;padding:14px 20px;background:rgba(255,255,255,0.1);border-radius:12px;line-height:1.8;text-align:left;}',
+            '.date{font-size:12px;color:rgba(255,255,255,0.4);margin-top:16px;}',
+            '.card{background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}',
+            '.card-title{font-size:16px;font-weight:700;color:#1B4332;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #F0F7F4;display:flex;align-items:center;gap:8px;}',
+            '.overall-text{font-size:14px;line-height:2;color:#444;}',
+            '.bar-wrap{margin-bottom:14px;}',
+            '.bar-header{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;}',
+            '.bar-label{font-weight:700;color:#333;}',
+            '.bar-score{font-weight:700;color:#1B4332;}',
+            '.bar-raw{font-size:11px;color:#aaa;font-weight:400;margin-left:4px;}',
+            '.bar-bg{background:#F0F0F0;border-radius:10px;height:10px;overflow:hidden;margin-bottom:4px;}',
+            '.bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#1B4332,#52B788);}',
+            '.bar-border{border:2px dashed #C9A84C!important;}',
+            '.bar-desc{font-size:12px;color:#888;}',
+            '.rse-wrap{text-align:center;padding:16px;background:#F0F7F4;border-radius:12px;margin-bottom:12px;}',
+            '.rse-score{font-size:48px;font-weight:900;color:#1B4332;}',
+            '.rse-level{display:inline-block;background:#1B4332;color:#C9A84C;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:700;margin-top:8px;}',
+            '.style-box{background:#F8FBF8;border-left:4px solid #1B4332;border-radius:0 12px 12px 0;padding:16px;margin-bottom:12px;}',
+            '.style-title{font-size:14px;font-weight:700;color:#1B4332;margin-bottom:8px;}',
+            '.style-desc{font-size:13px;color:#555;line-height:1.8;margin-bottom:8px;}',
+            '.style-strength{font-size:13px;color:#2D6A4F;margin-bottom:6px;}',
+            '.style-caution{font-size:13px;color:#C9A84C;margin-bottom:6px;}',
+            '.style-tip{font-size:12px;color:#888;font-style:italic;background:#FFF8E7;padding:8px 12px;border-radius:8px;margin-top:8px;}',
+            '.strength-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}',
+            '.strength-tag{background:#1B4332;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;}',
+            '.strength-tag.sec{background:#F0F7F4;color:#1B4332;}',
+            '.border-alert{background:#FFF8E7;border:1px solid #C9A84C;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#7A5500;line-height:1.7;}',
+            '.cite{font-size:11px;color:#aaa;font-style:italic;margin-top:8px;}',
+            '.footer{text-align:center;padding:24px;color:#aaa;font-size:12px;}',
+            '.app-name{color:#1B4332;font-weight:700;font-size:14px;margin-bottom:4px;}',
+            '.affirmation-box{background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;color:#fff;}',
+            '.af-title{font-size:14px;font-weight:700;color:#C9A84C;margin-bottom:12px;}',
+            '.af-item{font-size:13px;line-height:1.9;color:rgba(255,255,255,0.9);margin-bottom:6px;padding-left:12px;border-left:2px solid rgba(201,168,76,0.4);}',
+            '@media print{body{background:#fff;}.page{max-width:100%;padding:10px;}.card{box-shadow:none;border:1px solid #eee;page-break-inside:avoid;}.no-print{display:none!important;}}',
+        ].join('');
+
+        const html = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">'
+            +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+            +'<title>'+nick+'님의 성격 분석 결과지</title>'
+            +'<style>'+css+'</style></head><body><div class="page">'
+
+            // 인쇄 버튼
+            +'<div class="no-print" style="text-align:right;margin-bottom:12px;">'
+            +'<button onclick="window.print()" style="background:#1B4332;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ PDF로 저장 / 인쇄</button>'
+            +'</div>'
+
+            // 헤더
+            +'<div class="header">'
+            +'<div class="badge">인생2막라디오 확언앱 · 성격 분석 결과지</div>'
+            +'<div class="animal">'+r.animal.animal+'</div>'
+            +'<div class="type-name">'+r.animal.name+'</div>'
+            +'<div class="type-title">'+r.animal.title+'</div>'
+            +'<div class="mbti">MBTI 유사 유형: '+(r.animal.mbti||'-')+'</div>'
+            +'<div class="intro">'+(r.animal.desc||r.animal.tagline)+'</div>'
+            +'<div class="date">검사일: '+today+' · '+nick+'님</div>'
+            +'</div>'
+
+            // 경계선 알림
+            + borderHTML
+
+            // 전반적 성격 서술
+            +'<div class="card">'
+            +'<div class="card-title">🧬 BFI-44가 분석한 나의 성격</div>'
+            +'<div class="overall-text">'+overall+'</div>'
+            +'<p class="cite">📚 John, O.P., Donahue, E.M., & Kentle, R.L. (1991). The Big Five Inventory. UC Berkeley.</p>'
+            +'</div>'
+
+            // Big5
+            +'<div class="card">'
+            +'<div class="card-title">🧠 성격 5요인 수치 분석 (BFI-44 · 44문항)</div>'
+            +'<div style="font-size:12px;color:#888;margin-bottom:12px;padding:8px 12px;background:#F8F8F8;border-radius:8px;">📊 1점=전혀 아님 · 4점=보통 · 7점=매우 그렇다 · 50% 기준 높음/낮음 구분</div>'
+            + barsHTML
+            +'<p class="cite">📚 신뢰도 α=.79~.88 · 세계 52개국 이상 검증</p>'
+            +'</div>'
+
+            // 자존감
+            +'<div class="card">'
+            +'<div class="card-title">🌱 자존감 분석 (Rosenberg Self-Esteem Scale)</div>'
+            +'<div class="rse-wrap">'
+            +'<div class="rse-score">'+s.RSE+'점</div>'
+            +'<div style="font-size:13px;color:#555;margin-top:4px;">100점 만점 기준</div>'
+            +'<div class="rse-level">'+rseLevel+'</div>'
+            +'</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+rse.title+'</div>'
+            +'<div class="style-desc">'+rse.desc+'</div>'
+            +'<div class="style-strength">'+rse.strength+'</div>'
+            +'<div class="style-tip">'+rse.tip+'</div>'
+            +'</div>'
+            +'<p class="cite">📚 Rosenberg, M. (1965). Society and the Adolescent Self-Image. α=.88</p>'
+            +'</div>'
+
+            // 연애
+            +'<div class="card"><div class="card-title">💕 연애 스타일</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+love.title+'</div>'
+            +'<div class="style-desc">'+love.desc+'</div>'
+            +'<div class="style-strength">'+love.strength+'</div>'
+            +'<div class="style-caution">'+love.caution+'</div>'
+            +'<div class="style-tip">'+love.tip+'</div>'
+            +'</div></div>'
+
+            // 일
+            +'<div class="card"><div class="card-title">💼 일 스타일</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+work.title+'</div>'
+            +'<div class="style-desc">'+work.desc+'</div>'
+            +'<div class="style-strength">'+work.strength+'</div>'
+            +'<div class="style-caution">'+work.caution+'</div>'
+            +'<div class="style-tip">'+work.tip+'</div>'
+            +'</div></div>'
+
+            // 관계
+            +'<div class="card"><div class="card-title">👥 관계 스타일</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+friend.title+'</div>'
+            +'<div class="style-desc">'+friend.desc+'</div>'
+            +'<div class="style-strength">'+friend.strength+'</div>'
+            +'<div class="style-caution">'+friend.caution+'</div>'
+            +'<div class="style-tip">'+friend.tip+'</div>'
+            +'</div></div>'
+
+            // 위기
+            +'<div class="card"><div class="card-title">🌧️ 위기 대처 스타일</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+hard.title+'</div>'
+            +'<div class="style-desc">'+hard.desc+'</div>'
+            +'<div class="style-strength">'+hard.strength+'</div>'
+            +'<div class="style-caution">'+hard.caution+'</div>'
+            +'<div class="style-tip">'+hard.tip+'</div>'
+            +'</div></div>'
+
+            // 소비
+            +'<div class="card"><div class="card-title">💰 소비 성향</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+money.title+'</div>'
+            +'<div class="style-desc">'+money.desc+'</div>'
+            +'<div class="style-tip">'+money.tip+'</div>'
+            +'</div></div>'
+
+            // VIA 강점
+            +'<div class="card"><div class="card-title">✨ 핵심 강점 (VIA Character Strengths)</div>'
+            +'<div class="style-box">'
+            +'<div class="style-title">'+via.title+'</div>'
+            +'<div class="style-desc">'+via.desc+'</div>'
+            +'</div>'
+            +'<div class="strength-tags">'+viaTagsHTML+'</div>'
+            +'<p class="cite">📚 Peterson, C., & Seligman, M.E.P. (2004). Character Strengths and Virtues. Oxford University Press.</p>'
+            +'</div>'
+
+            // 확언 방향
+            +'<div class="card"><div class="card-title">🌿 나를 위한 확언 방향</div>'
+            +'<div class="affirmation-box">'
+            +'<div class="af-title">지금 나에게 가장 필요한 확언 테마</div>'
+            + afHTML
+            +'<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:12px;">📚 뇌의 신경가소성 연구: 21~66일 반복적 자기대화가 자기인식을 변화시킵니다.</div>'
+            +'</div></div>'
+
+            // 30일 재검사
+            +'<div class="card" style="border:2px solid #C9A84C;">'
+            +'<div class="card-title" style="color:#C9A84C;">🔄 30일 후 재검사 권장</div>'
+            +'<p style="font-size:13px;color:#555;line-height:1.8;">지금부터 매일 확언을 실천하고 30일 후 재검사를 해보세요.<br>자존감 점수와 스트레스 안정성이 실제로 변화했는지 수치로 확인할 수 있어요.<br><b style="color:#1B4332;">확언의 효과를 데이터로 증명하세요!</b></p>'
+            +'<p class="cite">📚 Roberts, B.W. et al. (2006). 성격 변화는 최소 3~4주 행동 변화 누적 필요. Psychological Bulletin, 132(1).</p>'
+            +'</div>'
+
+            // 푸터
+            +'<div class="footer">'
+            +'<div class="app-name">인생2막라디오 확언앱</div>'
+            +'<div>BFI-44 · Rosenberg Self-Esteem Scale · VIA Character Strengths 기반</div>'
+            +'<div>정확도 약 90% · 세계 52개국 검증 학술 도구</div>'
+            +'<div style="margin-top:4px;">life2radio.github.io/affirmation</div>'
+            +'<div style="margin-top:8px;font-size:11px;">※ 이 결과지는 학술 도구 기반의 참고 자료이며, 전문적 심리 진단을 대체하지 않습니다.</div>'
+            +'</div>'
+
+            +'</div></body></html>';
+
+        const w = window.open('', '_blank');
+        if(w){
+            w.document.write(html);
+            w.document.close();
+            // 새 탭이 로드된 후 body에 max-width 100% 적용
+            setTimeout(function(){
+                try {
+                    var s = w.document.createElement('style');
+                    s.textContent = '.page{max-width:100%!important;padding:12px!important;box-sizing:border-box!important;} body{font-size:13px!important;}';
+                    w.document.head.appendChild(s);
+                } catch(e){}
+            }, 300);
+        } else {
+            showToast('팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요!');
+        }
+    }
+    window.downloadPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        let r;
+        try { r = JSON.parse(saved); } catch(e){ showToast('결과 데이터 오류'); return; }
+        if(!r || !r.animal || !r.scores){ showToast('결과 데이터가 없어요. 테스트를 다시 완료해주세요.'); return; }
+        // ⏳ 토스트 제거 - 사용자 제스처 컨텍스트 유지
+        try {
+        const s = r.scores;
+
+        const W = 800;
+        const FONT = "'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif";
+        const PAD = 56;
+        const BAR_W = W - PAD*2;
+
+        // ─── 텍스트 줄바꿈 함수 (픽셀 단위) ───
+        function wrapText(ctx, text, maxW){
+            const lines = [];
+            let cur = '';
+            for(let i=0; i<text.length; i++){
+                const test = cur + text[i];
+                if(ctx.measureText(test).width > maxW){
+                    if(cur) lines.push(cur);
+                    cur = text[i];
+                } else { cur = test; }
+            }
+            if(cur) lines.push(cur);
+            return lines;
+        }
+
+        // ─── Big5 상세 설명 ───
+        const bfi5 = [
+            { label:'외향성', score:s.E,
+              hi:'사람들과 함께할 때 에너지가 충전돼요. 활발하고 사교적이며 새로운 만남을 즐겨요. 도파민 보상 체계가 활성화되어 긍정적 정서가 높아요.',
+              mid:'내향과 외향의 균형을 가진 양방향형이에요. 상황에 따라 혼자도, 사람들과도 편안하게 지낼 수 있어요.',
+              lo:'혼자만의 시간에서 에너지를 회복하는 내향형이에요. 깊은 사색과 집중력이 뛰어나고 소수의 깊은 관계를 선호해요.' },
+            { label:'개방성', score:s.O,
+              hi:'창의적이고 호기심이 넘쳐요. 새로운 아이디어와 경험을 사랑하며 예술적 감수성이 풍부해요.',
+              mid:'새로운 것과 익숙한 것 사이에서 균형을 잘 잡아요. 실용성과 창의성을 적절히 활용해요.',
+              lo:'실용적이고 안정적인 것을 선호해요. 검증된 방식과 익숙한 환경에서 최고의 결과를 내요.' },
+            { label:'친화성', score:s.A,
+              hi:'따뜻하고 배려심이 깊어요. 타인과 협력하고 조화를 소중히 여기며 공감 능력이 탁월해요.',
+              mid:'협력과 독립 사이에서 유연하게 대응해요. 상황에 맞게 배려와 주장을 균형 있게 발휘해요.',
+              lo:'독립적이고 자기 기준이 명확해요. 직설적이며 결과를 중시하는 실용적인 사고를 가졌어요.' },
+            { label:'성실성', score:s.C,
+              hi:'체계적이고 목표 지향적이에요. 시작한 일은 반드시 끝내는 강한 책임감과 자기절제력이 있어요.',
+              mid:'계획성과 유연성의 균형을 갖고 있어요. 중요한 일엔 체계를 갖추고 상황에 따라 유연하게 대응해요.',
+              lo:'자유롭고 즉흥적이에요. 창의성과 유연한 적응력이 강점이며 새로운 방식을 탐구하기를 좋아해요.' },
+            { label:'정서안정성', score:100-s.N,
+              hi:'스트레스 상황에서도 침착하고 안정적이에요. 어려운 상황에서 주변에 심리적 안정감을 줘요.',
+              mid:'감정과 안정감 사이에서 균형을 유지해요. 힘든 상황에서도 비교적 빠르게 회복하는 편이에요.',
+              lo:'감수성이 풍부하고 감정을 깊이 느끼는 편이에요. 예술적 감수성과 공감 능력이 탁월해요.' },
+        ];
+
+        const rseDesc = s.RSE>=75 ? '자신을 있는 그대로 받아들이는 안정적인 자기가치감을 갖고 있어요. 타인의 비판에 흔들리지 않는 내적 중심이 잡혀 있어요.'
+            : s.RSE>=50 ? '좋은 날과 흔들리는 날이 공존해요. 확언을 꾸준히 실천하면 자존감이 단계적으로 높아질 수 있어요.'
+            : '지금 자기가치감이 낮은 시기를 보내고 있어요. 매일 확언으로 나를 채워가면 반드시 변화가 시작돼요.';
+
+        // ─── 높이 계산을 위한 임시 캔버스 ───
+        const tmpC = document.createElement('canvas');
+        tmpC.width = W; tmpC.height = 100;
+        const tmpCtx = tmpC.getContext('2d');
+        if(!tmpCtx.roundRect){
+            tmpCtx.roundRect = function(x,y,w,h,r){
+                this.beginPath(); this.moveTo(x+r,y); this.lineTo(x+w-r,y);
+                this.quadraticCurveTo(x+w,y,x+w,y+r); this.lineTo(x+w,y+h-r);
+                this.quadraticCurveTo(x+w,y+h,x+w-r,y+h); this.lineTo(x+r,y+h);
+                this.quadraticCurveTo(x,y+h,x,y+h-r); this.lineTo(x,y+r);
+                this.quadraticCurveTo(x,y,x+r,y); this.closePath();
+            };
+        }
+
+        // 소개글 줄 수 계산
+        tmpCtx.font = '15px ' + FONT;
+        const introText = r.animal.desc || r.animal.tagline || '';
+        const introLines = wrapText(tmpCtx, introText, BAR_W);
+
+        // Big5 설명 줄 수 계산
+        tmpCtx.font = '14px ' + FONT;
+        let bfiDescLines = 0;
+        for(const item of bfi5){
+            const desc = item.score>=60?item.hi:item.score<40?item.lo:item.mid;
+            bfiDescLines += wrapText(tmpCtx, desc, BAR_W).length;
+        }
+
+        // RSE 설명 줄 수 계산
+        const rseLines = wrapText(tmpCtx, rseDesc, BAR_W).length;
+
+        const totalH = 
+            80  +               // 배지
+            130 +               // 동물+이름
+            introLines*24+50 +  // 소개글
+            50  +               // Big5 타이틀
+            bfi5.length*85 +    // Big5 항목 (레이블+바)
+            bfiDescLines*22+bfi5.length*16 + // Big5 설명
+            40  +               // 구분선
+            50  +               // RSE 타이틀
+            60  +               // RSE 바+점수
+            rseLines*22+20 +    // RSE 설명
+            40  +               // VIA 구분
+            70  +               // VIA
+            60;                 // 푸터
+
+        // ─── 실제 캔버스 ───
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = totalH;
+        const ctx = canvas.getContext('2d');
+        // roundRect 폴리필 (구형 Android Chrome 대비)
+        if(!ctx.roundRect){
+            ctx.roundRect = function(x,y,w,h,r){
+                this.beginPath();
+                this.moveTo(x+r,y);
+                this.lineTo(x+w-r,y);
+                this.quadraticCurveTo(x+w,y,x+w,y+r);
+                this.lineTo(x+w,y+h-r);
+                this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+                this.lineTo(x+r,y+h);
+                this.quadraticCurveTo(x,y+h,x,y+h-r);
+                this.lineTo(x,y+r);
+                this.quadraticCurveTo(x,y,x+r,y);
+                this.closePath();
+            };
+        }
+
+        // 배경
+        const grad = ctx.createLinearGradient(0,0,0,totalH);
+        grad.addColorStop(0,'#152E20');
+        grad.addColorStop(0.4,'#1B4332');
+        grad.addColorStop(1,'#0D1F13');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,W,totalH);
+
+        // 원 장식
+        ctx.beginPath(); ctx.arc(W-40,50,180,0,Math.PI*2);
+        ctx.fillStyle='rgba(212,168,67,0.05)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(40,totalH-60,140,0,Math.PI*2);
+        ctx.fillStyle='rgba(45,106,79,0.1)'; ctx.fill();
+
+        let Y = 24;
+
+        // ─── 배지 ───
+        const badgeTxt = '인생2막라디오  ·  성격 분석 결과';
+        ctx.font = 'bold 14px ' + FONT;
+        ctx.textAlign = 'center';
+        const bW = ctx.measureText(badgeTxt).width + 50;
+        ctx.fillStyle = 'rgba(212,168,67,0.18)';
+        ctx.beginPath(); ctx.roundRect(W/2-bW/2, Y, bW, 34, 17); ctx.fill();
+        ctx.strokeStyle = 'rgba(212,168,67,0.45)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.roundRect(W/2-bW/2, Y, bW, 34, 17); ctx.stroke();
+        ctx.fillStyle = '#C9A84C';
+        ctx.fillText(badgeTxt, W/2, Y+22);
+        Y += 50;
+
+        // ─── 동물 ───
+        ctx.font = '72px serif';
+        ctx.fillText(r.animal.animal, W/2, Y+72);
+        Y += 88;
+
+        // ─── 유형명 ───
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 34px '+FONT;
+        ctx.fillText(r.animal.name, W/2, Y);
+        Y += 36;
+        ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='18px '+FONT;
+        ctx.fillText('"' + r.animal.title + '"', W/2, Y);
+        Y += 26;
+        ctx.fillStyle='rgba(255,255,255,0.38)'; ctx.font='13px '+FONT;
+        ctx.fillText('MBTI 유사: ' + (r.animal.mbti||'-'), W/2, Y);
+        Y += 30;
+
+        // ─── 소개글 ───
+        ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='15px '+FONT;
+        ctx.textAlign='left';
+        const iLines = wrapText(ctx, introText, BAR_W);
+        for(const ln of iLines){ ctx.fillText(ln, PAD, Y); Y += 24; }
+        Y += 28;
+
+        // ─── 구분선 ───
+        ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 28;
+
+        // ─── Big5 타이틀 ───
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('🧠  성격 5요인 분석 (BFI-44)', W/2, Y);
+        Y += 34;
+
+        // ─── Big5 항목들 ───
+        for(const item of bfi5){
+            const {label, score} = item;
+            const isBorder = score>=42&&score<=58;
+            const descText = score>=60?item.hi:score<40?item.lo:item.mid;
+
+            // 레이블 + 점수
+            ctx.textAlign='left';
+            ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 16px '+FONT;
+            ctx.fillText(label+(isBorder?' ⚠':''), PAD, Y);
+            ctx.fillStyle=isBorder?'#FFC107':'#C9A84C';
+            ctx.textAlign='right'; ctx.font='bold 16px '+FONT;
+            ctx.fillText(score+'%', W-PAD, Y);
+            Y += 12;
+
+            // 바 배경
+            ctx.fillStyle='rgba(255,255,255,0.1)';
+            ctx.beginPath(); ctx.roundRect(PAD,Y,BAR_W,14,7); ctx.fill();
+            // 50% 기준선
+            ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(PAD+BAR_W/2,Y-1); ctx.lineTo(PAD+BAR_W/2,Y+15); ctx.stroke();
+            // 바 채우기
+            ctx.fillStyle=isBorder?'#FFC107':score>=65?'#52B788':score<40?'#74C69D':'#40916C';
+            ctx.beginPath(); ctx.roundRect(PAD,Y,Math.round(BAR_W*score/100),14,7); ctx.fill();
+            Y += 22;
+
+            // 설명 (여러 줄)
+            ctx.fillStyle='rgba(255,255,255,0.52)'; ctx.font='13px '+FONT;
+            ctx.textAlign='left';
+            const dLines = wrapText(ctx, descText, BAR_W);
+            for(const dl of dLines){ ctx.fillText(dl, PAD, Y); Y += 20; }
+            Y += 16;
+        }
+
+        // ─── 자존감 ───
+        ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 26;
+
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('🌱  자존감 (Rosenberg Self-Esteem Scale)', W/2, Y);
+        Y += 28;
+
+        const rseLevel = s.RSE>=75?'높음':s.RSE>=50?'평균':s.RSE>=25?'낮음':'매우 낮음';
+        const rseClr = s.RSE>=75?'#52B788':s.RSE>=50?'#C9A84C':'#FF8A80';
+        ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 16px '+FONT;
+        ctx.fillText('자존감 점수', PAD, Y);
+        ctx.fillStyle=rseClr; ctx.textAlign='right';
+        ctx.fillText(s.RSE+'점  ·  '+rseLevel, W-PAD, Y);
+        Y += 12;
+
+        ctx.fillStyle='rgba(255,255,255,0.1)';
+        ctx.beginPath(); ctx.roundRect(PAD,Y,BAR_W,14,7); ctx.fill();
+        ctx.fillStyle=rseClr;
+        ctx.beginPath(); ctx.roundRect(PAD,Y,Math.round(BAR_W*s.RSE/100),14,7); ctx.fill();
+        Y += 24;
+
+        ctx.fillStyle='rgba(255,255,255,0.52)'; ctx.font='13px '+FONT; ctx.textAlign='left';
+        const rLines = wrapText(ctx, rseDesc, BAR_W);
+        for(const rl of rLines){ ctx.fillText(rl, PAD, Y); Y += 20; }
+        Y += 26;
+
+        // ─── VIA ───
+        ctx.strokeStyle='rgba(201,168,67,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 26;
+
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 16px '+FONT; ctx.textAlign='center';
+        ctx.fillText('✨  핵심 강점 (VIA Character Strengths)', W/2, Y);
+        Y += 28;
+        ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='17px '+FONT;
+        ctx.fillText((r.viaStrengths||[]).slice(0,3).join('   ·   '), W/2, Y);
+        Y += 36;
+
+        // ─── 푸터 ───
+        ctx.strokeStyle='rgba(201,168,67,0.2)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(PAD,Y); ctx.lineTo(W-PAD,Y); ctx.stroke();
+        Y += 18;
+        ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.font='12px '+FONT;
+        ctx.fillText('BFI-44  ·  Rosenberg  ·  VIA 기반  ·  정확도 약 90%  ·  세계 52개국 검증', W/2, Y);
+        Y += 22;
+        ctx.fillStyle='#C9A84C'; ctx.font='bold 14px '+FONT;
+        ctx.fillText('life2radio.github.io/affirmation/', W/2, Y);
+
+        // 실제 높이로 크롭
+        const finalH = Y + 28;
+        const fc = document.createElement('canvas');
+        fc.width = W; fc.height = finalH;
+        fc.getContext('2d').drawImage(canvas,0,0);
+
+        } catch(e) {
+            showToast('이미지 생성 오류: ' + (e.message||String(e)));
+            console.error('downloadPsychResult error:', e);
+            return;
+        }
+
+        // ★ dataURL 전역 저장 + 확언카드와 동일한 방식
+        window._psychResultDataUrl = fc.toDataURL('image/png');
+        window._psychResultName = '인생확언_' + r.animal.name + '_결과지.png';
+        const link = document.createElement('a');
+        link.download = window._psychResultName;
+        link.href = window._psychResultDataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('📥 결과지가 저장됐어요!');
+    }
+    window.psychStartReal = function(mode){
+        window._psychMode = mode || 'full'; // 전역으로 저장
+        // 이전 검사 날짜 확인
+        const lastDate = safeGetItem('psych_last_date', '');
+        if(lastDate){
+            const last = new Date(lastDate);
+            const now = new Date();
+            const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+            if(diffDays < 30){
+                // 경고 팝업
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+                modal.innerHTML = `
+                    <div style="background:#fff;border-radius:20px;padding:28px 24px;width:90%;max-width:360px;text-align:center;">
+                        <div style="font-size:40px;margin-bottom:12px;">🔄</div>
+                        <div style="font-size:1.05em;font-weight:700;color:#1B4332;margin-bottom:10px;">마지막 검사로부터 ${diffDays}일이 지났어요</div>
+                        <div style="font-size:0.88em;color:#555;line-height:1.8;margin-bottom:6px;">
+                            즉시 재검사는 기억 효과로 인해<br>
+                            비슷한 결과가 나올 수 있어요.
+                        </div>
+                        <div style="background:#F0F7F4;border-radius:10px;padding:12px;font-size:0.82em;color:#1B4332;line-height:1.7;margin-bottom:18px;">
+                            📚 BFI-44 검사-재검사 신뢰도는<br>
+                            <b>30일 간격</b>일 때 가장 의미 있어요.<br>
+                            확언 효과 측정에도 30일이 필요해요.
+                        </div>
+                        <div style="font-size:0.82em;color:#888;margin-bottom:16px;">
+                            그래도 지금 하시겠어요?
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button onclick="this.closest('div[style*=fixed]').remove();"
+                                style="flex:1;min-height:48px;background:#F0F0F0;color:#555;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                                나중에 할게요
+                            </button>
+                            <button onclick="this.closest('div[style*=fixed]').remove();window._doPsychStart(window._psychMode||'full');"
+                                style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                                지금 할게요
+                            </button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                return;
+            }
+        }
+        pMode = mode || 'full';
+        _doPsychStart(mode);
+    }
+
+    window._doPsychStart = function(mode){
+        pMode = mode || 'full';
+        // ★ psych_last_date는 결과 계산 시에만 저장 (중간에 종료해도 30일 제한 없음)
+        pA = {}; pStep = 0;
+        showPsychStep(0);
+    }
+
+    function getPsychQuestion(step){
+        const BFI = getBFI(), RSE = getRSE(), VIA = getVIA();
+        if(step < INFO_ITEMS.length) return { type:'info', data: INFO_ITEMS[step] };
+        step -= INFO_ITEMS.length;
+        if(step < BFI.length) return { type:'bfi', data: BFI[step] };
+        step -= BFI.length;
+        if(step < RSE.length) return { type:'rse', data: RSE[step] };
+        step -= RSE.length;
+        return { type:'via', data: VIA[step] };
+    }
+
+    function showPsychStep(step){
+        const existing = document.getElementById('psych-modal');
+        // ★ 같은 step 재렌더 시 스크롤 위치 저장
+        let _savedScroll = 0;
+        if(existing){
+            _savedScroll = existing.scrollTop;
+            existing.remove();
+        }
+
+        const progress = Math.round(step / getPTotal() * 100);
+        const qInfo = getPsychQuestion(step);
+        const { type, data } = qInfo;
+
+        let sectionLabel = type === 'info' ? '📋 기본 정보'
+            : type === 'bfi' ? '🧠 성격 검사'
+            : type === 'rse' ? '🌱 자존감 검사'
+            : '✨ 강점 찾기';
+
+        let contentHTML = '';
+
+        if(type === 'info'){
+            const sel = pA['info_'+data.key];
+            const extraVal = data.extraKey ? (pA[data.extraKey]||'') : '';
+            const showExtra = data.extraKey && sel === data.extraTrigger;
+            const fs = pFontSize==='large' ? '1.1em' : '0.95em';
+            contentHTML = `<div style="display:flex;flex-direction:column;gap:8px;">
+                ${data.opts.map(o=>`
+                <button onclick="pA['info_${data.key}']='${o}';showPsychStep(${step});"
+                    style="padding:16px;border-radius:12px;
+                    border:${sel===o?'3px solid #1B4332':'2px solid var(--border-color)'};
+                    background:${sel===o?'#E8F5E9':'var(--card-bg)'};
+                    color:${sel===o?'#1B4332':'var(--text-color)'};
+                    font-size:${pFontSize==='large'?'1.1em':'0.95em'};
+                    font-weight:${sel===o?'700':'400'};cursor:pointer;text-align:left;
+                    box-shadow:${sel===o?'0 0 0 3px rgba(27,67,50,0.2)':'none'};
+                    transition:all 0.15s;">
+                    <span style="margin-right:8px">${sel===o?'✅':'⬜'}</span>${o}</button>`).join('')}
+                ${showExtra ? `<div style="margin-top:4px;">
+                    <input id="psych-extra-input" type="text" placeholder="${data.extraPlaceholder||''}"
+                        value="${extraVal}"
+                        oninput="pA['${data.extraKey}']=this.value"
+                        style="width:100%;padding:12px 14px;font-size:${pFontSize==='large'?'1.1em':'0.95em'};border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;outline:none;">
+                </div>` : ''}
+            </div>`;
+        }
+        else if(type === 'bfi' || type === 'rse'){
+            const key = type+'_'+data.id;
+            const sel = pA[key] || null;
+            const LABELS = [
+                {t:'전혀 아니다', e:'😫', bg:'#f1f8e9'},
+                {t:'아니다',      e:'😟', bg:'#dcedc8'},
+                {t:'약간 아니다', e:'😐', bg:'#e8f5e9'},
+                {t:'보통이다',    e:'🙂', bg:'#fff9c4'},
+                {t:'약간 그렇다', e:'😊', bg:'#fff3e0'},
+                {t:'그렇다',      e:'😄', bg:'#ffe0b2'},
+                {t:'매우 그렇다', e:'🤩', bg:'#ffccbc'},
+            ];
+            contentHTML = `
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:0.95em;color:var(--text-muted);text-align:center;margin-bottom:14px;font-weight:600;">
+                        ✋ 나와 얼마나 일치하는지 눌러주세요
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:9px;">
+                    ${LABELS.map((lb,i) => {
+                        const v = i+1;
+                        const picked = sel===v;
+                        const btnFontSz = pFontSize==='large' ? '1.25em' : '1.05em';
+                        const btnH = pFontSize==='large' ? '72px' : '62px';
+                        return '<button onclick="pA[\''+key+'\']='+(v)+'; showPsychStep('+step+');"'
+                            +' style="width:100%;min-height:'+btnH+';border-radius:16px;'
+                            +'border:'+(picked?'4px solid #1B4332':'2px solid #e0e0e0')+';'
+                            +'background:'+(picked?'#E8F5E9':lb.bg)+';'
+                            +'color:'+(picked?'#1B4332':'#333')+';'
+                            +'font-weight:'+(picked?'900':'600')+';'
+                            +'cursor:pointer;display:flex;align-items:center;'
+                            +'gap:14px;padding:0 18px;transition:all 0.15s;'
+                            +'box-shadow:'+(picked?'0 0 0 3px rgba(27,67,50,0.25)':'none')+';">'
+                            +'<span style="font-size:2em;min-width:40px;text-align:center;">'+(picked?'✅':lb.e)+'</span>'
+                            +'<span style="flex:1;font-size:'+btnFontSz+';text-align:left;line-height:1.4;">'+(lb.t)+'</span>'
+                            +'<span style="font-size:0.85em;opacity:'+(picked?'1':'0.45')+';min-width:28px;text-align:right;font-weight:700;color:'+(picked?'#1B4332':'#aaa')+';">'+(v)+'점</span>'
+                            +'</button>';
+                    }).join('')}
+                    </div>
+                </div>`;
+        }
+        else if(type === 'via'){
+            const key = 'via_'+data.id;
+            const sel = pA[key];
+            contentHTML = `<div style="display:flex;flex-direction:column;gap:12px;">
+                ${data.opts.map((o,i)=>`
+                <button onclick="pA['${key}']=${i};showPsychStep(${step});"
+                    style="padding:20px 18px;border-radius:16px;
+                    border:${sel===i?'4px solid #1B4332':'2px solid #ddd'};
+                    background:${sel===i?'#E8F5E9':'var(--card-bg)'};
+                    color:${sel===i?'#1B4332':'var(--text-color)'};
+                    font-size:${pFontSize==='large'?'1.25em':'1.1em'};
+                    font-weight:${sel===i?'900':'600'};cursor:pointer;text-align:left;line-height:1.6;
+                    display:flex;align-items:center;gap:12px;
+                    box-shadow:${sel===i?'0 0 0 3px rgba(27,67,50,0.25)':'none'};
+                    transition:all 0.15s;">
+                    <span style="font-size:1.4em">${sel===i?'✅':'⬜'}</span>
+                    <span style="flex:1">${o}</span>
+                    </button>`).join('')}
+            </div>`;
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;display:flex;flex-direction:column;';
+        modal.innerHTML = `
+            <div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button onclick="document.getElementById('psych-modal').remove();"
+                        style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
+                            <span>${sectionLabel}</span>
+                            <span>${step+1} / ${getPTotal()}</span>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.2);border-radius:4px;height:5px;">
+                            <div style="background:#C9A84C;height:100%;border-radius:4px;width:${progress}%;transition:width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <button onclick="pFontSize=pFontSize==='large'?'normal':'large';showPsychStep(${step});"
+                        style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:0.85em;font-weight:700;cursor:pointer;padding:6px 10px;white-space:nowrap;">
+                        ${pFontSize==='large'?'🔡 보통':'🔠 크게'}
+                    </button>
+                </div>
+            </div>
+            <div style="flex:1;padding:24px 20px 100px;">
+                <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                    <span style="background:#1B4332;color:#C9A84C;border-radius:20px;padding:4px 14px;font-size:0.85em;font-weight:700;">
+                        ${step+1}번 문항
+                    </span>
+                </div>
+                <div style="font-size:${pFontSize==='large'?'1.5em':'1.25em'};font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.7;">
+                    ${data.text}
+                </div>
+                ${contentHTML}
+            </div>
+            <div style="position:sticky;bottom:0;padding:14px 20px;background:var(--bg-color);border-top:1px solid var(--border-color);display:flex;gap:10px;">
+                ${step > 0 ? `<button onclick="showPsychStep(${step-1})"
+                    style="flex:1;min-height:50px;background:var(--card-bg);color:var(--text-color);border:1px solid var(--border-color);border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">← 이전</button>` : ''}
+                <button onclick="psychGoNext(${step})"
+                    style="flex:2;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
+                    ${step < getPTotal()-1 ? '다음 →' : '결과 보기 🎉'}
+                </button>
+            </div>`;
+        document.body.appendChild(modal);
+        // ★ 스크롤 위치 복원
+        if(_savedScroll > 0){
+            requestAnimationFrame(function(){
+                modal.scrollTop = _savedScroll;
+            });
+        }
+    }
+
+    window.psychGoNext = function(step){
+        const qInfo = getPsychQuestion(step);
+        const { type, data } = qInfo;
+        // 유효성 검사
+        if(type === 'info' && !pA['info_'+data.key]){ showToast('선택해주세요!'); return; }
+        if((type === 'bfi'||type === 'rse') && !pA[type+'_'+data.id]){ showToast('감정을 선택해주세요!'); return; }
+        if(type === 'via' && pA['via_'+data.id] === undefined){ showToast('선택해주세요!'); return; }
+
+        if(step < getPTotal() - 1){ showPsychStep(step + 1); }
+        else { showPsychEmailStep(); }
+    }
+
+    function showPsychEmailStep(){
+        // 이미 이메일 있으면 바로 결과
+        const savedEmail = safeGetItem('my_email','');
+        if(savedEmail){
+            calcAndShowResult();
+            return;
+        }
+
+        const existing = document.getElementById('psych-modal');
+        if(existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'psych-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;display:flex;flex-direction:column;';
+        modal.innerHTML =
+            '<div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">'
+            + '<div style="display:flex;align-items:center;gap:12px;">'
+            + '<button id="psych-email-close" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>'
+            + '<div style="flex:1;text-align:center;font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">거의 다 됐어요! 🎉</div>'
+            + '</div></div>'
+            + '<div style="flex:1;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">'
+            + '<div style="font-size:64px;margin-bottom:16px;">📱</div>'
+            + '<div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:10px;">이메일을 등록하면 결과가 저장돼요!</div>'
+            + '<div style="font-size:0.9em;color:var(--text-muted);line-height:1.8;margin-bottom:28px;">'
+            + '이메일을 등록하면 앱에 결과가 저장되고<br>30일 후 변화를 숫자로 비교할 수 있어요.<br>'
+            + '<span style="color:#C9A84C;font-weight:700;">이메일 없이도 결과 확인 가능해요!</span>'
+            + '</div>'
+            + '<div style="width:100%;max-width:360px;">'
+            + '<button id="psych-google-btn" style="width:100%;padding:14px;font-size:1em;border:1.5px solid #4285F4;border-radius:12px;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">'
+            + '<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>'
+            + '구글 계정에서 이메일 가져오기</button>'
+            + '<input id="psych-email-input" type="email" placeholder="또는 이메일 직접 입력"'
+            + ' style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:12px;">'
+            + '<button onclick="window._savePsychEmail()" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1.05em;font-weight:700;cursor:pointer;margin-bottom:10px;">등록하고 결과 보기 🎉</button>'
+            + '<button onclick="calcAndShowResult()" style="width:100%;min-height:48px;background:none;border:1px solid #ddd;border-radius:14px;font-size:0.9em;color:var(--text-muted);cursor:pointer;">이메일 없이 결과 보기</button>'
+            + '</div></div>';
+        document.body.appendChild(modal);
+        document.getElementById('psych-email-close').addEventListener('click', function(){
+            document.getElementById('psych-modal').remove();
+        });
+
+        // 구글 버튼 이벤트
+        document.getElementById('psych-google-btn').addEventListener('click', function(){
+            window._googleOneTap();
+            // postMessage로 이메일 수신 후 자동 입력
+            window.addEventListener('message', function _pe(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _pe);
+                    const inp = document.getElementById('psych-email-input');
+                    if(inp && e.data.email) inp.value = e.data.email;
+                    // ★ 이름도 함께 (기존 닉네임 없을 때만)
+                    if(e.data.name && !safeGetItem('my_nickname','')) {
+                        safeSetItem('my_nickname', e.data.name);
+                    }
+                    showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
+                }
+            });
+        });
+    }
+
+    window._savePsychEmail = function(){
+        const val = (document.getElementById('psych-email-input')?.value || '').trim();
+        if(val){
+            safeSetItem('my_email', val);
+            const ei = document.getElementById('user-email-input');
+            if(ei) ei.value = val;
+            // ★ 심리테스트 이메일 등록 = 앱 가입으로 인정
+            if(safeGetItem('onboarding_done','') !== '1'){
+                safeSetItem('onboarding_done', '1');
+                addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
+            }
+        }
+        calcAndShowResult();
+    }
+
+    function calcAndShowResult(){
+        // ★ 이메일 없이 결과보기 여부 기록
+        if(!safeGetItem('my_email','')) window._psychNoEmailResult = true;
+        // ★ 결과 완료 시에만 날짜 저장
+        safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
+        // BFI-44 채점
+        const bfi = { E:[], O:[], A:[], C:[], N:[] };
+        getBFI().forEach(item => {
+            let raw = pA['bfi_'+item.id] || 4;
+            if(item.rev) raw = 8 - raw;
+            bfi[item.axis].push(raw);
+        });
+        const scores = {};
+        const rawScores = {}; // 1-7 평균 점수 (소수점 2자리)
+        ['E','O','A','C','N'].forEach(ax => {
+            const avg = bfi[ax].reduce((a,b)=>a+b,0)/bfi[ax].length;
+            scores[ax] = Math.round((avg-1)/6*100);
+            rawScores[ax] = Math.round(avg*100)/100; // 1~7점 raw score
+        });
+
+        // Rosenberg 채점
+        let rseTotal = 0;
+        getRSE().forEach(item => {
+            let raw = pA['rse_'+item.id] || 4;
+            if(item.rev) raw = 8 - raw;
+            rseTotal += raw;
+        });
+        const _rseLen = getRSE().length;  // 퀵(4) or 정밀(10) 동적 반영
+        scores.RSE = Math.round((rseTotal - _rseLen) / (_rseLen * 6) * 100);
+
+        // VIA 강점
+        const viaStrengths = VIA_ITEMS.map(item => {
+            const idx = pA['via_'+item.id] || 0;
+            return item.str[idx];
+        });
+
+        // 동물 유형 결정
+        const E = scores.E >= 50 ? '☀️' : '🌙';
+        const O = scores.O >= 50 ? '🔥' : '🌱';
+        const A = scores.A >= 50 ? '🤝' : '🦋';
+        const C = scores.C >= 50 ? '⚡' : '💭';
+        const typeKey = E+O+A+C;
+        const animal = PSYCH_ANIMALS[typeKey] || PSYCH_ANIMALS['🌙🌱🤝💭'];
+
+        // 저장
+        const result = { typeKey, animal, scores, rawScores, viaStrengths,
+            info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
+            date: getTodayStr() };
+        safeSetItem('psych_result_v2', JSON.stringify(result));
+        renderPsychPreview(); // ★ 미리보기 잠금 해제
+
+        // 구글 시트 전송
+        sendPsychToSheet(result);
+
+        showPsychResult(result);
+    }
+
+    function sendPsychToSheet(result){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        fetch(SHEET_API_URL, {
+            method:'POST', mode:'no-cors',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                action: 'psych_result',
+                nickname: safeGetItem('my_nickname','미설정'),
+                date: result.date,
+                route: result.info.route,
+                age: result.info.age,
+                region: result.info.region,
+                animalType: result.animal.name,
+                typeKey: result.typeKey,
+                E: result.scores.E, O: result.scores.O,
+                A: result.scores.A, C: result.scores.C,
+                N: result.scores.N, RSE: result.scores.RSE,
+                strengths: result.viaStrengths.join(',')
+            })
+        }).catch(()=>{});
+    }
+
+    function getScoreBar(score, color='#1B4332'){
+        return `<div style="background:var(--border-color);border-radius:6px;height:8px;margin:4px 0;">
+            <div style="background:${color};height:100%;border-radius:6px;width:${score}%;"></div></div>`;
+    }
+
+    function getLevelText(score){
+        if(score >= 75) return '매우 높음';
+        if(score >= 55) return '높은 편';
+        if(score >= 45) return '보통';
+        if(score >= 25) return '낮은 편';
+        return '매우 낮음';
+    }
+
+    function getOverallDesc(s, animal){
+        // 외향성 해석
+        const E = s.E >= 75 ? '극도로 사교적이고 자극을 갈망해요. 혼자 있는 시간이 길어지면 에너지가 고갈되는 느낌을 받아요.'
+            : s.E >= 55 ? '사람들과 함께할 때 에너지가 충전돼요. 대화와 만남을 즐기지만 가끔 혼자만의 시간도 필요해요.'
+            : s.E >= 40 ? '상황에 따라 사교적이기도 하고 혼자이기도 한 양방향 성향이에요. 선택적으로 에너지를 씁니다.'
+            : s.E >= 25 ? '조용하고 내성적인 편이에요. 소수의 깊은 관계를 선호하고 혼자만의 시간에서 힘을 얻어요.'
+            : '깊은 내향성을 가졌어요. 사회적 자극보다 혼자 생각하고 처리하는 데서 진짜 에너지를 얻어요.';
+
+        // 개방성 해석
+        const O = s.O >= 75 ? '지적 호기심이 넘치고 새로운 아이디어, 예술, 추상적 사고를 즐겨요. 창의성과 상상력이 남다릅니다.'
+            : s.O >= 55 ? '새로운 경험에 열려 있고 학습을 즐겨요. 창의적이면서도 실용성을 놓치지 않아요.'
+            : s.O >= 40 ? '새로운 것도 익숙한 것도 균형 있게 받아들여요. 상황에 따라 유연하게 접근합니다.'
+            : s.O >= 25 ? '검증된 방법과 안정된 환경을 선호해요. 변화보다는 신뢰할 수 있는 루틴에서 최고의 결과를 냅니다.'
+            : '전통적이고 실용적인 접근을 선호해요. 추상적 이론보다 구체적이고 현실적인 것에서 가치를 찾아요.';
+
+        // 친화성 해석
+        const A = s.A >= 75 ? '타인에 대한 배려와 공감 능력이 탁월해요. 조화를 중시하고 갈등을 피하려는 경향이 강합니다.'
+            : s.A >= 55 ? '사람을 배려하면서도 자신의 의견을 말할 줄 알아요. 협력적이고 따뜻한 관계를 만들어나가요.'
+            : s.A >= 40 ? '협력과 독립 사이에서 균형을 잘 잡아요. 상황에 따라 맞춰가면서도 자신을 잃지 않아요.'
+            : s.A >= 25 ? '독립적이고 자신의 기준이 명확해요. 솔직한 의견 표현을 중요하게 여기고 불필요한 양보를 잘 안 해요.'
+            : '경쟁적이고 자기주장이 강해요. 타인의 기분보다 사실과 결과를 우선시하는 경향이 있습니다.';
+
+        // 성실성 해석
+        const C = s.C >= 75 ? '매우 체계적이고 목표 지향적이에요. 자기절제력이 강하고, 시작한 일은 반드시 끝내는 책임감이 있어요.'
+            : s.C >= 55 ? '계획적이고 꼼꼼한 편이에요. 중요한 일에서는 체계를 갖추고, 마감을 지키는 신뢰로운 사람이에요.'
+            : s.C >= 40 ? '상황에 따라 계획적이기도 즉흥적이기도 해요. 완벽한 체계보다 유연한 실행을 선호하는 편이에요.'
+            : s.C >= 25 ? '즉흥적이고 유연하게 상황에 대응해요. 엄격한 루틴보다 창의적이고 자유로운 방식에서 실력이 나와요.'
+            : '매우 유연하고 자유로운 영혼이에요. 체계와 규칙에 얽매이지 않고, 직관적으로 움직이는 타입입니다.';
+
+        // 신경증(안정성) 해석
+        const stab = 100 - s.N;
+        const N = stab >= 75 ? '정서적으로 매우 안정적이에요. 스트레스 상황에서도 냉정함을 유지하고, 주변에 심리적 안전감을 줘요.'
+            : stab >= 55 ? '전반적으로 안정적이고 회복력이 있어요. 가끔 흔들리더라도 비교적 빠르게 자리를 잡아요.'
+            : stab >= 40 ? '감정의 기복이 있는 편이에요. 상황에 따라 불안하거나 걱정되는 경험을 자주 하지만 그만큼 공감력도 높아요.'
+            : stab >= 25 ? '감수성이 풍부하고 감정을 깊이 느껴요. 스트레스에 민감하지만, 그만큼 예술적 감각과 공감 능력이 탁월해요.'
+            : '정서적 민감도가 매우 높아요. 작은 자극에도 강하게 반응하지만, 그 깊이가 당신만의 고유한 강점이기도 해요.';
+
+        return `<b>${animal.name}</b>인 당신에 대해 BFI-44가 알려주는 이야기예요.<br><br>` +
+            `<b>🌊 에너지의 방향:</b> ${E}<br><br>` +
+            `<b>💡 사고와 경험:</b> ${O}<br><br>` +
+            `<b>🤝 관계의 방식:</b> ${A}<br><br>` +
+            `<b>⚙️ 실행과 목표:</b> ${C}<br><br>` +
+            `<b>🌡️ 감정의 온도:</b> ${N}`;
+    }
+
+
+    // ★ 핵심 원칙: 모든 스타일 함수는 동물 유형과 동일한 50% 기준 사용
+    // E>=50=외향(☀️), E<50=내향(🌙)
+    // O>=50=개방(🔥), O<50=실용(🌱)
+    // A>=50=친화(🤝), A<50=독립(🦋)
+    // C>=50=성실(⚡), C<50=유연(💭)
+
+    function getLoveStyle(s){
+        let title, desc, strength, caution, tip;
+        const video = { url:'https://youtube.com/shorts/eF7D2lUPQII', label:'감정 표현이 어려운 당신에게' };
+        // E, A, N 기반 (연애는 외향성+친화성+신경증 조합)
+        const hiE = s.E >= 50, hiA = s.A >= 50, hiN = s.N >= 50;
+
+        if(hiA && hiN){
+            title = '💕 깊이 사랑하고 깊이 상처받는 연인';
+            desc = `당신은 사랑에 진심을 다하는 사람이에요. 친화성(${s.A}%)이 높아 상대를 세심하게 배려하지만, 정서 민감도(신경증 ${s.N}%)도 높아 상대의 반응에 깊이 영향 받아요. 관계에서 확신과 안정감이 중요하며, 사랑받고 있다는 신호가 없으면 불안이 커질 수 있어요. ${hiE ? '외향적 에너지로 감정을 적극 표현하는 편이에요.' : '내향적으로 감정을 내면에서 많이 처리하는 편이에요.'}`;
+            strength = '🌟 강점: 깊은 공감과 헌신. 상대의 감정을 세밀하게 감지하는 능력. 진정성 있는 사랑.';
+            caution = '⚠️ 주의: 상대 반응에 과도한 의미 부여. 자신의 필요를 말하지 못하다 감정이 쌓임.';
+            tip = '💡 성장 팁: Gottman(1994)의 연구에서 즉각적인 감정 표현이 관계 만족도를 높이는 핵심이에요. "나는 지금 이래서 서운해"를 바로 말하는 연습이 필요해요.';
+        } else if(hiA && !hiN){
+            title = '💕 안정적이고 헌신적인 동반자';
+            desc = `당신은 사랑하는 사람에게 든든한 닻 같은 존재예요. 친화성(${s.A}%)이 높아 진심으로 배려하고, 정서 안정성(신경증 ${s.N}%)이 좋아 흔들리지 않는 관계의 기반을 만들어요. ${hiE ? '활발한 표현으로 상대를 기쁘게 하는 타입이에요.' : '조용하지만 행동으로 사랑을 보여주는 타입이에요.'} 갈등에서도 차분하게 해결책을 찾으며, 상대가 당신 곁에서 심리적 안전함을 느껴요.`;
+            strength = '🌟 강점: 감정적 안정감과 배려의 균형. 장기 신뢰 관계 유지 능력. 갈등 시 차분한 대처.';
+            caution = '⚠️ 주의: "괜찮은 척"하다 상대가 당신의 진짜 필요를 모를 수 있어요.';
+            tip = '💡 성장 팁: 상대가 힘들 때 "어떻게 도와줄까?" 전에 "많이 힘들었겠다"로 감정을 먼저 인정해주세요.';
+        } else if(!hiA && !hiN){
+            title = '💕 독립적이고 자유로운 파트너';
+            desc = `사랑이란 각자의 공간을 존중하면서 함께하는 것이라고 생각해요. 친화성(${s.A}%)이 낮아 집착보다 자유를 중시하고, 정서 안정성(신경증 ${s.N}%)이 좋아 상대 행동에 쉽게 흔들리지 않아요. ${hiE ? '직접적이고 솔직한 애정 표현을 선호해요.' : '언어보다 행동으로 사랑을 표현하는 타입이에요.'} 관계의 주도권을 중요하게 여기며, 서로 성장하는 파트너십을 이상적으로 봐요.`;
+            strength = '🌟 강점: 건강한 자아 경계. 집착 없는 신뢰 관계. 상대 독립성 존중.';
+            caution = '⚠️ 주의: 감정 표현 부족으로 상대가 사랑받지 못한다고 느낄 수 있어요.';
+            tip = '💡 성장 팁: Chapman(1992)의 사랑의 언어에서 언어적 인정은 많은 사람의 주요 사랑 언어예요. 하루 한 번 "고마워"를 의식적으로 말해보세요.';
+        } else {
+            title = '💕 신중하게 마음을 여는 연인';
+            desc = `관계가 안전하다고 확신될 때까지 시간이 필요한 타입이에요. 친화성(${s.A}%)이 낮아 쉽게 마음을 열지 않지만, 정서 민감도(신경증 ${s.N}%)가 높아 내면에서는 관계에 깊이 영향받아요. ${hiE ? '겉으로는 사교적이지만 진짜 마음을 여는 데는 시간이 걸려요.' : '소수의 깊고 진실된 관계를 선호해요.'} 한번 신뢰가 쌓이면 누구보다 깊고 진한 사랑을 해요.`;
+            strength = '🌟 강점: 신뢰 후의 깊은 진정성. 경솔하지 않은 자기보호. 관계의 지속성.';
+            caution = '⚠️ 주의: 과도한 신중함이 좋은 인연을 놓칠 수 있어요.';
+            tip = '💡 성장 팁: 70% 확신에서 시작하는 용기가 더 많은 기회를 만들어줘요. 완벽한 타이밍은 오지 않아요.';
+        }
+        return { title, desc, strength, caution, tip, video };
+    }
+
+    function getWorkStyle(s){
+        let title, desc, strength, caution, tip;
+        const video = { url:'https://youtube.com/shorts/Q3vJyOXh9Y0', label:'그냥 이대로 살다가는 안 됩니다' };
+        // C, O 기반 (일 스타일은 성실성+개방성 핵심)
+        const hiC = s.C >= 50, hiO = s.O >= 50;
+
+        if(hiC && hiO){
+            title = '💼 혁신적 전략가';
+            desc = `아이디어를 현실로 만드는 능력을 가졌어요. 개방성(${s.O}%)에서 나오는 창의적 발상과 성실성(${s.C}%)에서 나오는 실행력이 결합돼요. ${s.C >= 65 ? '높은 성실성으로 체계적으로 실행해요.' : '유연한 방식으로 창의성을 발휘해요.'} ${s.O >= 65 ? '풍부한 아이디어를 끊임없이 생성해요.' : '실용적 창의성으로 현실적 혁신을 만들어요.'} Barrick & Mount(1991)의 메타분석에서 성실성과 개방성 조합이 창의적 직무에서 가장 높은 성과를 냈어요.`;
+            strength = '🌟 강점: 큰 그림과 세부 실행을 동시에. 기존 방식 개선 능력. 창의적이고 전략적인 문제 해결.';
+            caution = '⚠️ 주의: 아이디어가 많아 우선순위 설정이 어려울 수 있어요.';
+            tip = '💡 성장 팁: 60% 준비됐을 때 시작하고 나머지는 실행하며 채우는 방식이 더 큰 성과를 만들어요.';
+        } else if(hiC && !hiO){
+            title = '💼 탁월한 완수자';
+            desc = `맡은 일을 반드시 끝내는 강력한 책임감이 있어요. 성실성(${s.C}%)이 높아 꼼꼼하고 체계적이며 신뢰도가 매우 높아요. ${s.C >= 65 ? '매우 체계적이고 규칙을 잘 따라요.' : '중요한 일에서 체계를 갖추는 신뢰로운 사람이에요.'} 안정적이고 예측 가능한 환경에서 최고의 실력을 발휘해요. Friedman et al.(1993)의 종단연구에서 성실성 높은 개인이 직업 만족도와 수명 모두에서 우위를 보였어요.`;
+            strength = '🌟 강점: 높은 신뢰도와 책임감. 체계적 업무 처리. 마감 준수. 장기 프로젝트에서 특히 빛남.';
+            caution = '⚠️ 주의: 완벽주의가 번아웃으로 이어질 수 있어요.';
+            tip = '💡 성장 팁: "충분히 좋은 것(good enough)"을 받아들이는 연습이 필요해요. 80% 완성이 더 빠른 성과를 만들기도 해요.';
+        } else if(!hiC && hiO){
+            title = '💼 자유로운 창작자';
+            desc = `자신만의 방식으로 일할 때 진짜 실력이 나와요. 개방성(${s.O}%)이 높아 창의적 아이디어가 넘치지만, 성실성(${s.C}%)이 낮아 체계적 실행이 도전이 될 수 있어요. ${s.O >= 65 ? '풍부한 상상력과 예술적 감수성이 강점이에요.' : '실용적 창의성으로 새로운 방식을 탐색해요.'} 예술, 기획, 연구, 콘텐츠 창작에서 빛나요.`;
+            strength = '🌟 강점: 독창적인 아이디어. 새로운 관점에서 문제 접근. 창의적 환경에서의 몰입과 열정.';
+            caution = '⚠️ 주의: 마감 관리와 루틴 유지가 어려울 수 있어요.';
+            tip = '💡 성장 팁: 창의 작업(오전)과 루틴 업무(오후)를 시간대별로 분리해보세요.';
+        } else {
+            title = '💼 유연한 상황 대응자';
+            desc = `상황 변화에 빠르게 적응하는 능력이 있어요. 성실성(${s.C}%)과 개방성(${s.O}%) 모두 중간 수준으로, 너무 경직되지도 산만하지도 않은 균형 잡힌 스타일이에요. ${s.E >= 50 ? '적극적으로 새 역할과 기회를 탐색해요.' : '신중하게 자신의 영역에서 깊이를 쌓아요.'} 팀 환경에서 다양한 역할을 맡을 수 있어요.`;
+            strength = '🌟 강점: 다양한 상황 적응 유연성. 팀 내 다리 역할. 실용적 결과 도출.';
+            caution = '⚠️ 주의: 한 분야 깊은 전문성이 부족할 수 있어요.';
+            tip = '💡 성장 팁: "내가 전문가가 되고 싶은 한 가지"를 정하고 집중 투자해보세요.';
+        }
+        return { title, desc, strength, caution, tip, video };
+    }
+
+    function getFriendStyle(s){
+        let title, desc, strength, caution, tip, video;
+        // ★ 핵심: E>=50=외향(사람에서 에너지), A>=50=친화(따뜻한 관계)
+        const hiE = s.E >= 50, hiA = s.A >= 50;
+
+        if(hiE && hiA){
+            title = '👥 따뜻하고 활기찬 연결자';
+            desc = `사람들과 함께할 때 에너지가 충전되고(외향성 ${s.E}%), 진심으로 타인을 배려하는(친화성 ${s.A}%) 사람이에요. ${s.E >= 65 ? '어디서든 자연스럽게 분위기를 살리는 에너자이저예요.' : '적당한 에너지로 따뜻한 분위기를 만들어요.'} ${s.A >= 65 ? '배려와 공감이 탁월해 주변에서 힘을 얻어요.' : '협력적이면서도 자신의 의견도 말할 줄 알아요.'} Berkman & Syme(1979)의 연구에서 이런 사회적 연결성이 강한 사람들이 심리적 웰빙과 신체 건강 모두에서 높은 수치를 보였어요.`;
+            strength = '🌟 강점: 새로운 환경에서 빠른 친화력. 갈등 시 중재 능력. 팀 사기를 높이는 긍정 에너지. 폭넓은 인간 네트워크.';
+            caution = '⚠️ 주의: 모든 사람과 좋은 관계를 유지하려다 자신을 소진할 수 있어요.';
+            tip = '💡 성장 팁: 관계의 폭만큼 깊이도 중요해요. 특별히 깊이 연결하고 싶은 3~5명에게 집중적인 시간을 투자해보세요.';
+            video = { url:'https://youtube.com/shorts/7ZXaUCHowXM', label:'외로움이 줄어드는 과학적 방법' };
+        } else if(hiE && !hiA){
+            title = '👥 솔직하고 활력 넘치는 친구';
+            desc = `에너지가 넘치고 솔직한 사람이에요. 외향성(${s.E}%)이 높아 새로운 사람 만나기를 즐기지만, 친화성(${s.A}%)이 낮아 모든 사람에게 맞추려 하지 않아요. ${s.E >= 65 ? '사회적 자극을 즐기며 다양한 사람들과 어울려요.' : '선택적으로 에너지를 써서 의미 있는 관계를 만들어요.'} 가식 없는 진정성 있는 관계를 가장 중요하게 여겨요.`;
+            strength = '🌟 강점: 가식 없는 진정성. 솔직한 피드백. 에너지 넘치는 대화. 충성스럽고 확실한 관계.';
+            caution = '⚠️ 주의: 솔직함이 때로 상처가 될 수 있어요.';
+            tip = '💡 성장 팁: Gottman(1994)의 "비판 vs 불만" 구별 — "넌 왜 항상 그래"(비판)가 아닌 "이번엔 이게 불편했어"(불만)로 표현하면 관계가 깊어져요.';
+            video = { url:'https://youtube.com/shorts/7ZXaUCHowXM', label:'외로움이 줄어드는 과학적 방법' };
+        } else if(!hiE && hiA){
+            title = '👥 깊고 진한 관계의 고수';
+            desc = `넓은 인맥보다 깊은 신뢰를 선택하는 사람이에요. 내향적(외향성 ${s.E}%)이라 새로운 사람에게 마음을 여는 데 시간이 걸리지만, 친화성(${s.A}%)이 높아 한번 신뢰가 쌓이면 그 누구보다 깊고 지속적인 우정을 만들어요. ${s.A >= 65 ? '깊은 공감과 배려로 친구들이 의지하는 존재예요.' : '진심 어린 지지를 아끼지 않아요.'} "친구 1명"이지만 20년 지기인 관계들이 주변에 많아요.`;
+            strength = '🌟 강점: 깊고 지속적인 관계 형성. 비밀 보관자. 진심 어린 지지와 공감. 관계에서의 일관성.';
+            caution = '⚠️ 주의: 새로운 환경에서 외로움을 느낄 수 있어요.';
+            tip = '💡 성장 팁: 새 사람을 만날 때 판단하려 하지 말고 지금 이 순간을 즐기는 연습을 해보세요.';
+            video = { url:'https://youtube.com/shorts/n39bewOVsfM', label:'착하게 살수록 외로워지는 진짜 이유' };
+        } else {
+            title = '👥 선택적으로 연결하는 독립인';
+            desc = `관계에서 질을 무엇보다 중요하게 여겨요. 내향적(외향성 ${s.E}%)이고 독립적(친화성 ${s.A}%)이어서 혼자 있는 시간이 편하고, 많은 사람들과 어울리는 것보다 혼자 생각하고 재충전하는 것을 선호해요. ${s.E < 35 ? '깊은 내향성으로 자신만의 풍부한 내면 세계를 가지고 있어요.' : '선택적으로 에너지를 배분하는 현명한 사람이에요.'} 소수의 신중하게 선택된 관계에서 진정한 연결을 경험해요.`;
+            strength = '🌟 강점: 신중한 관계 선택. 혼자 있는 능력. 자아 안정성.';
+            caution = '⚠️ 주의: 고립감을 느낄 수 있어요. Cacioppo & Patrick(2008) 연구에서 만성적 고독감은 건강에 영향을 미쳐요.';
+            tip = '💡 성장 팁: 같은 관심사를 가진 소규모 그룹에서 시작하면 자연스럽게 깊은 관계가 형성돼요.';
+            video = { url:'https://youtube.com/shorts/n39bewOVsfM', label:'착하게 살수록 외로워지는 진짜 이유' };
+        }
+        return { title, desc, strength, caution, tip, video };
+    }
+
+    function getHardStyle(s){
+        let title, desc, strength, caution, tip, video;
+        const stab = 100 - s.N;
+        const hiStab = stab >= 50;
+
+        if(stab >= 70){
+            title = '🌧️ 바위 같은 정서적 안정감';
+            desc = `위기 상황에서 흔들리지 않는 사람이에요. 정서 안정성(${stab}%)이 매우 높아 스트레스 상황에서도 냉정함을 유지하고 주변에 심리적 안전감을 줘요. Gray(1987)의 강화 민감성 이론에서 당신의 행동억제 체계(BIS)가 낮게 설정되어 위협 자극에 덜 민감해요. ${s.C >= 50 ? '체계적으로 문제를 분석하고 해결책을 찾아요.' : '유연하게 상황을 받아들이고 적응해요.'}`;
+            strength = '🌟 강점: 위기 상황의 리더십. 명확한 판단력. 주변에 안정감 제공. 번아웃 저항력.';
+            caution = '⚠️ 주의: 감정을 너무 억누르다 한꺼번에 터질 수 있어요.';
+            tip = '💡 성장 팁: 힘들 때 도움을 요청하는 것이 약함이 아니에요. 가장 신뢰하는 사람에게 속마음을 털어놓는 연습을 해보세요.';
+            video = { url:'https://youtube.com/shorts/TqLR5ZaaBpY', label:'힘들 때 딱 한 사람만 있으면 됩니다' };
+        } else if(hiStab){
+            title = '🌧️ 균형 잡힌 감정 조절자';
+            desc = `감정이 있지만 잘 다스리는 편이에요. 정서 안정성(${stab}%)이 중간 이상으로, 힘든 일이 있으면 잠깐 흔들리지만 비교적 빠르게 자리를 잡아요. ${s.C >= 50 ? '체계적인 문제 해결로 위기를 돌파해요.' : '유연하게 상황을 받아들이며 회복해요.'} 과도하게 감정적이지도, 지나치게 억압하지도 않는 균형 있는 정서 조절 능력이에요.`;
+            strength = '🌟 강점: 감정과 이성의 균형. 충분한 자기 정리 능력. 극단적 반응 없는 상황 대처.';
+            caution = '⚠️ 주의: 혼자 정리하다 도움받을 타이밍을 놓칠 수 있어요.';
+            tip = '💡 성장 팁: Pennebaker(1997) 연구에서 힘든 감정을 15~20분 글로 쓰는 것만으로도 면역력과 심리적 회복이 향상됐어요.';
+            video = { url:'https://youtube.com/shorts/TqLR5ZaaBpY', label:'힘들 때 딱 한 사람만 있으면 됩니다' };
+        } else {
+            title = '🌧️ 풍부한 감수성의 소유자';
+            desc = `감정을 아주 깊이 느끼는 사람이에요. 정서 민감도(신경증 ${s.N}%)가 높아 작은 자극에도 강하게 반응하고 상처가 오래 가는 편이에요. 하지만 이것은 약점이 아니에요 — 같은 이유로 타인의 아픔을 그 누구보다 잘 이해하고, 공감 능력과 예술적 감수성이 탁월해요. Nettle(2006)의 진화심리학에서 높은 신경증은 위험 감지 능력이 뛰어난 적응적 형질이에요. ${s.A >= 50 ? '깊은 공감으로 주변 사람들에게 위로가 되는 존재예요.' : '감수성이 창의적 에너지의 원천이 돼요.'}`;
+            strength = '🌟 강점: 탁월한 공감 능력. 풍부한 내면 세계. 예술적 감수성. 진정성 있는 감정 표현.';
+            caution = '⚠️ 주의: 부정적 감정이 되풀이되는 반추(rumination) 패턴에 빠질 수 있어요.';
+            tip = '💡 성장 팁: 확언이 당신에게 특히 강력해요! 뇌의 신경가소성 연구에서 긍정적 자기대화 반복이 전전두엽-편도체 연결을 실제로 강화해요.';
+            video = { url:'https://youtube.com/shorts/xwh3GA5FMO0', label:'상처 받았을 때 가장 먼저 해야 할 것' };
+        }
+        return { title, desc, strength, caution, tip, video };
+    }
+
+    function getMoneyStyle(s){
+        const hiC = s.C >= 50, hiO = s.O >= 50, hiE = s.E >= 50;
+        if(hiC && !hiO) return { title:'💰 계획적인 관리자', desc:`성실성(${s.C}%)이 높고 실용적(개방성 ${s.O}%)이어서 지출을 꼼꼼히 관리하고 충동구매를 잘 참아요. 장기 목표를 위해 현재를 절제하는 힘이 있어요.`, tip:'💡 가끔은 나를 위한 작은 사치도 괜찮아요. 삶의 질도 중요해요!' };
+        if(hiC && hiO) return { title:'💰 전략적 투자자', desc:`성실성(${s.C}%)과 개방성(${s.O}%)이 모두 높아 체계적이면서도 새로운 기회에 열려 있어요. 안정적 저축과 창의적 투자를 균형 있게 해요.`, tip:'💡 새로운 투자 기회를 탐색하되, 리스크 분석을 먼저 하는 습관을 유지하세요.' };
+        if(!hiC && hiO) return { title:'💰 경험에 투자하는 사람', desc:`개방성(${s.O}%)이 높아 물건보다 경험에 돈 쓰기를 좋아해요. 여행, 배움, 새로운 경험이라면 지갑이 열려요.`, tip:'💡 경험 투자는 좋지만 기본 저축도 병행하면 더 자유로워질 수 있어요.' };
+        return { title:'💰 균형 잡힌 소비자', desc:`크게 아끼지도 크게 쓰지도 않는 균형 잡힌 소비 패턴이에요. 나름의 기준이 있는 소비자예요.`, tip:'💡 나만의 소비 기준을 한 번 글로 적어보세요. 더 만족스러운 소비 생활이 돼요.' };
+    }
+
+    function getRseStyle(rse){
+        let title, desc, strength, growth, tip, video;
+        if(rse >= 75){
+            title = '🌱 안정적이고 건강한 자존감';
+            desc = `자존감(${rse}점)이 상위 범위에 있어요. 나 자신을 있는 그대로 받아들이고 타인의 비판에 흔들리지 않는 내적 중심이 잡혀 있어요. Eisenberger et al.(2011)의 연구에서 높은 자존감을 가진 사람들은 사회적 거절 자극에 뇌의 고통 반응(anterior insula)이 약하게 나타났어요 — 같은 상황에서도 덜 아픈 뇌를 가진 거예요.`;
+            strength = '🌟 이 자존감이 주는 것들: 비판을 성장 기회로 보는 유연성. 관계에서 집착하지 않는 여유. 어려운 결정을 내릴 때의 자기 신뢰.';
+            growth = '🌱 유지와 성장: 삶의 큰 변화(이직, 이별, 은퇴) 시기에도 흔들릴 수 있어요. 꾸준한 확언이 이 안정감의 닻이 돼요.';
+            tip = '💡 30일 후 재검사로 변화를 수치로 확인해보세요!';
+        } else if(rse >= 50){
+            title = '🌱 성장 가능성이 높은 자존감';
+            desc = `자존감(${rse}점)이 평균 범위에 있어요. 좋은 날과 흔들리는 날이 공존하는 것 — 그게 지금의 당신이에요. Northoff et al.(2006)의 연구에서 긍정적 자기서사(positive self-narrative)의 반복이 내측 전전두피질의 활성화 패턴을 바꿀 수 있어요. 지금 이 시간이 성장의 출발점이에요.`;
+            strength = '🌟 지금의 강점: 자신을 성장시키려는 의지. 완벽하지 않아도 앞으로 나아가는 용기.';
+            growth = '🌱 성장 방향: 자존감은 성취로 쌓는 게 아니에요. "나는 지금 이대로 충분하다"는 것을 지금 받아들이는 연습이 더 중요해요.';
+            tip = '💡 매일 아침 눈 뜨자마자 확언을 3번 소리 내어 읽어보세요. 뇌는 반복으로 자기상을 업데이트해요.';
+            video = { url:'https://youtube.com/shorts/brz6XesFoN8', label:'거절당한 고통, 당신 잘못이 아닙니다' };
+        } else {
+            title = '🌱 회복이 필요한 자존감';
+            desc = `지금 자존감(${rse}점)이 낮은 시기를 보내고 있어요. 나 자신을 소중히 여기기가 어렵고 부정적인 생각이 많이 드는 시간일 수 있어요. 그런데 중요한 건, 이것을 알아챈 것 자체가 이미 변화의 시작이에요. 자존감은 고정된 것이 아니에요. Clark(2005)의 연구에서 반복적인 긍정적 자기대화와 행동 변화가 자존감을 실질적으로 높였어요.`;
+            strength = '🌟 지금 필요한 것: 자신에게 친절하게 대하는 연습. 작은 성공 경험 쌓기. 부정적 내면의 목소리에 맞서는 새 이야기 만들기.';
+            growth = '🌱 첫 번째 단계: 오늘 잘한 일 1가지를 찾아보세요. "오늘 물 한 잔 마셨다"도 시작이에요.';
+            tip = '💡 확언 앱을 매일 여는 것 자체가 이미 자신을 향한 사랑의 행동이에요. 매일 조금씩, 뇌는 반드시 변해요.';
+            video = { url:'https://youtube.com/shorts/brz6XesFoN8', label:'거절당한 고통, 당신 잘못이 아닙니다' };
+        }
+        return { title, score: rse, desc, strength, growth, tip, video };
+    }
+
+    function getViaStyle(strengths){
+        const top = strengths ? strengths[0] : '호기심';
+        const descs = {
+            '호기심':'새로운 것을 배우고 탐험하는 것이 삶의 원동력이에요. 알면 알수록 더 알고 싶어지는 타입이에요.',
+            '안정감':'익숙하고 검증된 것에서 깊은 만족을 느껴요. 신뢰할 수 있는 루틴과 관계가 삶의 기반이에요.',
+            '협동심':'함께 만들어가는 것에서 큰 보람을 느껴요. 팀의 시너지를 이끌어내는 능력이 탁월해요.',
+            '자기주도':'스스로 결정하고 실행하는 것에서 에너지를 얻어요. 독립적으로 일할 때 가장 빛나요.',
+            '감성지능':'감정을 읽고 표현하는 능력이 뛰어나요. 사람들이 당신 곁에서 위로를 느끼는 이유예요.',
+            '자기조절':'감정을 잘 다스리고 차분하게 상황을 바라보는 힘이 있어요. 위기 상황에서 특히 빛나요.',
+            '친절함':'사람들을 진심으로 챙기는 마음이 최고의 강점이에요. 주변에서 당신의 따뜻함에 힘을 얻어요.',
+            '정직함':'솔직하고 투명한 것이 최고의 강점이에요. 사람들이 당신을 신뢰하는 이유예요.',
+            '신중성':'충분히 생각하고 행동하는 신중함이 강점이에요. 실수가 적고 결정의 질이 높아요.',
+            '활력':'행동으로 뛰어드는 에너지가 넘쳐요. 시작하는 힘이 탁월하고 주변에 동기를 부여해요.',
+            '감사':'일상의 작은 것에서도 행복을 찾는 능력이에요. 같은 상황에서도 더 많은 기쁨을 느껴요.',
+            '희망':'더 나은 미래를 그리며 현재를 사는 힘이에요. 어려운 상황에서도 가능성을 보는 눈이 있어요.',
+            '창의성':'기존과 다른 방식으로 세상을 보고 만들어가는 힘이에요.',
+            '공감능력':'타인의 감정을 섬세하게 감지하고 이해하는 능력이에요.',
+        };
+        return {
+            title: `✨ 핵심 강점: ${top}`,
+            strengths: strengths || [],
+            desc: descs[top] || '당신만의 고유한 강점이 있어요.',
+        };
+    }
+
+    function showPsychResult(result){
+        const modal = document.getElementById('psych-modal');
+        if(!modal) return;
+        const { animal, scores, viaStrengths } = result;
+        const r = result;
+        // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
+        // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
+        const _quickBadge = pMode==='quick'
+            ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>'
+            : '';
+        const _precisionCTA = pMode==='quick'
+            ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;">'
+              + '<div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div>'
+              + '<div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(66문항)로 연애·일·소비 스타일까지<br>완전 분석해보세요!</div>'
+              + '<button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button>'
+              + '</div>'
+            : '';
+        const s = scores;
+
+        const overall = getOverallDesc(s, animal);
+        const love = getLoveStyle(s);
+        const work = getWorkStyle(s);
+        const friend = getFriendStyle(s);
+        const hard = getHardStyle(s);
+        const money = getMoneyStyle(s);
+        const rse = getRseStyle(s.RSE);
+        const via = getViaStyle(viaStrengths);
+
+        const compatibleKey = Object.keys(PSYCH_ANIMALS).find(k => k !== result.typeKey && k.includes(result.typeKey[0] === '☀️' ? '🌙' : '☀️'));
+        const compatible = PSYCH_ANIMALS[compatibleKey] || PSYCH_ANIMALS['🌙🌱🤝💭'];
+
+        modal.innerHTML = `
+        <div style="background:var(--bg-color);min-height:100vh;">
+            <!-- 결과 헤더 -->
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:40px 20px 30px;text-align:center;">
+                <div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:10px;">나의 확언 동물 유형</div>
+                ${_quickBadge}
+                <div style="font-size:90px;margin-bottom:8px;">${animal.animal}</div>
+                <div style="font-size:1.8em;font-weight:900;color:#fff;margin-bottom:4px;">${animal.name}</div>
+                <div style="font-size:1em;color:#C9A84C;font-weight:700;">"${animal.title}"</div>
+                <div style="font-size:0.85em;color:rgba(255,255,255,0.85);margin-top:12px;line-height:1.8;padding:12px 16px;background:rgba(255,255,255,0.08);border-radius:12px;">${animal.desc || animal.tagline}</div>
+                ${[s.E,s.O,s.A,s.C].some(v=>v>=42&&v<=58) ? `
+                <div style="margin-top:12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:10px 14px;font-size:0.78em;color:#C9A84C;line-height:1.7;">
+                    💡 <b>경계선 안내:</b> 일부 요인이 50% 근처에 있어요. 이 경우 반대 유형의 특성도 함께 가질 수 있어요. 결과는 참고용으로 활용하고, 30일 후 재검사로 확인해보세요.
+                </div>` : ''}
+            </div>
+
+            <div style="padding:20px;">
+
+            <!-- ★ 동물 유형 전반 소개 (가장 먼저) -->
+            <div style="background:linear-gradient(135deg,rgba(27,67,50,0.08),rgba(45,106,79,0.05));border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid rgba(27,67,50,0.15);">
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">
+                    ${animal.animal} 나는 ${animal.name}이에요
+                </div>
+                <div style="font-size:0.95em;line-height:1.9;color:var(--text-color);margin-bottom:12px;">${animal.desc || animal.tagline}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="background:#1B4332;color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.75em;font-weight:700;">${animal.title}</span>
+                    <span style="background:var(--card-bg);color:var(--text-muted);padding:4px 12px;border-radius:20px;font-size:0.75em;border:1px solid var(--border-color);">MBTI 유사: ${animal.mbti||'-'}</span>
+                </div>
+            </div>
+
+            <!-- 전반적 성향 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">🔬 BFI-44가 분석한 나의 성격</div>
+                <div style="font-size:0.88em;line-height:2;color:var(--text-color);">${overall}</div>
+                <div style="font-size:0.7em;color:var(--text-muted);margin-top:10px;border-top:1px solid var(--border-color);padding-top:8px;">출처: BFI-44 (John, Donahue & Kentle, 1991) · 5점 척도 44문항 · 신뢰도 α=0.88</div>
+            </div>
+
+            <!-- Big 5 점수 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:0.85em;font-weight:700;color:#1B4332;margin-bottom:14px;">📊 Big 5 성격 분석</div>
+                ${[
+                    ['외향성', s.E, '내향적', '외향적'],
+                    ['개방성', s.O, '안정 추구', '변화 추구'],
+                    ['친화성', s.A, '독립적', '관계 중심'],
+                    ['성실성', s.C, '유연함', '계획적'],
+                    ['안정성', 100-s.N, '예민함', '안정적'],
+                ].map(([label, score, left, right])=>`
+                    <div style="margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.8em;margin-bottom:3px;">
+                            <span style="font-weight:700;color:var(--text-color);">${label}</span>
+                            <span style="color:#1B4332;font-weight:700;">${score}% · ${getLevelText(score)}</span>
+                        </div>
+                        <div style="background:var(--border-color);border-radius:6px;height:8px;">
+                            <div style="background:linear-gradient(90deg,#1B4332,#C9A84C);height:100%;border-radius:6px;width:${score}%;"></div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.7em;color:var(--text-muted);margin-top:2px;">
+                            <span>${left}</span><span>${right}</span>
+                        </div>
+                    </div>`).join('')}
+                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: BFI-44 (John, Donahue & Kentle, 1991)</div>
+            </div>
+
+            <!-- 7가지 카테고리 -->
+            ${[love, work, friend, hard, money].map(cat=>`
+            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">${cat.title}</div>
+                <div style="font-size:0.88em;line-height:1.9;color:var(--text-color);margin-bottom:12px;">${cat.desc}</div>
+                ${cat.strength ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;margin-bottom:8px;line-height:1.7;">${cat.strength}</div>` : ''}
+                ${cat.caution ? `<div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#856404;margin-bottom:8px;line-height:1.7;">${cat.caution}</div>` : ''}
+                <div style="background:#E8F4F0;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;line-height:1.7;">${cat.tip}</div>
+                ${cat.video ? `<a href="${cat.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;">
+                    <span style="font-size:1.2em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.82em;font-weight:700;color:#1B4332;">${cat.video.label}</div>
+                    </div>
+                    <span style="font-size:0.9em;color:#1B4332;">▶</span>
+                </a>` : ''}
+            </div>`).join('')}
+
+            <!-- 자존감 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">${rse.title}</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                    <div style="flex:1;background:var(--border-color);border-radius:6px;height:10px;">
+                        <div style="background:linear-gradient(90deg,#C9A84C,#1B4332);height:100%;border-radius:6px;width:${rse.score}%;"></div>
+                    </div>
+                    <span style="font-size:1em;font-weight:700;color:#1B4332;">${rse.score}점</span>
+                </div>
+                <div style="font-size:0.88em;line-height:1.9;color:var(--text-color);margin-bottom:10px;">${rse.desc}</div>
+                ${rse.strength ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;margin-bottom:8px;line-height:1.7;">${rse.strength}</div>` : ''}
+                ${rse.growth ? `<div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#856404;margin-bottom:8px;line-height:1.7;">${rse.growth}</div>` : ''}
+                <div style="background:#E8F4F0;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;line-height:1.7;">${rse.tip}</div>
+                ${rse.video ? `<a href="${rse.video.url}" target="_blank"
+                    style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;">
+                    <span style="font-size:1.2em;">📺</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div>
+                        <div style="font-size:0.82em;font-weight:700;color:#1B4332;">${rse.video.label}</div>
+                    </div>
+                    <span style="font-size:0.9em;color:#1B4332;">▶</span>
+                </a>` : ''}
+                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: Rosenberg Self-Esteem Scale (Rosenberg, 1965) · 60년간 52개국 검증</div>
+            </div>
+
+            <!-- 핵심 강점 -->
+            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
+                <div style="font-size:0.95em;font-weight:700;color:#1B4332;margin-bottom:10px;">${via.title}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                    ${via.strengths.map((s,i)=>`<span style="background:${i===0?'#1B4332':'var(--border-color)'};color:${i===0?'#fff':'var(--text-color)'};padding:5px 12px;border-radius:20px;font-size:0.82em;font-weight:700;">${i===0?'👑 ':''}${s}</span>`).join('')}
+                </div>
+                <div style="font-size:0.88em;line-height:1.8;color:var(--text-color);">${via.desc}</div>
+                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: VIA Character Strengths (Peterson & Seligman, 2004)</div>
+            </div>
+
+            <!-- 추가 정보 -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                <div style="background:var(--card-bg);border-radius:14px;padding:16px;border:1px solid var(--border-color);">
+                    <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:4px;">🔤 MBTI 연관 유형</div>
+                    <div style="font-size:0.9em;font-weight:700;color:var(--text-color);">${animal.mbti}</div>
+                    <div style="font-size:0.7em;color:var(--text-muted);margin-top:4px;">참고: McCrae & Costa (1989)</div>
+                </div>
+                <div style="background:var(--card-bg);border-radius:14px;padding:16px;border:1px solid var(--border-color);">
+                    <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:4px;">💑 궁합 유형</div>
+                    <div style="font-size:0.9em;font-weight:700;color:var(--text-color);">${compatible.animal} ${compatible.name}</div>
+                    <div style="font-size:0.75em;color:var(--text-muted);margin-top:2px;">${compatible.title}</div>
+                </div>
+            </div>
+
+            <!-- 추천 확언 -->
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;">
+                <div style="font-size:0.78em;color:#C9A84C;font-weight:700;margin-bottom:8px;">✨ ${animal.name}을 위한 추천 확언</div>
+                <div style="font-size:1em;color:#fff;font-weight:700;line-height:1.7;" id="psych-affirmation-text">로딩 중...</div>
+            </div>
+
+            <!-- ★ 앱 유입 CTA (심리테스트 링크로 온 신규 사용자 타깃) -->
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px 20px;margin-bottom:16px;text-align:center;">
+                <div style="font-size:1.4em;margin-bottom:8px;">${animal.animal}</div>
+                <div style="font-size:1.05em;font-weight:900;color:#C9A84C;margin-bottom:6px;">
+                    ${animal.name}에게 딱 맞는 확언이 있어요!
+                </div>
+                <div style="font-size:0.88em;color:rgba(255,255,255,0.85);line-height:1.8;margin-bottom:18px;">
+                    매일 아침 내 유형에 맞는 확언 한 문장으로<br>
+                    <b style="color:#C9A84C;">뇌를 긍정적으로 바꾸는 365일 여정</b>을 시작해보세요.
+                </div>
+                <button id="psych-result-main-cta"
+                    style="width:100%;min-height:58px;background:#C9A84C;color:#1B4332;border:none;border-radius:14px;font-size:1.05em;font-weight:900;cursor:pointer;margin-bottom:10px;">
+                    🌿 내 유형 맞춤 확언 바로 보기 →
+                </button>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.5);">
+                    무료 · 홈화면 설치 가능 · 매일 알림
+                </div>
+            </div>
+
+            <!-- 공유 버튼 -->
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+                <button onclick="sharePsychMyResult()"
+                    style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
+                    ${animal.animal} 내 결과 공유하기 📤
+                </button>
+                <button onclick="sharePsychInvite()"
+                    style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:14px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                    💌 친구에게 테스트 추천하기
+                </button>
+            </div>
+
+            <!-- 재검사 안내 -->
+            <div style="background:#FFF8E7;border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid #F0D080;">
+                <div style="font-size:0.9em;font-weight:700;color:#856404;margin-bottom:8px;">🔄 30일 후 다시 해보세요!</div>
+                <div style="font-size:0.85em;color:#856404;line-height:1.8;">
+                    오늘 점수가 저장됐어요.<br>
+                    확언을 꾸준히 하면 30일 후<br>
+                    자존감 점수가 올라가고<br>
+                    Big 5 점수도 변화해요.<br>
+                    <b>내가 얼마나 성장했는지 숫자로 확인할 수 있어요! 📈</b>
+                </div>
+            </div>
+
+            <!-- 빠른 테스트 → 정밀 테스트 유도 -->
+            ${_precisionCTA}
+
+            <!-- 다시하기 / 확언 -->
+            <div style="background:linear-gradient(135deg,rgba(27,67,50,0.07),rgba(201,168,76,0.07));border-radius:18px;padding:20px;margin-bottom:14px;border:1px solid rgba(27,67,50,0.12);">
+                <div style="font-size:1em;font-weight:800;color:#1B4332;margin-bottom:12px;">📝 글쓰기가 뇌를 바꿔요</div>
+                <div style="display:flex;flex-direction:column;gap:10px;font-size:0.88em;color:var(--text-color);line-height:1.7;">
+                    <div style="display:flex;gap:10px;align-items:flex-start;">
+                        <span style="font-size:1.2em;flex-shrink:0;">🧠</span>
+                        <span><b>신경가소성 활성화</b><br>감정을 언어로 쓰면 전전두엽이 활성화돼 감정 조절 능력이 최대 40% 향상돼요.</span>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:flex-start;">
+                        <span style="font-size:1.2em;flex-shrink:0;">💌</span>
+                        <span><b>미래편지 효과</b><br>미래의 나에게 쓰는 편지는 자기효능감을 높이고 현재 행동을 바꾸는 가장 강력한 도구예요.</span>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:flex-start;">
+                        <span style="font-size:1.2em;flex-shrink:0;">📖</span>
+                        <span><b>일기의 힘</b><br>하루 15분 일기만으로 스트레스 호르몬이 감소하고 수면의 질이 개선돼요.</span>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+                    <button onclick="document.getElementById(\'psych-modal\').remove();setTimeout(function(){switchView(\'memo\');switchMemoTab(\'letter\');},300);"
+                        style="min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;line-height:1.5;">
+                        💌 미래의 나에게<br>편지 쓰기
+                    </button>
+                    <button onclick="document.getElementById(\'psych-modal\').remove();setTimeout(function(){switchView(\'memo\');switchMemoTab(\'diary\');},300);"
+                        style="min-height:56px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;line-height:1.5;">
+                        📖 오늘의<br>일기 쓰기
+                    </button>
+                </div>
+            </div>
+            <div style="text-align:center;margin-bottom:20px;">
+                <button onclick="startPsychTest()"
+                    style="background:none;border:none;font-size:0.85em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">
+                    🔄 다시 테스트하기
+                </button>
+            </div>
+
+            </div>
+            <!-- 하단 고정 앱 유입 배너 -->
+            <div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">
+                <div style="flex:1;">
+                    <div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>
+                    <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">매일 무료로 받아보기</div>
+                </div>
+                <button id="psych-result-cta-btn"
+                    style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">
+                    🌿 내 유형 확언 보러 가기
+                </button>
+            </div>
+        </div>`;
+
+        // 추천 확언 설정
+        const affirmations = {
+            '🦁':'나는 강하고 따뜻하다. 내 곁의 사람들이 나로 인해 더 빛난다',
+            '🐘':'나는 나와 함께하는 모든 사람을 소중히 품는다',
+            '🦅':'나는 내가 그리는 미래를 향해 힘차게 날아간다',
+            '🦋':'나는 변화 속에서 더욱 아름답게 피어난다',
+            '🐬':'나는 오늘도 세상에 밝은 에너지를 전한다',
+            '🦢':'나는 지금 이 순간에도 충분히 아름답다',
+            '🐝':'나의 작은 노력이 매일 쌓여 큰 변화를 만든다',
+            '🐱':'나는 나답게 살기로 한다',
+            '🐺':'나는 내 길을 알고 있다',
+            '🐋':'나는 깊이 느끼고, 깊이 사랑한다',
+            '🐆':'나는 나만의 속도로 세상을 바꾼다',
+            '🦊':'나는 새로운 가능성을 열린 마음으로 탐험한다',
+            '🐢':'나는 천천히, 그러나 확실히 나아가고 있다',
+            '🦉':'나는 천천히 치유하고, 깊이 성장한다',
+            '🐯':'나는 두려운 채로 시작하고 결국 해낸다',
+            '🦌':'나의 내면은 풍요롭고 아름답다',
+        };
+        const affEl = document.getElementById('psych-affirmation-text');
+        if(affEl) affEl.textContent = '"' + (affirmations[animal.animal] || '나는 오늘도 충분히 괜찮은 사람이다') + '"';
+
+        // ② 심리테스트 이탈 시 앱설치 팝업 (MutationObserver)
+        // ④ 이메일 없이 결과보기 후 이탈 시 등록 팝업
+        (function(){
+            const _obs = new MutationObserver(function(mutations){
+                mutations.forEach(function(m){
+                    m.removedNodes.forEach(function(node){
+                        if(node.id !== 'psych-modal') return;
+                        _obs.disconnect();
+                        const _isStandalone = window.matchMedia('(display-mode:standalone)').matches || !!navigator.standalone;
+                        const _isDone = safeGetItem('onboarding_done','') === '1';
+                        setTimeout(function(){
+                            if(!_isDone && !_isStandalone){
+                                // ② 앱 미설치 → 앱설치 팝업
+                                showInstallPrompt && showInstallPrompt();
+                            } else if(window._psychNoEmailResult && !safeGetItem('my_email','')){
+                                // ④ 이메일 없이 결과본 사람 → 등록 팝업 (1회)
+                                window._psychNoEmailResult = false;
+                                showPsychRegisterPopup && showPsychRegisterPopup();
+                            }
+                        }, 400);
+                    });
+                });
+            });
+            _obs.observe(document.body, { childList: true });
+        })();
+
+                // ★ 유형별 맞춤 확언으로 이동
+        (function(){
+            var _targetDay = getAnimalAffirmationDay(animal.animal);
+            var _themeMap = {
+                213:'용기', 121:'가족과 나', 335:'완성된 나', 274:'관계 맺기',
+                91:'감정의 주인 되기', 244:'삶의 주도권', 182:'습관과 뇌의 과학',
+                60:'상처받은 나를 이해하기', 152:'자존감의 회복', 32:'관계를 다시 보다', 1:'새로 시작하는 나'
+            };
+            var _themeName = _themeMap[_targetDay] || '오늘의 확언';
+
+            // ① 메인 CTA 버튼 → 유형 맞춤 확언 특정 day로 이동
+            var mainBtn = document.getElementById('psych-result-main-cta');
+            if(mainBtn){ mainBtn.addEventListener('click', function(){
+                document.getElementById('psych-modal').remove();
+                setTimeout(function(){
+                    if(safeGetItem('onboarding_done','') !== '1'){
+                        showInstallPrompt ? showInstallPrompt() : initOnboarding();
+                    } else {
+                        goToAnimalTheme(animal.animal);
+                    }
+                }, 200);
+            }); }
+
+            // ② 하단 고정 배너 버튼 → 앱 메인 화면으로 바로 이동
+            var ctaBtn = document.getElementById('psych-result-cta-btn');
+            if(ctaBtn){
+                ctaBtn.textContent = '🏠 앱 메인으로 바로 가기';
+                ctaBtn.addEventListener('click', function(){
+                    document.getElementById('psych-modal').remove();
+                    setTimeout(function(){
+                        if(safeGetItem('onboarding_done','') !== '1'){
+                            showInstallPrompt ? showInstallPrompt() : initOnboarding();
+                        } else {
+                            switchView('home');
+                        }
+                    }, 200);
+                });
+            }
+
+            // ③ 하단 배너 제목 업데이트
+            var ctaTitle = document.getElementById('psych-cta-title');
+            if(ctaTitle) ctaTitle.textContent = animal.animal + ' ' + animal.name + ' · ' + _themeName + ' 확언';
+        })();
+    }
+
+    // ★ 전체 결과 다시 보기 (버그 수정: 모달 제거하지 않고 바로 결과 표시)
+    window.viewMyPsychResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const result = JSON.parse(saved);
+        // 기존 모달이 있으면 결과지로 교체, 없으면 새로 생성
+        let modal = document.getElementById('psych-modal');
+        if(!modal){
+            modal = document.createElement('div');
+            modal.id = 'psych-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+            document.body.appendChild(modal);
+        }
+        showPsychResult(result);
+    }
+
+    // ★ 내 결과 공유 (유형별 상세 소개 포함)
+    // ★ 결과 링크 생성 함수
+    window.getPsychResultUrl = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved) return null;
+        try {
+            // 핵심 데이터만 인코딩 (URL 길이 최소화)
+            const r = JSON.parse(saved);
+            const compact = {
+                a: r.typeKey || '',          // 동물 키
+                s: r.scores,                 // 점수
+                v: r.viaStrengths || [],     // VIA 강점
+            };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(compact)));
+            return 'https://life2radio.github.io/affirmation/?r=' + encoded;
+        } catch(e){ return null; }
+    };
+
+    window.sharePsychMyResult = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
+        const r = JSON.parse(saved);
+        const s = r.scores;
+
+        const animalDesc = {
+            '🦁':'타고난 리더십과 따뜻한 공감력을 동시에 가진 사람이에요. 강하면서도 사람을 품는 카리스마가 있고, 변화를 두려워하지 않고 앞장서는 존재예요. 주변에서 자연스럽게 따르게 만드는 힘이 있어요.',
+            '🐘':'기억력과 포용력이 탁월한 수호자예요. 주변 모두를 품어주는 따뜻함이 최고의 강점이고, 한 번 만든 관계는 평생 소중히 지키는 사람이에요. 천천히 성장하지만 그 깊이는 누구도 따라오지 못해요.',
+            '🦅':'높은 곳에서 큰 그림을 보는 선구자예요. 명확한 비전과 강한 추진력으로 불가능을 가능으로 만들고, 사람들에게 나아갈 방향을 제시하는 타고난 선구자예요. 목표를 정하면 반드시 해내는 사람이에요.',
+            '🦋':'끊임없이 변화하고 아름답게 성장하는 사람이에요. 어떤 환경에서도 유연하게 적응하고, 자유로운 영혼으로 세상을 날아다녀요. 변화 자체가 당신의 본질이고, 그 과정에서 더욱 빛나요.',
+            '🐬':'어디서든 웃음꽃을 피우는 에너자이저예요. 사람과 사람을 이어주는 천부적인 재능이 있고, 넘치는 에너지로 주변을 활기차게 만들어요. 꾸준함과 긍정으로 세상을 밝히는 존재예요.',
+            '🦢':'겉으로 우아해 보이지만 내면에서 끊임없이 노력하는 사람이에요. 자신만의 기준과 심미안이 뛰어나고, 조용하지만 오래 기억에 남는 인상을 주는 사람이에요. 성장에 대한 의지가 남달라요.',
+            '🐝':'말보다 행동으로 증명하는 실천가예요. 작은 것도 꼼꼼히 챙기고, 꾸준한 노력으로 달콤한 결실을 만들어내요. 혼자서도 묵묵히 자신의 역할을 다하는 진정한 실천가예요.',
+            '🐱':'자유롭고 독립적이지만, 마음을 열면 누구보다 깊이 연결되는 사람이에요. 나만의 방식이 분명하고, 감정을 행동으로 표현하는 직관적인 사람이에요. 자신만의 세계가 뚜렷해요.',
+            '🐺':'조용하지만 결정적인 순간에 누구보다 빠르게 행동하는 본능의 리더예요. 의리와 신뢰를 가장 중요한 가치로 여기고, 한 번 마음을 준 사람에게는 끝까지 함께해요.',
+            '🐋':'바다처럼 깊고 넓은 마음을 가진 공감자예요. 조용하지만 존재만으로도 주변을 안정시키는 힘이 있고, 깊은 사유를 통해 세상을 이해하는 방식이 남달라요. 상대의 마음을 가장 잘 아는 사람이에요.',
+            '🐆':'조용하지만 폭발적인 에너지를 품고 있는 혁신가예요. 준비가 됐을 때 누구도 막을 수 없고, 자신만의 방식으로 변화를 만들어내요. 목표를 향해 거침없이 질주하는 사람이에요.',
+            '🦊':'번뜩이는 직관과 날카로운 통찰력을 가진 탐험가예요. 남들이 놓치는 것을 포착하고, 겉으로 조용해 보이지만 내면에는 끊임없이 탐험 중인 지적 호기심이 넘쳐요. 새로운 가능성을 늘 찾고 있어요.',
+            '🐢':'느리지만 절대 포기하지 않는 동반자예요. 꾸준함이 최고의 전략임을 몸으로 아는 사람이에요. 가까운 사람을 위해서라면 어떤 어려움도 묵묵히 감당하는 따뜻한 힘이 있어요.',
+            '🦉':'말보다 깊은 눈빛으로 상대를 이해하는 치유자예요. 혼자만의 시간 속에서 진짜 힘을 얻고, 천천히 그러나 확실하게 주변을 치유해요. 무리하지 않고 자신의 리듬을 지키는 것이 가장 큰 강점이에요.',
+            '🐯':'뜨거운 열정과 강인한 의지로 새로운 길을 여는 개척자예요. 도전을 즐기고 실패도 성장의 재료로 삼아요. 한 번 목표를 정하면 반드시 해내는 불굴의 의지가 있어요.',
+            '🦌':'남들이 보지 못하는 아름다움을 발견하는 몽상가예요. 내면 세계가 풍부하고 감수성이 뛰어나 예술적 영감이 넘쳐요. 혼자만의 사색 속에서 세상을 이해하는 깊이가 남달라요.',
+        };
+
+        const desc = animalDesc[r.animal.animal] || r.animal.tagline;
+        const text = `나는 ${r.animal.animal} ${r.animal.name}이에요!
+"${r.animal.title}"
+
+${desc}
+
+✨ 핵심 강점: ${(r.viaStrengths||[]).slice(0,2).join(' · ')}
+🔤 MBTI 연관: ${r.animal.mbti}
+
+너는 어떤 유형이야? 🧠
+👉 https://life2radio.github.io/affirmation/?psych=1`;
+        window._sendShareLog('심리결과공유', r.animal.name);
+        if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
+        else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 결과가 복사됐어요!')); }
+    }
+
+    // ★ 친구에게 테스트 추천 (앱 링크 + 🧠 버튼 안내)
+    window.sharePsychInvite = function(){
+        const text = `🧠 나는 어떤 사람일까?
+— 성격·자존감·강점 무료 심리검사
+
+심리학자들이 60년간 연구한 검사 3가지를 통해
+나의 성격, 자존감, 핵심 강점을 분석해드려요.
+
+일 스타일 · 관계 방식 · 위기 대처법 · 소비 성향까지
+나도 몰랐던 내 모습을 알 수 있어요.
+
+무료 · 약 10분 · 정확도 90% · 16가지 동물 유형
+
+👇 아래 링크에서 바로 시작하세요
+https://life2radio.github.io/affirmation/?psych=1`;
+        window._sendShareLog('심리테스트추천공유');
+        if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
+        else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요')); }
+    }
+
+
+        // ★ Google One Tap - 이메일만 가져오기
+    const GOOGLE_CLIENT_ID = '960491976015-2d0jequkprvnp5g267i16q4mrgd96qr3.apps.googleusercontent.com';
+
+    window._googleOneTap = function(){
+        const redirectUri = encodeURIComponent('https://life2radio.github.io/affirmation/');
+        const scope = encodeURIComponent('email profile');
+        const url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+GOOGLE_CLIENT_ID
+            +'&redirect_uri='+redirectUri+'&response_type=token&scope='+scope+'&prompt=select_account';
+
+        const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+        if(!isMobile){
+            // PC: 팝업 방식
+            const popup = window.open(url, 'google_oauth', 'width=500,height=600,scrollbars=yes');
+            const timer = setInterval(function(){
+                try {
+                    if(popup && popup.closed){ clearInterval(timer); return; }
+                    if(popup && popup.location && popup.location.hash){
+                        const hash = popup.location.hash;
+                        clearInterval(timer);
+                        popup.close();
+                        const params = new URLSearchParams(hash.substring(1));
+                        const token = params.get('access_token');
+                        if(token){
+                            fetch('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + token)
+                                .then(function(r){ return r.json(); })
+                                .then(function(info){
+                                    const emailEl = document.getElementById('nm-email') || document.getElementById('ob-email-input');
+                                    const nickEl  = document.getElementById('nm-nick')  || document.getElementById('ob-nick-input');
+                                    if(emailEl && info.email) emailEl.value = info.email;
+                                    if(nickEl  && !nickEl.value && info.name) nickEl.value = info.name;
+                                    showToast('✅ 구글 이메일이 입력됐어요!');
+                                }).catch(function(){ showToast('이메일을 직접 입력해주세요'); });
+                        }
+                    }
+                } catch(e) {}
+            }, 500);
+            setTimeout(function(){ clearInterval(timer); if(popup && !popup.closed) popup.close(); }, 30000);
+        } else {
+            // 모바일: 새 탭으로 열기 (앱 닫힘 방지)
+            const nickEl2 = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
+            if(nickEl2 && nickEl2.value) safeSetItem('oauth_pending_nick_tmp', nickEl2.value);
+            const newTab = window.open(url, '_blank');
+            if(!newTab){
+                // 새 탭 차단된 경우 리디렉션으로 폴백
+                const isStandalone2 = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+                safeSetItem('pt_first_visit', '1');
+                safeSetItem('pt_first_standalone', '1');
+                safeSetItem('oauth_in_progress', '1');
+                window.location.href = url;
+            }
+            // 새 탭에서 postMessage로 이메일 전달받기
+            window.addEventListener('message', function _oauthMsg(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _oauthMsg);
+                    const emailEl = document.getElementById('nm-email') || document.getElementById('ob-email-input');
+                    const nickEl3 = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
+                    if(emailEl && e.data.email) emailEl.value = e.data.email;
+                    if(nickEl3 && !nickEl3.value && e.data.name) nickEl3.value = e.data.name;
+                    safeSetItem('oauth_pending_email','');
+                    safeSetItem('oauth_pending_name','');
+                    showToast('✅ 구글 계정 정보가 입력됐어요! 이름 확인 후 저장해주세요 😊');
+                }
+            });
+        }
+    }
+
+    // ★ 설치없이 이용하기 → 닉네임/이메일 등록 팝업
+    window.showNicknameModal = function(){
+        // OAuth 리디렉션으로 받아온 이메일 — 자동저장 아닌 필드에만 채우기
+        const _pendingEmail = safeGetItem('oauth_pending_email','');
+        const _pendingName  = safeGetItem('oauth_pending_name','');
+        const _pendingNickTmp = safeGetItem('oauth_pending_nick_tmp','');
+        // 카톡 인앱브라우저일 때 → URL 복사 + 크롬으로 이동
+        if(/KAKAOTALK/i.test(navigator.userAgent)){
+            const url = 'https://life2radio.github.io/affirmation/';
+            if(navigator.clipboard){
+                navigator.clipboard.writeText(url).catch(()=>{
+                    const t = document.createElement('textarea');
+                    t.value = url; document.body.appendChild(t);
+                    t.select(); document.execCommand('copy');
+                    document.body.removeChild(t);
+                });
+            } else {
+                const t = document.createElement('textarea');
+                t.value = url; document.body.appendChild(t);
+                t.select(); document.execCommand('copy');
+                document.body.removeChild(t);
+            }
+            showToast('✅ 주소가 복사됐어요! 크롬 주소창에 붙여넣기 하세요');
+            setTimeout(()=>{
+                window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end', '_blank');
+            }, 500);
+            return;
+        }
+        // 이미 등록한 경우 — OAuth pending 없으면 바로 온보딩
+        const existNick = safeGetItem('my_nickname','');
+        const existEmail = safeGetItem('my_email','');
+        const _hasPending = safeGetItem('oauth_pending_email','') !== '';
+        if(existNick && existEmail && !_hasPending){ initOnboarding(); return; }
+
+        const modal = document.createElement('div');
+        modal.id = 'nickname-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:10px;">🏅</div>
+                <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:6px;">잠깐! 이름을 알려주세요</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    이름과 이메일을 등록하면<br>
+                    <b style="color:#1B4332;">사연 보내기에 자동 입력</b>되고<br>
+                    명예의 전당에도 올라가요 😊
+                </div>
+                <input id="nm-nick" type="text" maxlength="15" placeholder="이름 또는 별명 (예: 전주 60대 주부)"
+                    style="width:100%;padding:12px 14px;font-size:1em;border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:10px;">
+                ${/KAKAOTALK/i.test(navigator.userAgent) ? `
+                <div style="background:#FFF8E7;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:0.85em;color:#856404;text-align:left;line-height:1.7;">
+                    💡 카톡에서는 구글 이메일 가져오기가 안 돼요.<br>이메일을 직접 입력해주세요.
+                </div>` : `
+                <button onclick="window._googleOneTap()" style="width:100%;padding:11px 14px;font-size:0.95em;border:1.5px solid #4285F4;border-radius:10px;box-sizing:border-box;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+                    구글 계정에서 이메일 가져오기
+                </button>`}
+                <input id="nm-email" type="email" placeholder="이메일 직접 입력"
+                    style="width:100%;padding:12px 14px;font-size:0.95em;border:1.5px solid #C8DDD2;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:16px;">
+                <label for="nm-privacy-agree" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:14px;padding:10px 12px;background:#F8F8F8;border-radius:10px;">
+                    <input type="checkbox" id="nm-privacy-agree" style="width:20px;height:20px;min-width:20px;margin-top:1px;cursor:pointer;accent-color:#1B4332;">
+                    <span style="font-size:13px;color:#555;line-height:1.6;">
+                        이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.
+                    </span>
+                </label>
+                <button onclick="window._saveNicknameModal()" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
+                    등록하고 시작하기 🌿
+                </button>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // 기존 값 채우기
+        if(existNick) document.getElementById('nm-nick').value = existNick;
+        if(existEmail) document.getElementById('nm-email').value = existEmail;
+
+        // ★ OAuth 구글 계정 정보 → 필드에 자동 채우기 (사용자가 확인 후 버튼 클릭)
+        const nmNick = document.getElementById('nm-nick');
+        const nmEmail = document.getElementById('nm-email');
+        if(_pendingEmail && nmEmail && !nmEmail.value) nmEmail.value = _pendingEmail;
+        if(_pendingName && nmNick && !nmNick.value) nmNick.value = _pendingName;
+        if(_pendingNickTmp && nmNick && !nmNick.value) nmNick.value = _pendingNickTmp;
+        if(_pendingEmail || _pendingName || _pendingNickTmp){
+            safeSetItem('oauth_pending_email','');
+            safeSetItem('oauth_pending_name','');
+            safeSetItem('oauth_pending_nick_tmp','');
+            setTimeout(function(){ showToast('✅ 구글 계정 정보가 입력됐어요! 이름 확인 후 저장해주세요 😊'); }, 300);
+        }
+    }
+
+    window._saveNicknameModal = function(){
+        // ★ 동의 체크를 가장 먼저 확인
+        const agreed = document.getElementById('nm-privacy-agree');
+        if(!agreed || !agreed.checked){ showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return; }
+        const nick  = (document.getElementById('nm-nick')?.value || '').trim();
+        const email = (document.getElementById('nm-email')?.value || '').trim();
+        if(!nick){ showToast('이름을 입력해주세요!'); return; }
+        if(!email){ showToast('이메일을 입력해주세요!'); return; }
+        safeSetItem('my_nickname', nick);
+        safeSetItem('my_email', email);
+        const ni = document.getElementById('nickname-input');
+        if(ni) ni.value = nick;
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        const se = document.getElementById('story-email');
+        if(se) se.value = email;
+        document.getElementById('nickname-modal')?.remove();
+
+        // ★ 관리자 모드: 특정 이름+이메일 조합 시 최고등급 부여
+        if(nick === '인생2막관리자' && email === 'life2radio@gmail.com'){
+            // 이전 포인트 저장 (복원용)
+            if(safeGetItem('admin_mode','') !== '1'){
+                safeSetItem('pre_admin_points', String(getPoints()));
+            }
+            safeSetItem('admin_mode','1');
+            setPoints(9999);
+            // PDF 전체 해제
+            [10,20,30,40].forEach(function(t){ safeSetItem('pdf_unlocked_'+t,'1'); });
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화! 모든 기능을 테스트할 수 있어요.');
+            safeSetItem('onboarding_done','1');
+            return;
+        }
+
+        window._sendUserUpdate();
+        window._sendUserRegister('이름모달등록');
+        // ★ 이름+이메일 등록 완료 → 첫 방문 포인트 지급
+        const _savedNick = safeGetItem('my_nickname','');
+        const _savedEmail = safeGetItem('my_email','');
+        if(_savedNick && _savedEmail) checkFirstVisit();
+        initOnboarding();
+    }
+
+    // ★ 닉네임/이메일 전체 동기화
+    function syncNicknameEmail(){
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        // 설정 탭
+        const ni = document.getElementById('nickname-input');
+        if(ni) ni.value = nick;
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        // 사연 탭
+        const sn = document.getElementById('story-name');
+        if(sn && nick && !sn.value) sn.value = nick;
+        const se = document.getElementById('story-email');
+        if(se && email) se.value = email;
+        // 온보딩
+        const oni = document.getElementById('ob-nick-input');
+        if(oni && nick) oni.value = nick;
+        const oei = document.getElementById('ob-email-input');
+        if(oei && email) oei.value = email;
+        // 닉네임 모달
+        const mni = document.getElementById('nm-nick');
+        if(mni && nick) mni.value = nick;
+        const mei = document.getElementById('nm-email');
+        if(mei && email) mei.value = email;
+    }
+
+    window.saveNickname = function(){
+        const val = (document.getElementById('nickname-input')?.value || '').trim();
+        if(!val || val.length < 2){
+            showToast('이름은 2글자 이상 입력해주세요!');
+            return;
+        }
+        const prev = safeGetItem('my_nickname','');
+        if(prev && prev !== val){
+            if(!confirm('이름을 변경하시겠습니까?\n\n이전: ' + prev + '\n변경: ' + val)) return;
+        }
+        safeSetItem('my_nickname', val);
+        syncNicknameEmail();
+
+        // ★ 관리자 모드 체크
+        const curEmail = safeGetItem('my_email','');
+        if(val === '인생2막관리자' && curEmail === 'life2radio@gmail.com'){
+            if(safeGetItem('admin_mode','') !== '1'){
+                safeSetItem('pre_admin_points', String(getPoints()));
+            }
+            safeSetItem('admin_mode','1');
+            setPoints(9999);
+            [10,20,30,40].forEach(function(t){ safeSetItem('pdf_unlocked_'+t,'1'); });
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화!');
+            return;
+        }
+        // ★ 관리자 모드 해제: 이전 포인트 복원
+        if(safeGetItem('admin_mode','') === '1'){
+            safeSetItem('admin_mode','');
+            const prev = parseInt(safeGetItem('pre_admin_points','0'))||0;
+            setPoints(prev);
+            [10,20,30,40].forEach(function(t){ safeSetItem('pdf_unlocked_'+t,''); });
+            renderPointBar();
+            showToast('👤 관리자 모드 해제. 포인트 복원됐어요.');
+            return;
+        }
+
+        showToast('🏅 이름이 저장됐어요!');
+        window._sendUserUpdate();
+        window._sendUserRegister('이름설정');
+    }
+
+    window.saveUserEmail = function(){
+        const val = (document.getElementById('user-email-input')?.value || '').trim();
+        if(!val){ showToast('이메일을 입력해주세요!'); return; }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        if(!emailRegex.test(val)){
+            showToast('올바른 이메일 형식이 아니에요!\n예: abc@gmail.com');
+            return;
+        }
+        const prev = safeGetItem('my_email','');
+        if(prev && prev !== val){
+            if(!confirm('이메일을 변경하시겠습니까?\n\n이전: ' + prev + '\n변경: ' + val)) return;
+        }
+        safeSetItem('my_email', val);
+        syncNicknameEmail();
+
+        // ★ 관리자 모드 체크 (이메일 저장 시)
+        const curNick = safeGetItem('my_nickname','');
+        if(val === 'life2radio@gmail.com' && curNick === '인생2막관리자'){
+            if(safeGetItem('admin_mode','') !== '1'){
+                safeSetItem('pre_admin_points', String(getPoints()));
+            }
+            safeSetItem('admin_mode','1');
+            setPoints(9999);
+            [10,20,30,40].forEach(function(t){ safeSetItem('pdf_unlocked_'+t,'1'); });
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화!');
+            return;
+        }
+
+        showToast('📧 이메일이 저장됐어요!');
+        window._sendUserUpdate();
+        window._sendUserRegister('이메일설정');
+        // ★ 대기 중인 레벨업 처리
+        if(_pendingLevelUp >= 0){
+            const idx = _pendingLevelUp;
+            _pendingLevelUp = -1;
+            setTimeout(()=> showLevelUp(idx), 500);
+        }
+    }
+
+    // 앱 설치 가이드 아코디언
+    window.toggleInstallGuide = function(){
+        const body = document.getElementById('install-guide-body');
+        const arrow = document.getElementById('install-guide-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+
+    // 알림 가이드 아코디언
+    window.toggleNotifGuide = function(){
+        const body = document.getElementById('notif-guide-body');
+        const arrow = document.getElementById('notif-guide-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+
+    // 아코디언 열기/닫기
+    window.toggleSurveyAccordion = function(){
+        const body = document.getElementById('survey-accordion-body');
+        const arrow = document.getElementById('survey-accordion-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+        if(!isOpen) initSurveyButtons();
+    }
+
+    // 설문 저장 + 닫기
+    window.saveSurveyWithConfirm = function(){
+        const existing = safeGetItem('survey_saved','');
+        if(existing){
+            if(!confirm('정보를 변경하시겠습니까?')) return;
+        }
+        saveSurvey();
+        // 닫기
+        document.getElementById('survey-accordion-body').style.display = 'none';
+        document.getElementById('survey-accordion-arrow').style.transform = '';
+        document.getElementById('survey-saved-label').textContent = '✅ 저장됨 · 수정하려면 클릭';
+        safeSetItem('survey_saved','1');
+    }
+
+    window.saveFamilySender = function(){
+        const val = document.getElementById('family-sender-input').value.trim();
+        if(!val){ showToast('이름을 입력해주세요'); return; }
+        safeSetItem('family_sender', val);
+        showToast('💌 보내는 분 서명이 저장됐어요!');
+    }
+
+    window.saveFamilyReceiver = function(){
+        const val = document.getElementById('family-receiver-input').value.trim();
+        if(!val){ showToast('이름을 입력해주세요'); return; }
+        safeSetItem('family_receiver', val);
+        showToast('💌 받는 분 이름이 저장됐어요!');
+    }
+
+    
+    initApp = function initApp(){
+        applyStoredSettings();
+
+        // ★ ?r= 결과 공유 링크 처리
+        if(window._sharedResult){
+            const fakeResult = window._sharedResult;
+            window._sharedResult = null;
+            currentMode = safeGetItem('app_mode','A');
+            selectedDateObj = new Date(todayObj);
+            switchMode(currentMode);
+            isBgmOn = safeGetItem('bgm_state','off')==='on';
+            updateBgmUI(); initBanner(); renderPointBar(); switchView('home');
+            setTimeout(function(){
+                const m = document.createElement('div');
+                m.id = 'psych-modal';
+                m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+                document.body.appendChild(m);
+                showPsychResult(fakeResult);
+                const banner = document.createElement('div');
+                banner.id = 'shared-result-banner';
+                banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#C9A84C;color:#1B4332;text-align:center;padding:10px 16px;font-size:0.9em;font-weight:700;z-index:100000;box-sizing:border-box;';
+                // 배너 설정 완료
+                document.body.appendChild(banner);
+            }, 500);
+            return;
+        }
+        restoreNotifSchedule();
+        initSolidarity();
+        loadSheetData();
+        setTimeout(renderPsychPreview, 500);
+
+        // ★ OAuth 리디렉션 후 복귀 처리 (oauth_in_progress 플래그로도 감지)
+        const _oauthInProgress = safeGetItem('oauth_in_progress','') === '1';
+        if(_oauthInProgress){ safeSetItem('oauth_in_progress',''); }
+        const _pendingEmail = safeGetItem('oauth_pending_email','');
+        if(_pendingEmail || _oauthInProgress){
+            // OAuth 복귀: 이메일/이름을 직접 저장하지 않고 모달에서 확인 후 저장
+            // (pending 키는 showNicknameModal에서 필드에 채워주고 사용자가 확인)
+            currentMode=safeGetItem('app_mode','A');
+            selectedDateObj=new Date(todayObj);
+            switchMode(currentMode);
+            isBgmOn=safeGetItem('bgm_state','off')==='on';
+            updateBgmUI();
+            initBanner();
+            renderPointBar();
+            switchView('home');
+            // 이름이 없으면 이름 등록 모달만 표시
+            if(!safeGetItem('my_nickname','') || !safeGetItem('my_email','')){
+                // 이름/이메일 미등록 → 등록 모달만 표시 (레벨업/온보딩 없음)
+                setTimeout(function(){
+                    if(window.showNicknameModal) window.showNicknameModal();
+                }, 300);
+            } else {
+                if(_pendingEmail) showToast('✅ 구글 이메일이 연결됐어요!');
+                initOnboarding();
+            }
+            return;
+        }
+
+        // ★ 설치 팝업 → 온보딩 순서
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                          || navigator.standalone === true;
+        if(isStandalone){
+            initOnboarding();
+        } else {
+            showInstallPrompt();
+        }
+        currentMode=safeGetItem('app_mode','A');
+        selectedDateObj=new Date(todayObj);
+        switchMode(currentMode);
+        isBgmOn=safeGetItem('bgm_state','off')==='on';
+        updateBgmUI();
+        initBanner();
+        renderPointBar();
+        switchView('home');
+        // ★ 기존 등록 완료 사용자: 첫 방문 포인트 미지급 시 지급
+        if(safeGetItem('onboarding_done','') === '1'){
+            setTimeout(function(){ checkFirstVisit(); }, 1500);
+        }
+    }
+
+    function showInstallPrompt(){
+        // ★ 심리테스트 링크로 왔을 때는 설치 팝업 건너뜀
+        if(window._psychMode){ initOnboarding(); return; }
+        // ★ 기존 사용 이력 있으면 설치 팝업 건너뜀 (크롬 재접속 시 첫 화면 방지)
+        const _hasExistingData = (parseInt(safeGetItem('user_points','0'))||0) > 0
+            || safeGetJSON('completed_dates',[]).length > 0
+            || safeGetItem('my_nickname','') !== '';
+        if(_hasExistingData){ initOnboarding(); return; }
+        safeSetItem('install_prompt_v10','1');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+
+        const modal = document.createElement('div');
+        modal.id = 'install-first-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:99999;display:flex;align-items:center;justify-content:center;';
+
+        let installContent = '';
+
+        const isKakaoIOS = /KAKAOTALK/i.test(navigator.userAgent);
+
+        if(isIOS){
+            if(isKakaoIOS){
+                // 카카오톡 인앱브라우저 → Safari 안내
+                const currentUrl = location.href;
+                installContent = `
+                <div style="background:#FFF3CD;border-radius:14px;padding:14px 16px;margin-bottom:14px;text-align:left;">
+                    <div style="font-size:0.85em;color:#856404;line-height:2.4;font-weight:600;">
+                        1️⃣ 아래 <b>공유버튼 □↑</b> 탭<br>
+                        2️⃣ <b>"Safari로 열기"</b> 선택<br>
+                        3️⃣ Safari 하단 <b>공유버튼 □↑</b> 탭<br>
+                        4️⃣ 아래 스크롤 → <b>"홈 화면에 추가"</b><br>
+                        5️⃣ 오른쪽 상단 <b>"추가"</b> 탭
+                    </div>
+                </div>
+                <button id="ios-copy-btn" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:8px;">📋 링크 복사하기 (Safari에 붙여넣기)</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); showNicknameModal();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
+            } else {
+                installContent = `
+                <div style="background:#F0F7F4;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:left;">
+                    <div style="font-size:0.88em;color:#1B4332;line-height:2.2;font-weight:600;">
+                        1️⃣ 아래 <b>공유 버튼 □↑</b> 탭<br>
+                        2️⃣ <b>"홈 화면에 추가"</b> 선택<br>
+                        3️⃣ 오른쪽 상단 <b>"추가"</b> 탭
+                    </div>
+                </div>
+                <button onclick="document.getElementById('install-first-modal').remove(); initOnboarding();" style="width:100%;min-height:52px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">확인했어요! 앱 시작하기 ✓</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); showNicknameModal();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
+            }
+        } else if(isAndroid){
+            installContent = `
+                <button id="install-pwa-btn" onclick="installFromPrompt()" style="width:100%;min-height:60px;background:#1B4332;color:#FFFFFF;border:none;border-radius:14px;font-size:1.1em;font-weight:700;cursor:pointer;margin-bottom:10px;">📲 홈화면에 앱 설치하기</button>
+                <button onclick="document.getElementById('install-first-modal').remove(); showNicknameModal();" style="width:100%;min-height:44px;background:none;border:1px solid #1B4332;border-radius:14px;font-size:0.9em;color:#1B4332;font-weight:600;cursor:pointer;">설치없이 이용하기</button>`;
+        } else {
+            installFromPromptDone();
+            return;
+        }
+
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                <div style="font-size:48px;margin-bottom:10px;">📲</div>
+                <div style="font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:8px;">앱으로 저장하면 더 편해요!</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    홈화면에 추가하면<br>
+                    <b style="color:#1B4332;">앱처럼 바로 열 수 있어요.</b><br>
+                    매일 아침 확언을 놓치지 마세요 🌿
+                </div>
+                ${installContent}
+            </div>`;
+        document.body.appendChild(modal);
+        // iOS 카카오톡 링크 복사 버튼
+        var iosBtn = document.getElementById('ios-copy-btn');
+        if(iosBtn){
+            iosBtn.addEventListener('click', function(){
+                var url = location.href;
+                if(navigator.clipboard){
+                    navigator.clipboard.writeText(url).then(function(){
+                        iosBtn.textContent = '✅ 복사됐어요! Safari에서 붙여넣기 하세요';
+                    });
+                } else {
+                    var ta = document.createElement('textarea');
+                    ta.value = url; document.body.appendChild(ta);
+                    ta.select(); document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    iosBtn.textContent = '✅ 복사됐어요! Safari에서 붙여넣기 하세요';
+                }
+            });
+        }
+    }
+
+    window.tryInstallOrGuide = function(){
+        if(pwaInstallPrompt){
+            installFromPrompt();
+        } else {
+            // pwaInstallPrompt 없으면 안내 표시
+            const guide = document.getElementById('install-guide');
+            if(guide) guide.style.display = 'block';
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
+        }
+    }
+
+    window.installFromPrompt = async function(){
+        if(!pwaInstallPrompt){
+            // 이벤트 아직 안 왔으면 버튼 대기 상태로
+            const btn = document.getElementById('install-pwa-btn');
+            if(btn){ btn.textContent = '⏳ 잠시만요...'; btn.disabled = true; }
+            window._pendingInstallClick = true;
+            return;
+        }
+        const btn = document.getElementById('install-pwa-btn');
+        if(btn){ btn.textContent = '⏳ 설치 중...'; btn.disabled = true; }
+        document.getElementById('install-first-modal')?.remove();
+        try {
+            pwaInstallPrompt.prompt();
+            const result = await pwaInstallPrompt.userChoice;
+            pwaInstallPrompt = null;
+            if(result.outcome === 'accepted'){
+                showToast('🎉 설치 완료! 홈화면에서 확인해보세요');
+                window._sendAppInstall(); // ★ 앱 설치 기록
+            }
+        } catch(e) {
+            showToast('브라우저 메뉴(⋮) → 홈 화면에 추가를 눌러주세요');
+        }
+        initOnboarding();
+    }
+
+    function installFromPromptDone(){
+        initOnboarding();
+    }
+
+    /* ===== 날짜 탐색 ===== */
+    window.changeSelectedDate=function(delta){if(typeof window.stopTTS==='function')stopTTS();selectedDateObj.setDate(selectedDateObj.getDate()+delta);renderScreen();}
+    window.resetToToday=function(){if(typeof window.stopTTS==='function')stopTTS();selectedDateObj=new Date(todayObj);renderScreen();}
+    window.goToDate=function(y,m,d){selectedDateObj=new Date(y,m-1,d);selectedDateObj.setHours(0,0,0,0);switchView('home');}
+
+    /* ===== 홈 렌더 ===== */
+    window.switchMode=function(mode){if(typeof window.stopTTS==='function')stopTTS();currentMode=mode;safeSetItem('app_mode',mode);document.getElementById('tab-a').className='tab-btn'+(mode==='A'?' active':'');document.getElementById('tab-b').className='tab-btn'+(mode==='B'?' active':'');selectedDateObj=new Date(todayObj);renderScreen();}
+    window.startJourney=function(){safeSetItem('start_date_B',getTodayStr());selectedDateObj=new Date(todayObj);renderScreen();}
+    /* ===== ★ 감정 기반 추천 메시지 데이터 ===== */
+    const EMOTION_MESSAGES = [
+        { title:"💙 마음이 무거운 날이죠", text:"그래도 괜찮아요. 오늘 이 확언이 당신 곁에 있어요. 천천히, 함께 읽어봐요." },
+        { title:"💚 조금 흐린 날이네요", text:"아직 하루가 남아 있어요. 확언 하나가 마음의 날씨를 바꿔줄 거예요." },
+        { title:"🌿 평범한 하루예요", text:"평범한 날도 소중해요. 오늘도 한 걸음, 나를 위해 읽어봐요." },
+        { title:"☀️ 좋은 하루네요!", text:"이 기분 그대로 오늘의 확언과 함께라면 더 빛날 거예요!" },
+        { title:"🌟 에너지가 넘치는 날!", text:"최고의 하루예요! 이 확언이 오늘을 더 특별하게 만들어 줄 거예요." }
+    ];
+
+    window.selectMood=function(type,idx){
+        if(!isToday)return;
+        safeSetItem(`mood_${type}_${getFormatDate(selectedDateObj)}`,idx);
+        renderMood(type);
+        if(type==='before'){
+            let t=document.getElementById('affirmation-blur-target'),m=document.getElementById('unlock-msg');
+            if(t)t.classList.remove('blurred-content');
+            if(m)m.style.display='none';
+            showEmotionRecommend(idx);
+            showMoodReasonQuestion(idx); // ★ 감정 원인 질문
+        }
+        if(type==='after'){
+            addPoint(1,'기분체크','mood_check');
+            checkMoodRiseStreak();
+            const completed=safeGetJSON('completed_dates',[]);
+            checkStoryCard(completed.length);
+            showPastMe(idx); // ★ 과거의 나
+            checkRandomGift(); // ★ 랜덤 선물
+            renderKeyQuestion(); // ★ 기분 후 선택 시 핵심질문 표시
+            setTimeout(renderShortsPointSummary, 200); // ★ 실천 탭 갱신
+        }
+    }
+
+    /* ===== ① 감정 기반 유튜브 추천 강화 ===== */
+
+    function analyzeRecentMood(){
+        // 최근 7일 감정 분석
+        let sadCount=0, neutralCount=0, happyCount=0;
+        for(let i=0;i<7;i++){
+            const d = new Date(todayObj);
+            d.setDate(d.getDate()-i);
+            const val = safeGetItem(`mood_before_${getFormatDate(d)}`, null);
+            if(val===null) continue;
+            const v = parseInt(val);
+            if(v<=1) sadCount++;
+            else if(v===2) neutralCount++;
+            else happyCount++;
+        }
+        const total = sadCount+neutralCount+happyCount;
+        if(total===0) return 'default';
+        if(sadCount/total >= 0.5) return 'sad';
+        if(neutralCount/total >= 0.5) return 'neutral';
+        if(happyCount/total >= 0.5) return 'happy';
+        return 'default';
+    }
+
+    function showEmotionRecommend(beforeIdx){
+        const box   = document.getElementById('emotion-recommend');
+        const title = document.getElementById('recommend-title');
+        const text  = document.getElementById('recommend-text');
+        if(!box) return;
+
+        // 오늘 기분 + 최근 패턴 종합
+        const recentPattern = analyzeRecentMood();
+        let rec = MOOD_YT_RECOMMEND.find(r=> r.pattern===recentPattern) || MOOD_YT_RECOMMEND[3];
+
+        // 오늘 개별 기분별 즉각 메시지 (기존 유지)
+        const immediateMsg = [
+            {title:'💙 마음이 무거운 날이죠', text:'그래도 괜찮아요. 오늘 이 확언이 당신 곁에 있어요.'},
+            {title:'💚 조금 흐린 날이네요', text:'아직 하루가 남아 있어요. 확언 하나가 마음의 날씨를 바꿔줄 거예요.'},
+            {title:'🌿 평범한 하루예요', text:'평범한 날도 소중해요. 오늘도 한 걸음, 나를 위해 읽어봐요.'},
+            {title:'☀️ 좋은 하루네요!', text:'이 기분 그대로 오늘의 확언과 함께라면 더 빛날 거예요!'},
+            {title:'🌟 에너지가 넘치는 날!', text:'최고의 하루예요! 이 확언이 오늘을 더 특별하게 만들어 줄 거예요.'}
+        ];
+        const msg = immediateMsg[beforeIdx] || immediateMsg[2];
+        title.textContent = msg.title;
+        text.textContent  = msg.text;
+
+        // 유튜브 추천 (최신 에피소드 or 패턴 기반)
+        const ytBox   = document.getElementById('yt-recommend-box');
+        const ytLink  = document.getElementById('yt-recommend-link');
+        const ytTitle = document.getElementById('yt-recommend-title');
+        const ytDesc  = document.getElementById('yt-recommend-desc');
+        if(ytBox){
+            // 최신 에피소드 있으면 우선
+            if(latestEpisode && latestEpisode.title){
+                ytTitle.textContent = latestEpisode.title;
+                ytDesc.textContent  = '인생2막라디오 최신 에피소드';
+                ytLink.href = latestEpisode.url;
+            } else {
+                ytTitle.textContent = rec.ytTitle;
+                ytDesc.textContent  = rec.ytDesc;
+                ytLink.href = rec.ytUrl;
+            }
+            ytBox.style.display = 'block';
+        }
+        box.style.display = 'block';
+        trackEvent('emotion_recommend_shown', {mood_idx: beforeIdx, pattern: recentPattern});
+    }
+
+    /* ===== ⑧ 감정 원인 질문 ===== */
+
+    function showMoodReasonQuestion(beforeIdx){
+        const box = document.getElementById('mood-reason-box');
+        if(!box) return;
+        // 😔 😐 일 때만 질문 — 다른 기분 선택 시 박스 숨김
+        if(beforeIdx > 2){
+            box.style.display = 'none';
+            return;
+        }
+        const type = beforeIdx <= 1 ? 'sad' : 'neutral';
+        const data = MOOD_REASONS[type];
+        document.getElementById('mood-reason-question').textContent = data.question;
+        const optEl = document.getElementById('mood-reason-options');
+        optEl.innerHTML = data.options.map((o,i)=>
+            `<button onclick="selectMoodReason(${i},${beforeIdx})" style="text-align:left;padding:11px 16px;background:var(--bg-color);border:1px solid var(--border-color);border-radius:10px;font-size:0.88em;font-weight:600;color:var(--text-color);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--primary-color)'" onmouseout="this.style.borderColor='var(--border-color)'">${o.text}</button>`
+        ).join('');
+        document.getElementById('mood-reason-result').style.display = 'none';
+        box.style.display = 'block';
+    }
+
+    window.selectMoodReason = function(optIdx, beforeIdx){
+        const type = beforeIdx <= 1 ? 'sad' : 'neutral';
+        const reply = MOOD_REASONS[type].options[optIdx].reply;
+        const resultEl = document.getElementById('mood-reason-result');
+        const optEl    = document.getElementById('mood-reason-options');
+        optEl.style.display = 'none';
+        resultEl.textContent = '🌿 ' + reply;
+        resultEl.style.display = 'block';
+        // 저장
+        safeSetItem(`mood_reason_${getTodayStr()}`, MOOD_REASONS[type].options[optIdx].text);
+    }
+
+    /* ===== ④ 변화 스토리 카드 ===== */
+    function checkStoryCard(completedCount){
+        const milestones = [7,30,100,200,300];
+        const milestone = milestones.find(m=> completedCount===m);
+        if(!milestone) return;
+        const key = `story_card_shown_${milestone}`;
+        if(safeGetItem(key,'') === '1') return;
+        safeSetItem(key,'1');
+        setTimeout(()=> showStoryCard(milestone, completedCount), 1200);
+    }
+
+    function showStoryCard(milestone, total){
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9995;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:28px 24px;width:90%;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+                <div style="font-size:48px;margin-bottom:12px;">${milestone===300?'🏆':milestone>=100?'🌟':milestone>=30?'🌻':'🌱'}</div>
+                <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:6px;">${milestone}일 달성!</div>
+                <div style="font-size:0.9em;color:#666;margin-bottom:20px;line-height:1.6;">
+                    ${milestone}일 동안 매일 확언과 함께하셨어요.<br>당신의 변화를 카드로 만들어드릴게요!
+                </div>
+                <canvas id="story-canvas" style="width:100%;border-radius:14px;margin-bottom:16px;display:block;"></canvas>
+                <div style="display:flex;gap:10px;margin-bottom:10px;">
+                    <button onclick="downloadStoryCard()" style="flex:1;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">저장하기</button>
+                    <button onclick="shareStoryCard()" style="flex:1;min-height:50px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">공유하기</button>
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:44px;background:none;border:1px solid #E8E5E0;border-radius:12px;font-size:0.88em;font-weight:600;color:#888;cursor:pointer;">닫기</button>
+            </div>`;
+        document.body.appendChild(modal);
+        launchConfetti();
+        drawStoryCard(modal.querySelector('#story-canvas'), milestone, total);
+    }
+
+    function drawStoryCard(canvas, milestone, total){
+        const W=600, H=600;
+        canvas.width=W; canvas.height=H;
+        const ctx=canvas.getContext('2d');
+        // 배경
+        const g=ctx.createLinearGradient(0,0,0,H);
+        g.addColorStop(0,'#1B4332'); g.addColorStop(1,'#0D2B20');
+        ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+        // 장식 원
+        ctx.beginPath(); ctx.arc(W-60,60,150,0,Math.PI*2);
+        ctx.fillStyle='rgba(201,168,76,0.08)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(60,H-60,120,0,Math.PI*2);
+        ctx.fillStyle='rgba(201,168,76,0.06)'; ctx.fill();
+        // 골드 선
+        ctx.strokeStyle='#C9A84C'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(50,50); ctx.lineTo(W-50,50); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(50,H-50); ctx.lineTo(W-50,H-50); ctx.stroke();
+        // 타이틀
+        ctx.fillStyle='#C9A84C';
+        ctx.font='bold 22px "Apple SD Gothic Neo",sans-serif';
+        ctx.textAlign='center';
+        ctx.fillText('나는 이렇게 변하고 있다', W/2, 100);
+        // 일수
+        ctx.fillStyle='#FFFFFF';
+        ctx.font='bold 100px "Apple SD Gothic Neo",sans-serif';
+        ctx.fillText(milestone, W/2, 240);
+        ctx.font='bold 32px "Apple SD Gothic Neo",sans-serif';
+        ctx.fillText('일째 함께', W/2, 290);
+        // 통계
+        const cd=safeGetJSON('completed_dates',[]);
+        let moodUp=0;
+        cd.forEach(ds=>{ const b=safeGetItem(`mood_before_${ds}`,null),a=safeGetItem(`mood_after_${ds}`,null); if(b!==null&&a!==null&&parseInt(a)>parseInt(b))moodUp++; });
+        const streak=calcCurrentStreak(cd);
+        ctx.fillStyle='rgba(255,255,255,0.7)';
+        ctx.font='22px "Apple SD Gothic Neo",sans-serif';
+        ctx.fillText(`총 ${total}일 완료 · 최장 ${streak}일 연속 · 기분 상승 ${moodUp}회`, W/2, 360);
+        // 구분선
+        ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(80,390); ctx.lineTo(W-80,390); ctx.stroke();
+        // 확언
+        const dc=(total-1)%affirmationsData.length;
+        const todayText=affirmationsData[dc]?affirmationsData[dc].text.substring(0,30)+'...':'';
+        ctx.fillStyle='rgba(255,255,255,0.85)';
+        ctx.font='18px "Apple SD Gothic Neo",sans-serif';
+        ctx.fillText(todayText, W/2, 430);
+        // 워터마크
+        ctx.fillStyle='rgba(201,168,76,0.8)';
+        ctx.font='bold 20px "Apple SD Gothic Neo",sans-serif';
+        ctx.fillText('🌿 인생2막라디오 · 365일 확언', W/2, H-70);
+    }
+
+    window.downloadStoryCard = function(){
+        const canvas = document.querySelector('#story-canvas');
+        if(!canvas) return;
+        const a=document.createElement('a');
+        a.download=`인생2막_변화스토리.png`;
+        a.href=canvas.toDataURL('image/png');
+        a.click();
+        showToast('스토리 카드가 저장됐어요!');
+    }
+
+    window.shareStoryCard = function(){
+        const canvas = document.querySelector('#story-canvas');
+        if(!canvas) return;
+        canvas.toBlob(async blob=>{
+            const file=new File([blob],'변화스토리.png',{type:'image/png'});
+            if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+                await navigator.share({files:[file],title:'인생2막 변화 스토리',text:'365일 확언으로 이렇게 변하고 있어요 🌿'});
+            } else { downloadStoryCard(); }
+        },'image/png');
+    }
+
+    /* ===== ★ 연속 긍정 변화 배지 ===== */
+    const MOOD_RISE_BADGES = [
+        { days:3,  icon:'🌱', label:'3일 연속 마음이 밝아졌어요!' },
+        { days:7,  icon:'🌻', label:'7일 연속! 확언이 마음을 바꾸고 있어요!' },
+        { days:14, icon:'🌟', label:'14일 연속! 당신의 긍정이 빛나고 있어요!' },
+        { days:30, icon:'🏅', label:'30일 연속! 진짜 변화를 만들고 있어요!' }
+    ];
+
+    function checkMoodRiseStreak(){
+        const dateStr = getFormatDate(selectedDateObj);
+        const beforeVal = safeGetItem(`mood_before_${dateStr}`, null);
+        const afterVal  = safeGetItem(`mood_after_${dateStr}`, null);
+        if(beforeVal === null || afterVal === null) return;
+
+        // 오늘 기분이 올랐는지 체크
+        const rose = parseInt(afterVal) > parseInt(beforeVal);
+        safeSetItem(`mood_rose_${dateStr}`, rose ? '1' : '0');
+
+        // 연속 기간 계산
+        let streak = 0;
+        let d = new Date(selectedDateObj);
+        while(true){
+            const ds = getFormatDate(d);
+            const v = safeGetItem(`mood_rose_${ds}`, null);
+            if(v === '1') { streak++; d.setDate(d.getDate()-1); }
+            else break;
+        }
+
+        // 오늘 오른 경우 화면에 메시지 표시
+        const riseMsg = document.getElementById('mood-rise-msg');
+        const riseIcon = document.getElementById('mood-rise-icon');
+        const riseText = document.getElementById('mood-rise-text');
+        if(rose && riseMsg){
+            riseMsg.style.display = 'block';
+            // 배지 찾기 (가장 높은 달성 배지)
+            let badge = null;
+            for(let b of MOOD_RISE_BADGES){
+                if(streak >= b.days) badge = b;
+            }
+            if(badge){
+                riseIcon.textContent = badge.icon;
+                riseText.textContent = `${streak}일째 ${badge.label}`;
+                // 새로 달성한 배지 저장
+                let earned = safeGetJSON('earned_badges',[]);
+                let badgeId = `mood_rise_${badge.days}`;
+                if(!earned.includes(badgeId)){
+                    earned.push(badgeId);
+                    safeSetJSON('earned_badges', earned);
+                    // ★ 30일 연속 기분 상승 배지 → +10PT
+                    if(badge.days === 30){
+                        addPoint(10, '기분상승30일배지', 'mood_rise_30_bonus');
+                        setTimeout(()=> showToast(`🏅 ${badge.label} +10PT 지급!`), 600);
+                    } else {
+                        setTimeout(()=> showToast(`새 배지: ${badge.icon} ${badge.label}`), 600);
+                    }
+                    renderDashboard();
+                }
+            } else {
+                riseIcon.textContent = '⬆️';
+                riseText.textContent = `${streak}일 연속 기분 상승 중! 확언이 효과를 내고 있어요 💚`;
+            }
+        } else if(riseMsg){
+            riseMsg.style.display = 'none';
+        }
+    }
+    function renderMood(type){const saved=safeGetItem(`mood_${type}_${getFormatDate(selectedDateObj)}`,null),ct=document.getElementById(`mood-${type}-container`);let html='';EMOJIS.forEach((em,idx)=>{const ac=saved==idx?' active':'',dis=isToday?'':' disabled';html+=`<button class="mood-btn${ac}" ${dis} onclick="selectMood('${type}',${idx})">${em}</button>`;});ct.innerHTML=html;}
+
+    window.completeToday=function(){if(!isToday)return;try{const ts=getFormatDate(selectedDateObj);let completed=safeGetJSON('completed_dates',[]);if(!completed.includes(ts)){completed.push(ts);safeSetJSON('completed_dates',completed);updateCompleteButton();renderStreakProtectHome();let streak=calcCurrentStreak(completed);checkStreakBadges(streak);showInsightIfNeeded(completed.length);renderScreen();
+        trackEvent('complete_affirmation', {day_count: completed.length, streak: streak});
+        checkStoryCard(completed.length);
+        showCompleteReward(completed.length, streak); // ★ 감정 보상 + 공유 유도
+        addPoint(1,'확언완료','complete'); checkStreakBonus(streak);
+        setTimeout(renderShortsPointSummary, 200);
+        window._sendUserUpdate(); // ★ 시트 전송
+    }}catch(e){}}
+
+    function updateCompleteButton(){const btn=document.getElementById('btn-complete');if(!btn)return;const icon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';if(!isToday){btn.style.display='none';}else{btn.style.display='flex';const completed=safeGetJSON('completed_dates',[]);if(completed.includes(getFormatDate(selectedDateObj))){btn.innerHTML=icon+'완료됨';btn.disabled=true;}else{btn.innerHTML=icon+'오늘 완료 체크';btn.disabled=false;}}}
+
+    window.renderScreen = function renderScreen(){
+        // (확언 강제 이동: _forceAffirmDay 사용)
+        const sv=document.getElementById('start-view'),av=document.getElementById('affirmation-view');
+        isToday=(getFormatDate(selectedDateObj)===getFormatDate(todayObj));
+        document.getElementById('readonly-banner').style.display=isToday?'none':'block';
+        let dayCount=1,prev=document.getElementById('btn-prev-date'),next=document.getElementById('btn-next-date');
+        if(currentMode==='A'){
+            sv.style.display='none';av.style.display='block';
+            let minA=new Date(todayObj.getFullYear(),0,1);
+            if(selectedDateObj<minA)selectedDateObj=new Date(minA);
+            if(selectedDateObj>todayObj && !window._bypassDateCap) selectedDateObj=new Date(todayObj);
+            window._bypassDateCap = false;
+            dayCount=Math.floor((selectedDateObj-minA)/86400000)+1;
+            document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
+            document.getElementById('day-label').innerText=`365일 중 ${dayCount}일째`;
+            document.getElementById('day-label').onclick=()=>switchView('calendar');
+            prev.disabled=(getFormatDate(selectedDateObj)===getFormatDate(minA));
+            next.disabled=isToday;
+        } else {
+            const ss=safeGetItem('start_date_B',null);
+            if(!ss){sv.style.display='block';av.style.display='none';return;}
+            sv.style.display='none';av.style.display='block';
+            let pts=ss.split('-'),minB=new Date(pts[0],pts[1]-1,pts[2]);
+            if(selectedDateObj<minB)selectedDateObj=new Date(minB);
+            if(selectedDateObj>todayObj)selectedDateObj=new Date(todayObj);
+            dayCount=Math.floor((selectedDateObj-minB)/86400000)+1;
+            if(dayCount<1)dayCount=1;
+            document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
+            document.getElementById('day-label').innerText=`${dayCount}일차`;
+            document.getElementById('day-label').onclick=()=>switchView('calendar');
+            prev.disabled=(getFormatDate(selectedDateObj)===getFormatDate(minB));
+            next.disabled=isToday;
+        }
+        const di=(dayCount-1)%affirmationsData.length,data=affirmationsData[di];
+        const mb=safeGetItem(`mood_before_${getFormatDate(selectedDateObj)}`,null);
+        let overlay='',cc='';
+        if(isToday&&mb===null){cc='blurred-content';overlay=`<div class="unlock-message" id="unlock-msg">오늘 기분을 선택하면<br>확언이 열립니다 🔓</div>`;}
+        const actionDoneKey = `action_done_${getFormatDate(selectedDateObj)}`;
+        const actionDone = safeGetItem(actionDoneKey, '') === '1';
+        const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
+        const actionBtnHtml = isToday ? `
+            <div style="margin-top:14px;border-top:1px solid rgba(201,168,76,0.2);padding-top:14px;">
+                <div style="display:flex;gap:8px;">
+                    <button id="action-done-btn" onclick="toggleActionDone()" style="flex:1;min-height:48px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
+                        ${actionDone?'✓ 실천 완료!':'실행 완료 체크'}
+                    </button>
+                    <button onclick="openActionPhoto()" style="flex:1;min-height:48px;background:${photoDone?'#C9A84C':'rgba(201,168,76,0.15)'};color:${photoDone?'#fff':'#C9A84C'};border:1.5px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
+                        ${photoDone?'📸 인증 완료!':'📸 사진 인증 +5PT'}
+                    </button>
+                </div>
+            </div>` : '';
+        document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()" style="width:100%;border-radius:0;margin:0;border-left:2px solid var(--accent-color);border-right:2px solid var(--accent-color);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button><div class="action-box"><div class="action-title">오늘의 행동 지침</div><div class="action-text" id="action-text">${data.action}</div>${actionBtnHtml}</div></div>`;
+        const ep=document.getElementById('btn-episode');
+        if(data.episode&&data.episode.trim()!==''){
+            ep.style.display='flex';
+            ep.href=data.episode;
+            ep.setAttribute('onclick', "addPoint(2,'영상클릭','episode_visit')");
+            // ② 확언 근거 감성 훅
+            ep.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;">
+                <div style="font-size:0.78em;color:rgba(255,255,255,0.7);">이 확언은 그냥 말이 아닙니다. 이유가 있어요.</div>
+                <div style="font-size:0.92em;font-weight:700;">오늘 이야기 들어보기 🎬</div>
+            </div>`;
+        }
+        else{ep.style.display='none';}
+        const cd=safeGetJSON('completed_dates',[]),tp=document.getElementById('tomorrow-preview');
+        if(isToday&&cd.includes(getFormatDate(selectedDateObj))){
+            let nd=affirmationsData[dayCount%affirmationsData.length];
+            let wds=nd.text.split(' ');
+            document.getElementById('tmrw-theme').innerText=`[${nd.theme}]`;
+            document.getElementById('tmrw-text').innerText=wds.slice(0,3).join(' ')+' ...';
+            tp.style.display='block';
+        } else {tp.style.display='none';}
+        renderMood('before');renderMood('after');updateCompleteButton();renderStreakProtectHome();
+        renderHomeYTRecommend();
+        renderNicknameGreeting();
+        check100DayNotify();
+        // checkFirstVisit은 온보딩 완료 후 실행 (등록 전 레벨업 팝업 방지)
+        renderAbsenceBanner(null);
+        renderOracleBtn(); // 배너만 표시 (삭감/하락은 initApp에서만)
+        // 기분 전 제목에 닉네임 적용
+        const _mbt = document.getElementById('mood-before-title');
+        if(_mbt){ const _n=safeGetItem('my_nickname',''); _mbt.textContent = _n ? `${_n}님, 오늘 확언을 보기 전 지금 기분은 어떠세요?` : '오늘 확언을 보기 전 지금 기분은 어떠세요?'; }
+
+        // 핵심질문은 기분(후) 선택 시에만 표시 — 이미 선택된 경우 바로 표시
+        const afterSaved = safeGetItem(`mood_after_${getFormatDate(selectedDateObj)}`, null);
+        if(afterSaved !== null){
+            renderKeyQuestion();
+        } else {
+            const kqBox = document.getElementById('key-question-box');
+            if(kqBox) kqBox.style.display = 'none';
+        }
+        // ★ 즐겨찾기 버튼 상태 업데이트
+        updateFavButton(dayCount);
+    }
+
+    /* ===== 스트릭 ===== */
+    function calcCurrentStreak(completedDates){let streak=0,d=new Date(todayObj),ts=getFormatDate(d);if(completedDates.includes(ts)){while(completedDates.includes(getFormatDate(d))){streak++;d.setDate(d.getDate()-1);}}else{d.setDate(d.getDate()-1);while(completedDates.includes(getFormatDate(d))){streak++;d.setDate(d.getDate()-1);}}return streak;}
+    function renderStreakProtectHome(){
+        let d=new Date(todayObj),ts=getFormatDate(d);d.setDate(d.getDate()-1);let ys=getFormatDate(d);
+        let cd=safeGetJSON('completed_dates',[]),streak=calcCurrentStreak(cd);
+        let et=Math.floor(cd.length/30),ut=safeGetJSON('used_tickets',0),ct=et-ut;
+        let html=`🔥 ${streak}일 연속 달성 중!`;
+        if(!cd.includes(ts)&&!cd.includes(ys)&&ct>0&&streak===0)html=`🔥 스트릭이 끊길 위기! <button class="btn-sub" style="font-size:16px;padding:6px 12px;margin-left:10px;cursor:pointer;border:none;border-radius:8px;font-weight:bold;" onclick="useTicket()">보호권 사용(남음:${ct})</button>`;
+        document.getElementById('streak-display-home').innerHTML=html;
+        // 완료 기록 없는 새 사용자 → 결석 카운터 강제 리셋
+        if(cd.length === 0){
+            safeSetItem('revival_absent_days','0');
+        }
+        // 결석일 자동 계산: 한 번이라도 완료한 적 있고, 오늘+어제 모두 미완료 시 결석 누적
+        else if(!cd.includes(ts)&&!cd.includes(ys)){
+            var abKey='revival_absent_last_date', lastDate=safeGetItem(abKey,'');
+            if(lastDate!==ts){
+                var ab=parseInt(safeGetItem('revival_absent_days','0'))||0;
+                safeSetItem('revival_absent_days',String(ab+1));
+                safeSetItem(abKey,ts);
+            }
+        }
+        // 완료한 날이면 결석 카운터 리셋
+        if(cd.includes(ts)) safeSetItem('revival_absent_days','0');
+        renderStreakMilestone();
+    }
+    window.useTicket=function(){
+        let d=new Date(todayObj);d.setDate(d.getDate()-1);
+        let ys=getFormatDate(d),cd=safeGetJSON('completed_dates',[]);
+        if(!cd.includes(ys)){cd.push(ys);safeSetJSON('completed_dates',cd);let u=safeGetJSON('used_tickets',0);safeSetJSON('used_tickets',u+1);showToast('보호권 사용! 스트릭이 유지됩니다.');renderScreen();}
+    }
+
+    /* ===== 달력 ===== */
+    let calYear=todayObj.getFullYear(),calMonth=todayObj.getMonth()+1;
+    window.currentAvgMood='+0';
+    window.changeMonth=function(delta){calMonth+=delta;if(calMonth<1){calMonth=12;calYear--;}else if(calMonth>12){calMonth=1;calYear++;}renderCalendar();}
+    window.renderCalendar = function renderCalendar(){
+        try{
+            document.getElementById('cal-month-title').innerText=`${calYear}년 ${calMonth}월`;
+            const fd=new Date(calYear,calMonth-1,1),fdw=fd.getDay(),dim=new Date(calYear,calMonth,0).getDate();
+            let cd=safeGetJSON('completed_dates',[]),mc=0,html='';
+            for(let i=0;i<fdw;i++)html+=`<div class="cal-cell"></div>`;
+            for(let d=1;d<=dim;d++){
+                let ds=`${calYear}-${calMonth}-${d}`,cd2=new Date(calYear,calMonth-1,d);
+                let ic=cd.includes(ds),if2=cd2>todayObj;
+                if(ic)mc++;
+                let cc='cal-circle';
+                if(ic)cc+=' checked';else if(if2)cc+=' future';else cc+=' unchecked';
+                if(!if2)cc+=' clickable';
+                let ce=!if2?`onclick="goToDate(${calYear},${calMonth},${d})"`:'' ;
+                // ★ 이모지 달력: 완료한 날은 기분 이모지 표시
+                let cellContent = d;
+                if(ic){
+                    let moodAfterVal = safeGetItem(`mood_after_${ds}`, null);
+                    if(moodAfterVal !== null){
+                        cellContent = `<span style="font-size:22px;">${EMOJIS[parseInt(moodAfterVal)]}</span>`;
+                        cc += ' emoji-day';
+                    }
+                }
+                html+=`<div class="cal-cell"><div class="${cc}" ${ce}>${cellContent}</div></div>`;
+            }
+            document.getElementById('cal-grid-days').innerHTML=html;
+            document.getElementById('cal-stat-month').innerText=`이번 달 ${mc}일 완료 / 총 ${dim}일`;
+            let st=calcCurrentStreak(cd);
+            document.getElementById('cal-stat-streak').innerText=`🔥 ${st}일 연속 중!`;
+            document.getElementById('cal-stat-rate').innerText=`이번 달 완료율: ${Math.round((mc/dim)*100)}%`;
+            setTimeout(()=>{drawMoodGraph(calYear,calMonth,dim);renderDashboard();renderMonthlyMission();},50);
+            renderBadgeList();
+        }catch(e){console.error(e);}
+    }
+    function renderMonthlyMission(){
+        const ms = `${todayObj.getFullYear()}_${todayObj.getMonth()+1}`;
+        const cd = safeGetJSON('completed_dates',[]);
+        let mc = 0;
+        const ym = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}`;
+        for(let s of cd){ if(s.startsWith(ym)) mc++; }
+        const memoCnt = safeGetJSON(`memo_count_${ms}`,0);
+        const favCnt  = safeGetJSON('favorites',[]).length;
+        const alreadyDone = safeGetJSON('earned_badges',[]).includes(`mission_${ms}`);
+
+        // 3가지 미션 달성 체크
+        const m1 = mc >= 20;
+        const m2 = memoCnt >= 5;
+        const m3 = favCnt >= 3;
+        const doneCount = [m1,m2,m3].filter(Boolean).length;
+        const pct = Math.round((doneCount/3)*100);
+
+        const pt = document.getElementById('mission-progress-text');
+        const bar = document.getElementById('mission-bar');
+        const rt  = document.getElementById('mission-reward-text');
+        if(!pt || !bar || !rt) return;
+
+        pt.innerHTML =
+            `${m1?'✅':'⬜'} 이번 달 20일 이상 체크 (${mc}/20일)<br>` +
+            `${m2?'✅':'⬜'} 필사·일기 5번 이상 (${memoCnt}/5회)<br>` +
+            `${m3?'✅':'⬜'} 즐겨찾기 3개 이상 (${favCnt}/3개)`;
+
+        bar.style.width = pct + '%';
+        bar.style.background = alreadyDone ? '#C9A84C' : 'var(--primary-color)';
+
+        if(alreadyDone){
+            rt.innerHTML = '<b style="color:#C9A84C;">🏅 이번 달 미션 완료! +10PT 수령 완료</b>';
+        } else if(doneCount === 3){
+            rt.innerHTML = '<b style="color:var(--primary-color);">🎉 모두 달성! 달력 탭을 다시 열면 +10PT 지급돼요</b>';
+        } else {
+            rt.innerHTML = `${3-doneCount}개 더 달성하면 <b style="color:var(--primary-color);">+10PT</b> 보너스!`;
+        }
+    }
+
+    function renderDashboard(){
+        let cd=safeGetJSON('completed_dates',[]);
+        let favs=safeGetJSON('favorites',[]);
+        let badge=safeGetJSON('earned_badges',[]).length;
+        const et=document.getElementById('dash-total'),em=document.getElementById('dash-mood'),ef=document.getElementById('dash-fav'),eb=document.getElementById('dash-badge');
+        if(et)et.innerText=cd.length;
+        if(ef)ef.innerText=favs.length;
+        if(eb)eb.innerText=badge;
+        if(em)em.innerText=window.currentAvgMood;
+    }
+    function checkMissions(){
+        let ms=`${todayObj.getFullYear()}_${todayObj.getMonth()+1}`;
+        let cd=safeGetJSON('completed_dates',[]),mc=0;
+        for(let s of cd){if(s.startsWith(`${todayObj.getFullYear()}-${todayObj.getMonth()+1}-`))mc++;}
+        let memoCnt=safeGetJSON(`memo_count_${ms}`,0);
+        let favCnt=safeGetJSON('favorites',[]).length;
+        const m1=document.getElementById('miss-1'),m2=document.getElementById('miss-2'),m3=document.getElementById('miss-3');
+        if(m1){if(mc>=20){m1.innerText='✅ 이번 달 20일 이상 체크하기';m1.classList.add('done');}else{m1.innerText=`☐ 이번 달 20일 이상 체크하기 (${mc}/20)`;m1.classList.remove('done');}}
+        if(m2){if(memoCnt>=5){m2.innerText='✅ 메모 5번 이상 쓰기';m2.classList.add('done');}else{m2.innerText=`☐ 메모 5번 이상 쓰기 (${memoCnt}/5)`;m2.classList.remove('done');}}
+        if(m3){if(favCnt>=3){m3.innerText='✅ 즐겨찾기 3개 이상 모으기';m3.classList.add('done');}else{m3.innerText=`☐ 즐겨찾기 3개 이상 모으기 (${favCnt}/3)`;m3.classList.remove('done');}}
+        if(mc>=20&&memoCnt>=5&&favCnt>=3){let earned=safeGetJSON('earned_badges',[]),bid=`mission_${ms}`;if(!earned.includes(bid)){earned.push(bid);safeSetJSON('earned_badges',earned); addPoint(10,'월간미션완료',`monthly_${ms}`); showToast('🏅 이달의 미션 완료! +10PT 적립!'); launchConfetti(); renderBadgeList();renderDashboard();}}
+    }
+    function drawMoodGraph(year,month,dim){
+        try{
+            const canvas=document.getElementById('mood-chart');if(!canvas)return;
+            const ctx=canvas.getContext('2d'),wrapper=canvas.parentElement;
+            if(!wrapper||wrapper.clientWidth===0)return;
+            let dpr=window.devicePixelRatio||1,w=wrapper.clientWidth,h=260;
+            canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';
+            ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+            let bd=[],ad=[],td=0,dc2=0;
+            for(let d=1;d<=dim;d++){let bs=safeGetItem(`mood_before_${year}-${month}-${d}`,null),as2=safeGetItem(`mood_after_${year}-${month}-${d}`,null);let bv=bs!==null?parseInt(bs)+1:null,av=as2!==null?parseInt(as2)+1:null;bd.push(bv);ad.push(av);if(bv!==null&&av!==null){td+=(av-bv);dc2++;}}
+            let at=document.getElementById('chart-avg-text');
+            if(dc2>0){let avg=(td/dc2).toFixed(1),sg=avg>0?'+':'';window.currentAvgMood=sg+avg;at.innerText=`이번 달 평균 기분 변화: ${window.currentAvgMood}단계`;}
+            else{window.currentAvgMood='+0';at.innerText='이번 달 평균 기분 변화: 기록 없음';}
+            const px=35,py=25,dw=w-px*2,dh=h-py*2;
+            ctx.strokeStyle='#EEEEEE';ctx.lineWidth=1;ctx.fillStyle='#666666';ctx.font='16px "Malgun Gothic",sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';
+            for(let i=1;i<=5;i++){let y2=py+dh-((i-1)/4)*dh;ctx.beginPath();ctx.moveTo(px,y2);ctx.lineTo(w-px+20,y2);ctx.stroke();ctx.fillText(i,px-10,y2);}
+            ctx.textAlign='center';ctx.textBaseline='top';
+            for(let d=1;d<=dim;d++){if(d===1||d===dim||d%5===0){let x=px+((d-1)/(dim-1))*dw;ctx.fillText(d,x,py+dh+10);}}
+            function dl(data,color){ctx.strokeStyle=color;ctx.lineWidth=3;ctx.lineJoin='round';ctx.beginPath();let st=false;for(let d=1;d<=dim;d++){if(data[d-1]!==null){let x=px+((d-1)/(dim-1))*dw,y2=py+dh-((data[d-1]-1)/4)*dh;if(!st){ctx.moveTo(x,y2);st=true;}else{ctx.lineTo(x,y2);}}}ctx.stroke();ctx.fillStyle=color;for(let d=1;d<=dim;d++){if(data[d-1]!==null){let x=px+((d-1)/(dim-1))*dw,y2=py+dh-((data[d-1]-1)/4)*dh;ctx.beginPath();ctx.arc(x,y2,4,0,2*Math.PI);ctx.fill();}}}
+            dl(bd,'#4A90E2');dl(ad,'#D4A843');
+        }catch(e){}
+    }
+
+    /* ===== 배지 ===== */
+    function checkStreakBadges(sc){
+        try{
+            let earned=safeGetJSON('earned_badges',[]),ne=null;
+            for(let b of BADGES){if(sc>=b.target&&!earned.includes('streak_'+b.target)){earned.push('streak_'+b.target);ne=b;}}
+            if(ne){
+                safeSetJSON('earned_badges',earned);
+                // ★ 연속 달성 배지 → 포인트+등급 직행
+                const streakRewards = {
+                    100: { pts:1200, msg:'🏔️ 100일 연속! 인생2막러 등급 직행!' },
+                    200: { pts:1850, msg:'☁️ 200일 연속! 라디오스타 등급 직행!' },
+                    300: { pts:2390, msg:'✨ 300일 연속! 인생챔피언 직행!' },
+                };
+                if(streakRewards[ne.target]){
+                    const rw = streakRewards[ne.target];
+                    const cur = getPoints();
+                    if(cur < rw.pts){
+                        const diff = rw.pts - cur;
+                        setPoints(rw.pts);
+                        if(typeof renderPointBar==='function') renderPointBar();
+                        setTimeout(()=>{ showToast(rw.msg+` +${diff}PT 지급!`); launchConfetti(); }, 500);
+                    }
+                }
+                if(ne.target===365){switchView('completion');}
+                else{
+                    document.getElementById('badge-modal-icon').innerText=ne.icon;
+                    document.getElementById('badge-modal-title').innerText=`${ne.target}일 스트릭 달성!`;
+                    document.getElementById('badge-modal-desc').innerText=`"${ne.name}"\n진심으로 축하합니다!`;
+                    document.getElementById('badge-modal').style.display='flex';
+                    if(ne.target===7) { setTimeout(showSubscribeNudge,600); }
+                }
+            }
+        }catch(e){}
+    }
+    window.closeBadgeModal=function(){document.getElementById('badge-modal').style.display='none';}
+    function showInsightIfNeeded(len){if(len>0&&len%3===0){let ls=safeGetItem('insight_last_shown',''),ts=getTodayStr();if(ls!==ts){let rn=Math.floor(Math.random()*INSIGHTS.length);document.getElementById('insight-desc').innerText=`"${INSIGHTS[rn]}"`;document.getElementById('insight-modal').style.display='flex';safeSetItem('insight_last_shown',ts);}}}
+    function renderBadgeList(){
+        try{
+            let earned=safeGetJSON('earned_badges',[]),html='';
+            for(let b of BADGES){let ie=earned.includes('streak_'+b.target),cls=ie?'badge-item earned':'badge-item locked';if(b.target===365)cls+=' full-width';html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.target}일 연속 달성</div><div class="badge-name">${b.name}</div></div>`;}
+            // ★ 긍정 변화 배지
+            html += '<div style="grid-column:1/-1;font-size:14px;font-weight:700;color:var(--primary-color);margin-top:14px;margin-bottom:4px;white-space:nowrap;">😊 기분 상승 배지 <span style="font-weight:500;font-size:12px;">(30일 연속 달성 시 +10PT!)</span></div>';
+            for(let b of MOOD_RISE_BADGES){
+                let ie=earned.includes(`mood_rise_${b.days}`),cls=ie?'badge-item earned':'badge-item locked';
+                html+=`<div class="${cls}"><div class="badge-icon">${b.icon}</div><div class="badge-days">${b.days}일 연속 상승</div><div class="badge-name">${b.label.replace(/\d+일 연속 /,'')}</div></div>`;
+            }
+            let ms=`${todayObj.getFullYear()}_${todayObj.getMonth()+1}`;
+            if(earned.includes(`mission_${ms}`))html+=`<div class="badge-item earned full-width" style="margin-top:10px;"><div class="badge-icon">🏅</div><div class="badge-days">이달의 미션 클리어</div><div class="badge-name">이번 달을 훌륭하게 보내셨습니다!</div></div>`;
+            document.getElementById('badge-list-container').innerHTML=html;
+        }catch(e){}
+    }
+    window.shareSNS=function(){if(navigator.share){navigator.share({title:'365일 오늘의 확언 완주!',text:'제가 매일 꾸준히 365일 확언을 완주했습니다. 함께 긍정의 힘을 채워보세요! 🌱'}).catch(e=>{});}else{alert('완주를 축하합니다!');}}
+
+    /* ===== ★ 7단계: 메모(필사) + 일기장 ===== */
+
+    // ---- 필사 탭 ----
+    window.switchMemoTab = function(tab){
+        document.getElementById('memo-tab-a').className = 'tab-btn' + (tab==='write'?' active':'');
+        document.getElementById('memo-tab-c').className = 'tab-btn' + (tab==='free'?' active':'');
+        document.getElementById('memo-tab-d').className = 'tab-btn' + (tab==='letter'?' active':'');
+        document.getElementById('memo-tab-b').className = 'tab-btn' + (tab==='diary'?' active':'');
+        document.getElementById('memo-write-view').style.display  = tab==='write'?'block':'none';
+        document.getElementById('memo-free-view').style.display   = tab==='free'?'block':'none';
+        document.getElementById('memo-letter-view').style.display = tab==='letter'?'block':'none';
+        document.getElementById('memo-diary-view').style.display  = tab==='diary'?'block':'none';
+        if(tab==='write')  initMemoWrite();
+        if(tab==='free')   initFreeNote();
+        if(tab==='letter') initLetterView();
+        if(tab==='diary')  initDiary();
+    }
+
+    // ---- 자유메모 ----
+    function initFreeNote(){
+        const body = document.getElementById('free-note-body');
+        if(body){
+            body.oninput = ()=>{
+                document.getElementById('free-note-count').textContent = body.value.length + '자';
+            };
+        }
+        renderFreeNoteList();
+    }
+
+    window.saveFreeNote = function(){
+        const title = document.getElementById('free-note-title').value.trim();
+        const body  = document.getElementById('free-note-body').value.trim();
+        if(!body){ showToast('내용을 입력해주세요!'); return; }
+        const notes = safeGetJSON('free_notes',[]);
+        notes.unshift({ id: Date.now(), title: title||'제목 없음', body: body, date: getTodayStr() });
+        safeSetJSON('free_notes', notes);
+        document.getElementById('free-note-title').value = '';
+        document.getElementById('free-note-body').value = '';
+        document.getElementById('free-note-count').textContent = '0자';
+        showToast('📌 메모가 저장됐어요!');
+        renderFreeNoteList();
+    }
+
+    function renderFreeNoteList(){
+        const notes = safeGetJSON('free_notes',[]);
+        const el = document.getElementById('free-note-list');
+        if(!notes.length){
+            el.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;font-size:18px;">아직 저장된 메모가 없어요 📌</div>';
+            return;
+        }
+        el.innerHTML = notes.map((n,i)=>`
+            <div class="memo-card" onclick="expandFreeNote(${i})" id="free-card-${i}">
+                <div class="memo-card-top">
+                    <div class="memo-card-meta">
+                        <span class="memo-card-day">${n.date}</span>
+                    </div>
+                    <button class="memo-card-del" onclick="event.stopPropagation();deleteFreeNote(${i})">삭제</button>
+                </div>
+                <div style="font-size:18px;font-weight:bold;color:var(--primary-color);margin-bottom:5px;">${n.title}</div>
+                <div class="memo-card-text" id="free-body-${i}" style="max-height:60px;overflow:hidden;transition:max-height 0.3s;">${n.body}</div>
+                <div style="font-size:15px;color:#aaa;margin-top:4px;" id="free-more-${i}">${n.body.length>80?'▼ 더 보기':''}</div>
+            </div>`).join('');
+    }
+
+    window.expandFreeNote = function(i){
+        const bodyEl = document.getElementById(`free-body-${i}`);
+        const moreEl = document.getElementById(`free-more-${i}`);
+        if(!bodyEl) return;
+        if(bodyEl.style.maxHeight === '60px' || bodyEl.style.maxHeight === ''){
+            bodyEl.style.maxHeight = '1000px';
+            if(moreEl) moreEl.textContent = '▲ 접기';
+        } else {
+            bodyEl.style.maxHeight = '60px';
+            const notes = safeGetJSON('free_notes',[]);
+            if(moreEl) moreEl.textContent = notes[i]&&notes[i].body.length>80 ? '▼ 더 보기' : '';
+        }
+    }
+
+    window.deleteFreeNote = function(i){
+        const notes = safeGetJSON('free_notes',[]);
+        notes.splice(i,1);
+        safeSetJSON('free_notes', notes);
+        renderFreeNoteList();
+        showToast('삭제됐어요');
+    }
+
+    function initMemoWrite(){
+        // 오늘 확언 표시
+        const affirmEl = document.getElementById('affirmation-text');
+        const el = document.getElementById('memo-today-affirmation');
+        if(affirmEl && !affirmEl.closest('.blurred-content')){
+            el.textContent = affirmEl.innerText;
+        } else {
+            // 데이터에서 직접 가져오기
+            const dc = getDayCountNow();
+            const data = affirmationsData[(dc-1)%affirmationsData.length];
+            el.textContent = data.text;
+        }
+        // 입력창 글자수
+        const input = document.getElementById('memo-input');
+        input.addEventListener('input', ()=>{
+            document.getElementById('memo-char-count').textContent = input.value.length + '자';
+        });
+        renderMemoList();
+    }
+
+    window.saveMemo = function(){
+        const input = document.getElementById('memo-input');
+        const text = input.value.trim();
+        if(!text){ showToast('내용을 입력해주세요!'); return; }
+
+        // 확언 글자 수의 80% 이상 입력해야 완료
+        const affirmEl = document.getElementById('memo-today-affirmation');
+        if(affirmEl && affirmEl.textContent && affirmEl.textContent !== '확언을 불러오는 중...'){
+            const affirmLen = affirmEl.textContent.replace(/\s/g,'').length;
+            const inputLen  = text.replace(/\s/g,'').length;
+            const required  = Math.floor(affirmLen * 0.8);
+            if(inputLen < required){
+                showToast(`조금 더 써보세요! 확언의 80% 이상 써야 저장돼요 (${inputLen}/${affirmLen}자)`);
+                return;
+            }
+        }
+        addPoint(1,'필사','memo');
+        setTimeout(renderShortsPointSummary, 200);
+        const memos = safeGetJSON('memos', []);
+        memos.unshift({ date: getTodayStr(), text: text, ts: Date.now() });
+        safeSetJSON('memos', memos);
+        input.value = '';
+        document.getElementById('memo-char-count').textContent = '0자';
+        showToast('✏️ 필사가 저장됐어요!');
+        // 미션 카운트
+        let y=todayObj.getFullYear(),m=todayObj.getMonth()+1;
+        safeSetJSON(`memo_count_${y}_${m}`, safeGetJSON(`memo_count_${y}_${m}`,0)+1);
+        checkMissions(); renderDashboard();
+        renderMemoList();
+    }
+
+    function renderMemoList(){
+        const memos = safeGetJSON('memos', []);
+        const el = document.getElementById('memo-list');
+        if(!memos.length){
+            el.innerHTML = '<div style="text-align:center;color:#aaa;padding:30px;font-size:18px;">아직 필사 기록이 없어요 ✏️</div>';
+            return;
+        }
+        el.innerHTML = memos.map((m,i)=>`
+            <div class="memo-card">
+                <button class="memo-card-del" onclick="deleteMemo(${i})">삭제</button>
+                <div class="memo-card-date">${m.date}</div>
+                <div class="memo-card-text">${m.text}</div>
+            </div>`).join('');
+    }
+
+    window.deleteMemo = function(i){
+        const memos = safeGetJSON('memos',[]);
+        memos.splice(i,1);
+        safeSetJSON('memos', memos);
+        renderMemoList();
+        showToast('삭제됐어요');
+    }
+
+    // ---- 일기장 + PIN ----
+    let pinBuffer = '';
+    let pinMode = 'check'; // 'check' | 'set' | 'confirm'
+    let pinTemp = '';
+    let diaryUnlocked = false;
+
+    function initDiary(){
+        diaryUnlocked = false;
+        const hasPin = safeGetItem('diary_pin', null);
+        document.getElementById('diary-lock-screen').style.display = 'block';
+        document.getElementById('diary-content-screen').style.display = 'none';
+        pinBuffer = ''; pinTemp = '';
+        updatePinDots();
+        buildPinPad();
+        // 힌트 영역 초기화
+        const hintTxt = document.getElementById('pin-hint-text');
+        if(hintTxt) hintTxt.style.display = 'none';
+        document.getElementById('pin-hint-input-area').style.display = 'none';
+        if(!hasPin){
+            pinMode = 'set';
+            document.getElementById('diary-lock-title').textContent = '일기장 비밀번호 설정';
+            document.getElementById('diary-lock-sub').textContent = '처음 사용이에요. 4자리 PIN을 설정해주세요.';
+            document.getElementById('pin-hint-area').style.display = 'none';
+            document.getElementById('pin-hint-input-area').style.display = 'block';
+        } else {
+            pinMode = 'check';
+            document.getElementById('diary-lock-title').textContent = '🔒 비밀번호를 입력하세요';
+            document.getElementById('diary-lock-sub').textContent = '';
+            document.getElementById('pin-hint-area').style.display = 'block';
+            renderPinHintArea();
+        }
+    }
+
+    window.showPinHint = function(){
+        const hint = safeGetItem('diary_pin_hint','');
+        const el = document.getElementById('pin-hint-text');
+        if(!el) return;
+        el.textContent = hint ? '💡 힌트: ' + hint : '설정된 힌트가 없어요.';
+        el.style.display = 'block';
+    }
+
+    function renderPinHintArea(){
+        const hint = safeGetItem('diary_pin_hint','');
+        const showSec   = document.getElementById('hint-show-section');
+        const setSec    = document.getElementById('hint-set-section');
+        const resetSec  = document.getElementById('reset-confirm-section');
+        const forgetSec = document.getElementById('forget-pin-section');
+        const hintTxt   = document.getElementById('pin-hint-text');
+        const inline    = document.getElementById('pin-hint-inline');
+        if(resetSec)  resetSec.style.display  = 'none';
+        if(hintTxt)   hintTxt.style.display   = 'none';
+        if(inline)    inline.style.display    = 'none';
+        if(hint){
+            if(showSec) showSec.style.display = 'block';
+            if(setSec)  setSec.style.display  = 'none';
+        } else {
+            if(showSec) showSec.style.display = 'none';
+            if(setSec)  setSec.style.display  = 'block';
+        }
+        if(forgetSec) forgetSec.style.display = 'block';
+    }
+
+    window.toggleHintInput = function(){
+        const el = document.getElementById('pin-hint-inline');
+        if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+    }
+
+    window.saveQuickHint = function(){
+        const val = document.getElementById('pin-hint-quick').value.trim();
+        if(!val){ showToast('힌트를 입력해주세요'); return; }
+        safeSetItem('diary_pin_hint', val);
+        showToast('💡 힌트가 저장됐어요!');
+        renderPinHintArea();
+    }
+
+    window.resetPin = function(){
+        const hint = safeGetItem('diary_pin_hint','');
+        const showSec   = document.getElementById('hint-show-section');
+        const setSec    = document.getElementById('hint-set-section');
+        const resetSec  = document.getElementById('reset-confirm-section');
+        const forgetSec = document.getElementById('forget-pin-section');
+        const preview   = document.getElementById('reset-hint-preview');
+        if(preview) preview.innerHTML = hint
+            ? `<div style="font-size:17px;color:var(--primary-color);font-weight:bold;background:#FFF8E7;padding:10px 14px;border-radius:10px;border:1px solid var(--accent-color);margin-bottom:12px;">💡 힌트: ${hint}</div>`
+            : '';
+        if(showSec)   showSec.style.display   = 'none';
+        if(setSec)    setSec.style.display    = 'none';
+        if(forgetSec) forgetSec.style.display = 'none';
+        if(resetSec)  resetSec.style.display  = 'block';
+    }
+
+    window.hideResetConfirm = function(){
+        const resetSec = document.getElementById('reset-confirm-section');
+        if(resetSec) resetSec.style.display = 'none';
+        renderPinHintArea();
+    }
+
+    window.confirmResetPin = function(){
+        safeSetItem('diary_pin','');
+        safeSetItem('diary_pin_hint','');
+        pinBuffer = ''; pinTemp = '';
+        pinMode = 'set';
+        document.getElementById('pin-hint-area').style.display = 'none';
+        document.getElementById('pin-hint-input-area').style.display = 'block';
+        const inp = document.getElementById('pin-hint-input');
+        if(inp) inp.value = '';
+        document.getElementById('diary-lock-title').textContent = '새 비밀번호 설정';
+        document.getElementById('diary-lock-sub').textContent = '새로 사용할 4자리 비밀번호를 입력하세요.';
+        updatePinDots();
+        showToast('비밀번호가 초기화됐어요. 새로 설정해주세요.');
+    }
+
+    window.changePinMode = function(){
+        // 일기 잠금 후 비밀번호 변경 모드로 진입
+        diaryUnlocked = false;
+        pinBuffer = ''; pinTemp = '';
+        pinMode = 'set';
+        document.getElementById('diary-content-screen').style.display = 'none';
+        document.getElementById('diary-lock-screen').style.display = 'block';
+        document.getElementById('diary-lock-title').textContent = '🔑 새 비밀번호 설정';
+        document.getElementById('diary-lock-sub').textContent = '새로 사용할 4자리 비밀번호를 입력하세요.';
+        document.getElementById('pin-hint-area').style.display = 'none';
+        document.getElementById('pin-hint-input-area').style.display = 'block';
+        document.getElementById('pin-hint-input').value = safeGetItem('diary_pin_hint','');
+        updatePinDots();
+        buildPinPad();
+    }
+
+    function buildPinPad(){
+        const pad = document.getElementById('pin-pad');
+        const nums = [1,2,3,4,5,6,7,8,9,'',0,'←'];
+        pad.innerHTML = nums.map(n => {
+            if(n==='') return '<div></div>';
+            if(n==='←') return `<button class="pin-key" onclick="clearPin()">←</button>`;
+            return `<button class="pin-key" onclick="inputPin(${n})">${n}</button>`;
+        }).join('');
+    }
+
+    window.inputPin = function(n){
+        if(pinBuffer.length >= 4) return;
+        pinBuffer += n;
+        updatePinDots();
+        if(pinBuffer.length === 4) setTimeout(processPinInput, 200);
+    }
+
+    window.clearPin = function(){
+        pinBuffer = pinBuffer.slice(0,-1);
+        updatePinDots();
+    }
+
+    function updatePinDots(){
+        document.querySelectorAll('.pin-dot').forEach((dot,i)=>{
+            dot.classList.toggle('filled', i < pinBuffer.length);
+        });
+    }
+
+    function processPinInput(){
+        const hasPin = safeGetItem('diary_pin', null);
+        if(pinMode === 'set'){
+            pinTemp = pinBuffer;
+            pinBuffer = '';
+            updatePinDots();
+            pinMode = 'confirm';
+            document.getElementById('diary-lock-title').textContent = 'PIN 확인';
+            document.getElementById('diary-lock-sub').textContent = '같은 PIN을 한 번 더 입력하세요.';
+            document.getElementById('pin-hint-input-area').style.display = 'none';
+        } else if(pinMode === 'confirm'){
+            if(pinBuffer === pinTemp){
+                safeSetItem('diary_pin', pinBuffer);
+                // 힌트 저장
+                const hintEl = document.getElementById('pin-hint-input');
+                if(hintEl && hintEl.value.trim()){
+                    safeSetItem('diary_pin_hint', hintEl.value.trim());
+                } else {
+                    safeSetItem('diary_pin_hint', '');
+                }
+                showToast('🔓 비밀번호가 설정됐어요!');
+                openDiaryContent();
+            } else {
+                pinBuffer = ''; pinTemp = '';
+                updatePinDots();
+                pinMode = 'set';
+                document.getElementById('diary-lock-title').textContent = '다시 설정해요';
+                document.getElementById('diary-lock-sub').textContent = 'PIN이 달라요. 다시 설정해주세요.';
+                document.getElementById('pin-hint-input-area').style.display = 'block';
+                showToast('PIN이 일치하지 않아요');
+            }
+        } else {
+            if(pinBuffer === hasPin){
+                openDiaryContent();
+            } else {
+                pinBuffer = '';
+                updatePinDots();
+                document.getElementById('diary-lock-sub').textContent = '❌ 틀렸어요. 다시 입력해주세요.';
+                showToast('PIN이 틀렸어요');
+            }
+        }
+    }
+
+    function openDiaryContent(){
+        diaryUnlocked = true;
+        document.getElementById('diary-lock-screen').style.display = 'none';
+        document.getElementById('diary-content-screen').style.display = 'block';
+        // 달력 초기화
+        diaryCalYear  = todayObj.getFullYear();
+        diaryCalMonth = todayObj.getMonth() + 1;
+        selectedDiaryDate = getTodayStr();
+        renderDiaryCal();
+        loadDiaryForDate(selectedDiaryDate);
+        // 글자수 카운터
+        document.getElementById('diary-input').addEventListener('input', function(){
+            document.getElementById('diary-char-count').textContent = this.value.length + '자';
+        });
+    }
+
+    // ---- 일기 달력 ----
+    let diaryCalYear  = todayObj.getFullYear();
+    let diaryCalMonth = todayObj.getMonth() + 1;
+    let selectedDiaryDate = getTodayStr();
+
+    function renderDiaryCal(){
+        const y = diaryCalYear, m = diaryCalMonth;
+        document.getElementById('diary-cal-title').textContent = `${y}년 ${m}월`;
+        const fd   = new Date(y, m-1, 1).getDay();
+        const dim  = new Date(y, m, 0).getDate();
+        const grid = document.getElementById('diary-cal-grid');
+        if(!grid) return;
+
+        let html = '';
+        for(let i=0; i<fd; i++) html += '<div></div>';
+
+        for(let d=1; d<=dim; d++){
+            const ds   = `${y}-${m}-${d}`;
+            const txt  = safeGetItem(`diary_${ds}`, null);
+            const hasDiary = txt && txt.trim();
+            const isToday2 = (ds === getTodayStr());
+            const isSelected = (ds === selectedDiaryDate);
+
+            let bg    = 'transparent';
+            let color = 'var(--text-muted)';
+            let dot   = '';
+
+            if(isSelected){
+                bg    = 'var(--primary-color)';
+                color = '#FFFFFF';
+            } else if(isToday2){
+                bg    = '#E8F0E9';
+                color = 'var(--primary-color)';
+            }
+
+            if(hasDiary && !isSelected){
+                dot = `<div style="width:5px;height:5px;border-radius:50%;background:var(--accent-color);margin:1px auto 0;"></div>`;
+            } else if(hasDiary && isSelected){
+                dot = `<div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.7);margin:1px auto 0;"></div>`;
+            }
+
+            html += `<div onclick="selectDiaryDate('${ds}')" style="cursor:pointer;padding:5px 2px;border-radius:8px;background:${bg};">
+                <div style="font-size:0.82em;font-weight:600;color:${color};">${d}</div>
+                ${dot || '<div style="height:6px;"></div>'}
+            </div>`;
+        }
+        grid.innerHTML = html;
+    }
+
+    window.diaryCalPrev = function(){
+        diaryCalMonth--;
+        if(diaryCalMonth < 1){ diaryCalMonth = 12; diaryCalYear--; }
+        renderDiaryCal();
+    }
+    window.diaryCalNext = function(){
+        diaryCalMonth++;
+        if(diaryCalMonth > 12){ diaryCalMonth = 1; diaryCalYear++; }
+        renderDiaryCal();
+    }
+
+    window.selectDiaryDate = function(ds){
+        selectedDiaryDate = ds;
+        renderDiaryCal();
+        loadDiaryForDate(ds);
+    }
+
+    function loadDiaryForDate(ds){
+        const parts = ds.split('-');
+        const label = `${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일 일기`;
+        document.getElementById('diary-date-label').textContent = label;
+        const saved = safeGetItem(`diary_${ds}`, '');
+        const input = document.getElementById('diary-input');
+        input.value = saved;
+        document.getElementById('diary-char-count').textContent = saved.length + '자';
+        // 저장 버튼이 현재 날짜를 참조하도록
+        input.dataset.targetDate = ds;
+    }
+
+    window.lockDiary = function(){
+        diaryUnlocked = false;
+        initDiary();
+    }
+
+    window.saveDiary = function(){
+        if(!diaryUnlocked) return;
+        const input = document.getElementById('diary-input');
+        const targetDate = input.dataset.targetDate || getTodayStr();
+        safeSetItem(`diary_${targetDate}`, input.value);
+        addPoint(1,'일기','diary');
+        showToast('일기가 저장됐어요');
+        renderDiaryCal(); // 달력에 점 업데이트
+    }
+
+    function renderDiaryList(){
+        const entries = [];
+        for(let i=0;i<30;i++){
+            const d = new Date(todayObj);
+            d.setDate(d.getDate()-i);  // 오늘(i=0)부터 포함
+            const ds = getFormatDate(d);
+            const txt = safeGetItem(`diary_${ds}`, null);
+            if(txt && txt.trim()) entries.push({date:ds, text:txt, isToday: i===0});
+        }
+        const el = document.getElementById('diary-list');
+        if(!entries.length){
+            el.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-size:18px;">아직 저장된 일기가 없어요 📖</div>';
+            return;
+        }
+        el.innerHTML = entries.map(e=>`
+            <div class="memo-card">
+                <div class="memo-card-date">${e.isToday ? '오늘 · ' : ''}${e.date}</div>
+                <div class="memo-card-text" style="max-height:80px;overflow:hidden;">
+                    ${e.text.substring(0,80)}${e.text.length>80?'...':''}
+                </div>
+            </div>`).join('');
+    }
+
+    // switchView에서 메모 탭 초기화 완료 (위의 switchView 함수 내부에 통합됨)
+
+    /* ===== ★ 9-3단계: 통계 강화 ===== */
+    function renderEnhancedStats(){
+        const cd = safeGetJSON('completed_dates',[]);
+        if(!cd.length){
+            ['stat-total-days','stat-best-streak','stat-mood-up-days','stat-fav-count',
+             'weekday-chart','theme-rank-list','mood-rise-stats'].forEach(id=>{
+                const el=document.getElementById(id);
+                if(el) el.innerHTML='';
+            });
+            return;
+        }
+
+        // ① 4개 요약 카드
+        const totalDays = cd.length;
+        // 최장 스트릭 계산
+        const sortedDates = [...cd].sort();
+        let bestStreak=0, curStreak=1;
+        for(let i=1;i<sortedDates.length;i++){
+            const prev=new Date(sortedDates[i-1]);
+            const cur=new Date(sortedDates[i]);
+            const diff=(cur-prev)/86400000;
+            if(diff===1){ curStreak++; bestStreak=Math.max(bestStreak,curStreak); }
+            else curStreak=1;
+        }
+        bestStreak=Math.max(bestStreak,curStreak);
+        // 기분 상승 일수
+        let moodUpDays=0;
+        cd.forEach(ds=>{
+            const b=safeGetItem(`mood_before_${ds}`,null);
+            const a=safeGetItem(`mood_after_${ds}`,null);
+            if(b!==null&&a!==null&&parseInt(a)>parseInt(b)) moodUpDays++;
+        });
+        const favCount = safeGetJSON('favorites',[]).length;
+
+        const cards=[
+            {id:'stat-total-days',   val:totalDays,   label:'총 완료 일수', unit:'일'},
+            {id:'stat-best-streak',  val:bestStreak,  label:'최장 연속 달성', unit:'일'},
+            {id:'stat-mood-up-days', val:moodUpDays,  label:'기분 상승 일수', unit:'일'},
+            {id:'stat-fav-count',    val:favCount,    label:'즐겨찾기 확언', unit:'개'},
+        ];
+        cards.forEach(c=>{
+            const el=document.getElementById(c.id);
+            if(el) el.innerHTML=`<div class="stat-val">${c.val}<span style="font-size:18px;">${c.unit}</span></div><div class="stat-label">${c.label}</div>`;
+        });
+
+        // ② 요일별 완료 패턴
+        const weekCounts=[0,0,0,0,0,0,0];
+        cd.forEach(ds=>{
+            const parts=ds.split('-');
+            const d=new Date(parts[0],parts[1]-1,parts[2]);
+            weekCounts[d.getDay()]++;
+        });
+        const maxW=Math.max(...weekCounts,1);
+        const wEl=document.getElementById('weekday-chart');
+        if(wEl){
+            wEl.innerHTML=weekCounts.map((cnt,i)=>{
+                const pct=Math.round((cnt/maxW)*80);
+                const color=i===0?'#D32F2F':i===6?'#4A90E2':'var(--primary-color)';
+                return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px;">
+                    <span style="font-size:14px;color:#666;font-weight:bold;">${cnt}</span>
+                    <div style="width:100%;max-width:36px;height:${pct}px;background:${color};border-radius:6px 6px 0 0;opacity:0.85;min-height:4px;"></div>
+                </div>`;
+            }).join('');
+        }
+
+        // ③ 테마별 랭킹
+        const themeCounts={};
+        cd.forEach(ds=>{
+            const parts=ds.split('-');
+            const dayOfYear=Math.floor((new Date(parts[0],parts[1]-1,parts[2])-new Date(parts[0],0,1))/86400000)+1;
+            const data=affirmationsData[(dayOfYear-1)%affirmationsData.length];
+            if(data) themeCounts[data.theme]=(themeCounts[data.theme]||0)+1;
+        });
+        const sortedThemes=Object.entries(themeCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        const maxT=sortedThemes[0]?sortedThemes[0][1]:1;
+        const tEl=document.getElementById('theme-rank-list');
+        if(tEl){
+            tEl.innerHTML=sortedThemes.length
+                ? sortedThemes.map(([theme,cnt],i)=>`
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-bottom:4px;">
+                            <span style="color:var(--primary-color);">${i+1}. ${theme}</span>
+                            <span style="color:#888;">${cnt}일</span>
+                        </div>
+                        <div style="background:#E8E5E0;border-radius:6px;height:10px;">
+                            <div style="background:var(--accent-color);border-radius:6px;height:10px;width:${Math.round(cnt/maxT*100)}%;"></div>
+                        </div>
+                    </div>`).join('')
+                : '<div style="color:#aaa;font-size:17px;">아직 데이터가 없어요</div>';
+        }
+
+        // ④ 기분 상승 통계
+        const totalWithMood = cd.filter(ds=>
+            safeGetItem(`mood_before_${ds}`,null)!==null &&
+            safeGetItem(`mood_after_${ds}`,null)!==null
+        ).length;
+        const upRate = totalWithMood ? Math.round(moodUpDays/totalWithMood*100) : 0;
+        const mEl=document.getElementById('mood-rise-stats');
+        if(mEl){
+            mEl.innerHTML=`
+                <div style="display:flex;gap:12px;margin-bottom:12px;">
+                    <div style="flex:1;background:#F0F7F4;border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:26px;font-weight:bold;color:var(--primary-color);">${upRate}%</div>
+                        <div style="font-size:15px;color:#666;font-weight:bold;margin-top:4px;">확언 후 기분 상승률</div>
+                    </div>
+                    <div style="flex:1;background:#FFF8E7;border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:26px;font-weight:bold;color:var(--primary-color);">${totalWithMood}</div>
+                        <div style="font-size:15px;color:#666;font-weight:bold;margin-top:4px;">기분 기록 일수</div>
+                    </div>
+                </div>
+                <div style="background:#E8E5E0;border-radius:8px;height:14px;">
+                    <div style="background:linear-gradient(90deg,var(--primary-color),#52B788);border-radius:8px;height:14px;width:${upRate}%;transition:width 0.8s;"></div>
+                </div>
+                <div style="font-size:15px;color:#888;margin-top:6px;text-align:right;">${moodUpDays}/${totalWithMood}일 상승</div>`;
+        }
+    }
+    window.openSearch = function(){
+        const modal = document.getElementById('search-modal');
+        modal.style.display = 'block';
+        setTimeout(()=> document.getElementById('search-input').focus(), 100);
+        document.getElementById('search-results').innerHTML =
+            '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:18px;">검색어를 입력하세요 🔍</div>';
+    }
+
+    window.closeSearch = function(){
+        document.getElementById('search-modal').style.display = 'none';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
+    }
+
+    window.doSearch = function(query){
+        const q = query.trim();
+        const el = document.getElementById('search-results');
+        if(!q){
+            el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:18px;">검색어를 입력하세요 🔍</div>';
+            return;
+        }
+        const kw = q.toLowerCase();
+        const results = affirmationsData.filter(d=>
+            d.text.toLowerCase().includes(kw) ||
+            d.theme.toLowerCase().includes(kw) ||
+            d.action.toLowerCase().includes(kw)
+        );
+        if(!results.length){
+            el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px 0;font-size:18px;">검색 결과가 없어요 😢<br><span style="font-size:16px;">다른 키워드로 찾아보세요</span></div>';
+            return;
+        }
+        // 결과 렌더링 — 검색어 하이라이트 포함
+        function highlight(text){
+            return text.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),
+                '<mark style="background:#FFF8E7;color:var(--primary-color);border-radius:3px;padding:0 2px;">$1</mark>');
+        }
+        el.innerHTML = `<div style="font-size:16px;color:#888;margin-bottom:14px;font-weight:bold;">${results.length}개 발견</div>` +
+        results.map(d=>{
+            const textMatched   = d.text.toLowerCase().includes(kw);
+            const themeMatched  = d.theme.toLowerCase().includes(kw);
+            const actionMatched = d.action.toLowerCase().includes(kw);
+
+            // 행동 지침이 매칭됐으면 표시
+            const actionHtml = actionMatched ? `
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #F0EDE8;">
+                    <div style="font-size:11px;color:var(--accent-color);font-weight:700;letter-spacing:0.8px;margin-bottom:4px;">행동 지침에서 일치</div>
+                    <div style="font-size:15px;color:#666;line-height:1.6;">${highlight(d.action.length>80 ? d.action.substring(0,80)+'...' : d.action)}</div>
+                </div>` : '';
+
+            return `
+            <div onclick="goToSearchResult(${d.day})" style="background:#FFFFFF;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #E8E5E0;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-size:15px;color:var(--accent-color);font-weight:bold;">${highlight(d.theme)}</span>
+                    <span style="font-size:15px;color:#aaa;font-weight:bold;">Day ${d.day}</span>
+                </div>
+                <div style="font-size:17px;color:#333;line-height:1.6;">${highlight(d.text.length>80 ? d.text.substring(0,80)+'...' : d.text)}</div>
+                ${actionHtml}
+            </div>`;
+        }).join('');
+    }
+
+    window.goToSearchResult = function(dayNum){
+        closeSearch();
+        // dayNum에 해당하는 날짜로 이동
+        if(currentMode === 'A'){
+            const minA = new Date(todayObj.getFullYear(),0,1);
+            const target = new Date(minA.getTime() + (dayNum-1)*86400000);
+            if(target <= todayObj){
+                selectedDateObj = target;
+                switchView('home');
+                return;
+            }
+        } else {
+            const ss = safeGetItem('start_date_B', null);
+            if(ss){
+                const pts = ss.split('-');
+                const minB = new Date(pts[0], pts[1]-1, pts[2]);
+                const target = new Date(minB.getTime() + (dayNum-1)*86400000);
+                if(target <= todayObj){
+                    selectedDateObj = target;
+                    switchView('home');
+                    return;
+                }
+            }
+        }
+        // 미래 날짜인 경우 확언만 미리보기 (토스트)
+        const data = affirmationsData[(dayNum-1) % affirmationsData.length];
+        showToast(`Day ${dayNum}: ${data.theme}`);
+        switchView('home');
+    }
+    /* ===== 앱 공유하기 ===== */
+    /* ===== PWA 홈화면 설치 ===== */
+    let pwaInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e)=>{
+        e.preventDefault();
+        pwaInstallPrompt = e;
+        // 버튼을 이미 눌렀는데 이벤트가 늦게 왔으면 즉시 설치창 실행
+        if(window._pendingInstallClick){
+            window._pendingInstallClick = false;
+            installFromPrompt();
+            return;
+        }
+        // 첫 방문 설치 팝업 버튼 업데이트
+        const btn = document.getElementById('install-pwa-btn');
+        if(btn){
+            btn.textContent = '📲 홈화면에 앱 설치하기';
+            btn.style.background = '#1B4332';
+            btn.onclick = installFromPrompt;
+        }
+        // 공유 모달이 열려있으면 즉시 설치 버튼 표시
+        const modal = document.getElementById('share-app-modal');
+        if(modal && modal.style.display !== 'none'){
+            const pwaSec = document.getElementById('pwa-install-section');
+            const androidSec = document.getElementById('android-manual-section');
+            if(androidSec) androidSec.style.display = 'none';
+            if(pwaSec) pwaSec.style.display = 'block';
+        }
+    });
+
+    window.shareApp = function(){
+        const modal = document.getElementById('share-app-modal');
+        modal.style.display = 'flex';
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const pwaSec = document.getElementById('pwa-install-section');
+        const iosSec = document.getElementById('ios-install-section');
+        const androidSec = document.getElementById('android-manual-section');
+        if(pwaSec) pwaSec.style.display = 'none';
+        if(iosSec) iosSec.style.display = 'none';
+        if(androidSec) androidSec.style.display = 'none';
+
+        if(pwaInstallPrompt){
+            // 안드로이드 자동 설치 버튼
+            if(pwaSec) pwaSec.style.display = 'block';
+        } else if(isIOS){
+            // 아이폰 단계 안내
+            if(iosSec) iosSec.style.display = 'block';
+        } else {
+            // 안드로이드 수동 or PC - 항상 안내 표시
+            if(androidSec) androidSec.style.display = 'block';
+        }
+    }
+
+    window.installPWA = async function(){
+        if(!pwaInstallPrompt) return;
+        pwaInstallPrompt.prompt();
+        const result = await pwaInstallPrompt.userChoice;
+        if(result.outcome === 'accepted'){
+            showToast('폰에 꺼내두기됐어요! 😊');
+            pwaInstallPrompt = null;
+            document.getElementById('share-app-modal').style.display = 'none';
+            window._sendAppInstall(); // ★ 앱 설치 기록
+        }
+    }
+
+    const APP_URL = 'https://life2radio.github.io/affirmation/';
+    const KAKAO_1ON1_URL = 'https://open.kakao.com/o/sKUKl3pi';
+
+    window.shareAppFile = function(){
+        document.getElementById('share-app-modal').style.display = 'none';
+        // 카카오톡 URL 스킴으로 직접 공유
+        const kakaoUrl = 'kakaotalk://send?text=' + encodeURIComponent('🌿 인생2막라디오 365일 확언 앱\n홈화면에 추가하면 앱처럼 매일 열려요!\n\n👉 ' + APP_URL);
+        const opened = window.open(kakaoUrl, '_blank');
+        // 카톡 앱이 없거나 열리지 않으면 네이티브 공유 시트
+        setTimeout(()=>{
+            if(!opened || opened.closed){
+                if(navigator.share){
+                    navigator.share({
+                        title: '365일 오늘의 확언 | 인생2막라디오',
+                        text:  '🌿 매일 나를 위한 한 문장. 홈화면에 추가해서 매일 열어보세요!',
+                        url:   APP_URL
+                    }).catch(()=> showShareFallback());
+                } else {
+                    showShareFallback();
+                }
+            }
+        }, 1500);
+    }
+
+    function showShareFallback(){
+        // 링크 복사 + 안내 팝업
+        copyToClipboard(APP_URL);
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        g.innerHTML = `<div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:10px;">📋</div>
+            <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:8px;">링크가 복사됐어요!</div>
+            <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:6px;">카카오톡을 열고<br>붙여넣기 하시면 돼요</div>
+            <div style="background:#F5F5F5;border-radius:10px;padding:10px;font-size:0.8em;color:#1B4332;margin-bottom:16px;word-break:break-all;">${APP_URL}</div>
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button>
+        </div>`;
+        document.body.appendChild(g);
+    }
+
+    window.shareAppLink = function(){
+        addPoint(2,'앱소개공유','share_app');
+        window._sendShareLog('앱링크공유');
+        const url = 'https://life2radio.github.io/affirmation/';
+        const text = '🌿 인생2막라디오 365일 확언 앱\n매일 나를 위한 한 문장. 무료예요 😊';
+        if(navigator.share){
+            navigator.share({ title:'365일 확언 | 인생2막라디오', text: text, url: url })
+                .catch(()=>{ _copyUrl(url); });
+        } else {
+            _copyUrl(url);
+        }
+        document.getElementById('share-app-modal').style.display='none';
+    }
+
+    function _copyUrl(url){
+        if(navigator.clipboard){
+            navigator.clipboard.writeText(url).then(()=> showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊'));
+        } else {
+            const t = document.createElement('textarea');
+            t.value = url; document.body.appendChild(t);
+            t.select(); document.execCommand('copy');
+            document.body.removeChild(t);
+            showToast('링크가 복사됐어요! 카톡에 붙여넣기 해보세요 😊');
+        }
+    }
+
+    window.shareAppMessage = function(){
+        addPoint(2,'앱소개공유','share_app');
+        window._sendShareLog('앱메시지공유');
+        const msg = `🌿 인생2막라디오 365일 확언 앱
+
+오늘 하루, 나를 위한 한 문장을 읽는 것부터 시작해보세요.
+홈화면에 추가하면 앱처럼 매일 바로 열려요. 무료예요.
+
+이런 분들께 딱 맞아요 💚
+• 매일 나에게 좋은 말 한마디 해주고 싶은 분
+• 감정 기록을 남기고 싶은 분
+• 바쁜 아침에도 딱 1분이면 되는 루틴을 찾는 분
+
+📱 주요 기능
+✅ 1월~12월 365개 확언 — 매일 자동으로 바뀌어요
+✅ 기분 체크 (전/후 비교) — 내 감정 변화가 보여요
+✅ 소리 듣기 & 따라 읽기 — 귀로도 마음으로도 새겨요
+✅ 달력 기록 — 내가 걸어온 날들이 한눈에
+✅ 일기장 (비밀번호 잠금) — 나만의 비밀 공간
+✅ 확언 카드 — 가족·친구에게 아침 인사로 보내요
+✅ 300일 달성하면 특별한 선물이 기다려요 🎁
+
+👉 지금 바로 열어보세요
+https://life2radio.github.io/affirmation/
+
+인생2막라디오 유튜브 채널\nhttps://www.youtube.com/@SecondActRadio`;
+
+        if(navigator.share){
+            navigator.share({
+                title: '365일 오늘의 확언 | 인생2막라디오',
+                text:  msg,
+                url:   'https://life2radio.github.io/affirmation/'
+            }).catch(()=>{ copyToClipboard(msg); showToast('소개 문구가 복사됐어요! 붙여넣기 해보세요 😊'); });
+        } else {
+            copyToClipboard(msg);
+            showToast('소개 문구가 복사됐어요! 붙여넣기 해보세요 😊');
+        }
+        document.getElementById('share-app-modal').style.display = 'none';
+    }
+    /* ===== ② 홈 다이어리 진행바 ===== */
+
+    // ★ 오늘의 5개 미션 체크
+    function getTodayMissionStatus(){
+        const today = getTodayStr();
+        return {
+            listen:   safeGetItem('pt_daily_listen_'+today,'')   === '1',
+            stt:      safeGetItem('pt_daily_stt_'+today,'')      === '1',
+            complete: safeGetItem('pt_daily_complete_'+today,'') === '1',
+            moodBefore: safeGetItem('mood_before_'+today,'')     !== '',
+            moodAfter:  safeGetItem('mood_after_'+today,'')      !== '',
+        };
+    }
+
+    function countTodayMissions(){
+        const m = getTodayMissionStatus();
+        return [m.listen, m.stt, m.complete, m.moodBefore, m.moodAfter].filter(Boolean).length;
+    }
+
+
+
+    // ★ 포인트로 패자부활 (10PT = 결석 1일 삭제)
+    window.reviveWithPoints = function(){
+        var pts = getPoints();
+        var absent = parseInt(safeGetItem('revival_absent_days','0'))||0;
+        if(absent <= 0){ showToast('현재 결석이 없어요!'); return; }
+        if(pts < 10){ showToast('포인트가 부족해요! (필요: 10PT, 보유: '+pts+'PT)'); return; }
+        // 10PT 차감
+        var currentPts = parseInt(safeGetItem('total_points','0'))||0;
+        safeSetItem('total_points', String(currentPts - 10));
+        // 결석 1일 삭제
+        var newAbsent = Math.max(0, absent - 1);
+        safeSetItem('revival_absent_days', String(newAbsent));
+        showToast('✅ 10PT 사용! 결석 1일이 삭제됐어요 (남은 결석: '+newAbsent+'일)');
+        renderPointBar();
+        renderStreakMilestone();
+    };
+
+    window.closeMissionModal = function(){ var m=document.getElementById('mission-criteria-modal'); if(m)m.remove(); };
+    window.showStreakCriteria = function(){
+        const m = getTodayMissionStatus();
+        const done = countTodayMissions();
+        const items = [
+            {label:'🔊 소리 듣기',      done: m.listen},
+            {label:'🎙️ 따라 읽기',     done: m.stt},
+            {label:'✅ 확언 완료 체크',  done: m.complete},
+            {label:'😊 확언 전 기분 체크', done: m.moodBefore},
+            {label:'💚 확언 후 기분 체크', done: m.moodAfter},
+        ];
+        const old = document.getElementById('mission-criteria-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'mission-criteria-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:8000;display:flex;align-items:flex-end;justify-content:center;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px 20px 0 0;padding:24px 20px 44px;width:100%;max-width:600px;box-sizing:border-box;';
+        inner.innerHTML =
+            '<div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">🔥 연속 달성 기준</div>' +
+            '<div style="font-size:0.8em;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">아래 5가지를 모두 완료하면 오늘의 연속 달성이 인정돼요!</div>' +
+            items.map(function(it){
+                return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-color);">' +
+                    '<span style="font-size:1.2em;">' + (it.done ? '✅' : '⬜') + '</span>' +
+                    '<span style="font-size:0.9em;color:' + (it.done ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (it.done ? '700' : '400') + ';">' + it.label + '</span>' +
+                    '</div>';
+            }).join('') +
+            '<div style="margin-top:16px;text-align:center;font-size:0.88em;font-weight:700;color:' + (done===5?'var(--primary-color)':'var(--accent-color)') + ';">' +
+            (done===5 ? '🎉 오늘 미션 완료! 연속 달성 인정!' : done + ' / 5개 완료 — ' + (5-done) + '개 남았어요') + '</div>' +
+            '<button onclick="closeMissionModal()" style="margin-top:14px;width:100%;min-height:44px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    function renderDailyMissionBadge(){
+        const done = countTodayMissions();
+        const el = document.getElementById('daily-mission-badge');
+        if(!el) return;
+        if(done === 5){
+            el.style.display = 'block';
+            el.textContent = '🎉 오늘의 미션 완료!';
+            el.style.color = 'var(--primary-color)';
+            el.style.fontWeight = '700';
+        } else {
+            el.style.display = 'block';
+            el.textContent = '📋 오늘의 미션 ' + done + '/5 완료';
+            el.style.color = 'var(--text-muted)';
+            el.style.fontWeight = '400';
+        }
+    }
+
+    function renderStreakMilestone(){
+        const cd = safeGetJSON('completed_dates', []);
+        const streak = calcCurrentStreak(cd);
+        const today = getFormatDate(todayObj);
+        const yesterday = getFormatDate(new Date(todayObj.getTime() - 86400000));
+
+        // 결석일 계산: 연속달성 시작일부터 오늘까지 - 실제 완료일
+        const absentDays = safeGetItem('revival_absent_days', null) !== null
+            ? parseInt(safeGetItem('revival_absent_days', '0'))
+            : 0;
+
+        // 마일스톤 구간 결정 (각 구간 = 20% 폭)
+        const milestones = [0, 7, 30, 100, 200, 300];
+        const icons      = ['', '🏅', '🥈', '🏔️', '☁️', '✨'];
+        let segIdx = 0;
+        for(let i = 1; i < milestones.length; i++){
+            if(streak < milestones[i]){ segIdx = i - 1; break; }
+            if(i === milestones.length - 1) segIdx = milestones.length - 2;
+        }
+        const prevMile = milestones[segIdx];
+        const nextMile = milestones[segIdx + 1];
+        const nextIcon = icons[segIdx + 1];
+        // 현재 구간 내 진행률 → 전체 바에서의 위치 (구간당 20%)
+        const segPct  = (nextMile > prevMile)
+            ? (streak - prevMile) / (nextMile - prevMile)
+            : 1;
+        const totalPct = Math.min(100, Math.round((segIdx * 20) + segPct * 20));
+
+        // 진행바 업데이트
+        const fill = document.getElementById('streak-milestone-fill');
+        const lbl  = document.getElementById('streak-milestone-label');
+        const nxt  = document.getElementById('streak-milestone-next');
+        if(fill) fill.style.width = totalPct + '%';
+        if(lbl)  lbl.textContent = '🔥 ' + streak + '일 연속 달성 중!';
+        if(nxt)  nxt.textContent = Math.max(0, nextMile - streak) + '일 더! → ' + nextIcon + nextMile + '일 달성';
+
+        // 결석 표시
+        const revivalArea = document.getElementById('streak-revival-area');
+        const absentEl    = document.getElementById('streak-absent-count');
+        const absent = parseInt(safeGetItem('revival_absent_days', '0')) || 0;
+
+        renderDailyMissionBadge();
+        if(revivalArea){
+            // ★ 스트릭 > 0 이고 완료 이력 있을 때만 결석 배너 표시
+            const completedDates = safeGetJSON('completed_dates', []);
+            if(absent > 0 && absent <= 10 && streak > 0 && completedDates.length > 0){
+                setTimeout(function(){
+                    revivalArea.style.display = 'block';
+                    revivalArea.style.background = absent >= 7 ? '#FFE0E0' : '#FFF3CD';
+                }, 600);
+                if(absentEl) absentEl.textContent = absent;
+                // 포인트 버튼 정보 업데이트
+                var ptInfo = document.getElementById('revival-pt-info');
+                if(ptInfo){ var p=getPoints(); ptInfo.textContent = p>=10 ? '보유 '+p+'PT (사용 가능)' : '보유 '+p+'PT — 부족'; ptInfo.style.color = p>=10 ? '' : '#E63946'; }
+            } else if(absent > 10){
+                // 11일 이상: 스트릭 리셋
+                safeSetItem('revival_absent_days', '0');
+                safeSetJSON('completed_dates', []);
+                safeSetItem('streak_reset_date', getFormatDate(todayObj));
+                revivalArea.style.display = 'none';
+                showToast('😢 결석 11일로 스트릭이 초기화됐어요. 다시 시작해요! 🌱');
+                setTimeout(function(){ renderStreakProtectHome(); }, 500);
+            } else {
+                revivalArea.style.display = 'none';
+            }
+        }
+    }
+
+    /* ===== ④ 배지 보관함 다이어리 카드 렌더링 ===== */
+    function renderDiaryPromoCard(){
+        const cd    = safeGetJSON('completed_dates',[]);
+        const total = cd.length;
+        const pct   = Math.min(Math.round(total/300*100), 100);
+        const fill  = document.getElementById('diary-promo-fill');
+        const prog  = document.getElementById('diary-promo-progress');
+        const btnW  = document.getElementById('diary-promo-btn-wrap');
+        const icon  = document.getElementById('diary-promo-icon');
+        const desc  = document.getElementById('diary-promo-desc');
+        if(!fill) return;
+
+        fill.style.width = pct + '%';
+        prog.textContent = `${total} / 300일`;
+
+        if(total >= 300){
+            icon.textContent = '🎉';
+            desc.textContent = '300일을 달성하셨어요! 다이어리 신청 버튼을 눌러 신청해보세요.';
+            btnW.innerHTML = `<button onclick="openDiaryApply()" style="background:var(--primary-color);color:var(--accent-color);border:none;border-radius:10px;padding:8px 16px;font-size:0.82em;font-weight:700;cursor:pointer;white-space:nowrap;">신청하기</button>`;
+        } else if(total >= 200){
+            desc.textContent = `거의 다 왔어요! 앞으로 ${300-total}일만 더하면 다이어리를 드려요 🌿`;
+            btnW.innerHTML = `<div style="font-size:0.78em;color:#8B6914;font-weight:700;">${pct}% 달성</div>`;
+        } else if(total >= 100){
+            desc.textContent = `${300-total}일 남았어요. 꾸준히 하고 계시는 거 맞아요! 응원합니다 💚`;
+            btnW.innerHTML = `<div style="font-size:0.78em;color:#8B6914;font-weight:700;">${pct}% 달성</div>`;
+        } else {
+            btnW.innerHTML = `<div style="font-size:0.78em;color:#8B6914;font-weight:700;">${pct}% 달성</div>`;
+        }
+    }
+    function check300DayBanner(){
+        const cd = safeGetJSON('completed_dates',[]);
+        if(cd.length < 300){ document.getElementById('diary-300-banner').style.display='none'; return; }
+        // 1년(365일) 안에 달성했는지 체크
+        const firstDate = cd.sort()[0];
+        if(!firstDate) return;
+        const first = new Date(firstDate.split('-')[0], firstDate.split('-')[1]-1, firstDate.split('-')[2]);
+        const daysPassed = Math.floor((todayObj - first) / 86400000);
+        if(daysPassed <= 365){
+            document.getElementById('diary-300-banner').style.display = 'block';
+        }
+    }
+
+    window.openDiaryApply = function(){
+        document.getElementById('diary-apply-modal').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+
+    window.submitDiaryApply = function(){
+        const name    = document.getElementById('apply-name').value.trim();
+        const phone   = document.getElementById('apply-phone').value.trim();
+        const addr    = document.getElementById('apply-address').value.trim();
+        const addr2   = document.getElementById('apply-address2').value.trim();
+        const email   = document.getElementById('apply-email').value.trim();
+        const inclMemo      = document.getElementById('include-memo').checked;
+        const inclDiary     = document.getElementById('include-diary').checked;
+        const inclAffirm    = document.getElementById('include-affirmation').checked;
+
+        if(!name)  { showToast('이름을 입력해주세요'); return; }
+        if(!phone) { showToast('연락처를 입력해주세요'); return; }
+        if(!addr)  { showToast('배송 주소를 입력해주세요'); return; }
+
+        // 데이터 수집
+        const cd = safeGetJSON('completed_dates',[]).sort();
+        let dataText = `[인생2막 확언 다이어리 신청]\n\n`;
+        dataText += `━━━ 신청자 정보 ━━━\n`;
+        dataText += `이름: ${name}\n연락처: ${phone}\n주소: ${addr} ${addr2}\n이메일: ${email||'없음'}\n`;
+        dataText += `신청일: ${getTodayStr()}\n총 달성일수: ${cd.length}일\n\n`;
+
+        // 필사 데이터
+        if(inclMemo){
+            const memos = safeGetJSON('memos',[]);
+            if(memos.length){
+                dataText += `━━━ 필사 기록 (${memos.length}개) ━━━\n`;
+                memos.forEach(m=>{ dataText += `[${m.date}]\n${m.text}\n\n`; });
+            }
+        }
+
+        // 일기 데이터
+        if(inclDiary){
+            dataText += `━━━ 일기 기록 ━━━\n`;
+            for(let i=0;i<730;i++){
+                const d=new Date(todayObj); d.setDate(d.getDate()-i);
+                const ds=getFormatDate(d);
+                const txt=safeGetItem(`diary_${ds}`,null);
+                if(txt&&txt.trim()){
+                    const p=ds.split('-');
+                    dataText+=`[${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일]\n${txt.trim()}\n\n`;
+                }
+            }
+        }
+
+        // 완료 확언 목록
+        if(inclAffirm){
+            dataText += `━━━ 완료한 확언 (${cd.length}일) ━━━\n`;
+            cd.forEach(ds=>{
+                const p=ds.split('-');
+                const dayNum=Math.floor((new Date(p[0],p[1]-1,p[2])-new Date(p[0],0,1))/86400000)+1;
+                const data=affirmationsData[(dayNum-1)%affirmationsData.length];
+                dataText+=`[${ds}] ${data?data.text.substring(0,30)+'...':''}\n`;
+            });
+        }
+
+        // 이메일 전송
+        const subject = encodeURIComponent(`[인생2막 다이어리 신청] ${name} · ${cd.length}일 달성`);
+        const body    = encodeURIComponent(dataText);
+        window.location.href = `mailto:life2radio@gmail.com?subject=${subject}&body=${body}`;
+
+        // 신청 완료 기록
+        safeSetItem('diary_applied', getTodayStr());
+        showToast('📬 신청 이메일이 열렸어요! 전송 후 완료!');
+        setTimeout(()=>{ document.getElementById('diary-apply-modal').style.display='none'; }, 2000);
+    }
+    /* ===== 가족에게 보내기 ===== */
+    window.shareToFamily = function(){
+        const affirmEl = document.getElementById('affirmation-text');
+        if(!affirmEl || !affirmEl.innerText.trim()){
+            showToast('먼저 기분을 선택해 확언을 열어주세요!'); return;
+        }
+        // 모달 열기
+        const modal = document.getElementById('family-share-modal');
+        modal.style.display = 'flex';
+        // 배경 클릭 시 닫기
+        modal.onclick = function(e){ if(e.target===modal) modal.style.display='none'; };
+        // 이전 선택값 복원
+        const savedSender   = safeGetItem('family_sender','');
+        const savedReceiver = safeGetItem('family_receiver','');
+        document.getElementById('fs-sender').value   = savedSender;
+        document.getElementById('fs-receiver').value = savedReceiver;
+        if(savedSender)   highlightChip('s', savedSender);
+        if(savedReceiver) highlightChip('r', savedReceiver);
+        updateFamilyPreview();
+    }
+
+    window.setFamilySender = function(val){
+        document.getElementById('fs-sender').value = val;
+        highlightChip('s', val);
+        updateFamilyPreview();
+    }
+    window.setFamilyReceiver = function(val){
+        document.getElementById('fs-receiver').value = val;
+        highlightChip('r', val);
+        updateFamilyPreview();
+    }
+
+    function highlightChip(type, val){
+        document.querySelectorAll(`.fam-chip[id^="chip-${type}-"]`).forEach(el => {
+            el.classList.toggle('active', el.id === `chip-${type}-${val}`);
+        });
+    }
+
+    window.updateFamilyPreview = function(){
+        const sender   = document.getElementById('fs-sender').value.trim()   || '나';
+        const receiver = document.getElementById('fs-receiver').value.trim() || '가족';
+        const affirmEl = document.getElementById('affirmation-text');
+        const affirmText = affirmEl ? affirmEl.innerText.trim() : '';
+        const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+
+        // 맺음말 카테고리별 자동 결정
+        const parentWords  = ['엄마','아빠','부모님','어머니','아버지','할머니','할아버지'];
+        const partnerWords = ['남편','아내','여보','자기','오빠','언니'];
+        const isToParent  = parentWords.some(w => receiver.includes(w));
+        const isToPartner = partnerWords.some(w => receiver.includes(w));
+        const closing = isToParent  ? `오늘도 건강하세요! 사랑해요 💚`
+                      : isToPartner ? `오늘도 수고해요! 사랑해 💚`
+                      :               `오늘도 힘내렴! 사랑해 💚`;
+
+        const msg = `🌿 ${today} ${receiver}에게 보내는 ${sender}의 확언이에요\n\n"${affirmText}"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n${receiver}, ${closing}\n\n— ${sender}\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
+        const preview = document.getElementById('family-preview');
+        if(preview) preview.value = msg;
+    }
+
+    window.sendFamilyMessage = function(){
+        const sender   = document.getElementById('fs-sender').value.trim();
+        const receiver = document.getElementById('fs-receiver').value.trim();
+        if(!sender)  { showToast('보내는 분을 입력해주세요'); return; }
+        if(!receiver){ showToast('받는 분을 입력해주세요');   return; }
+        safeSetItem('family_sender',   sender);
+        safeSetItem('family_receiver', receiver);
+        // textarea에서 직접 편집된 내용 그대로 사용
+        const msg = document.getElementById('family-preview').value.trim();
+        if(!msg){ showToast('문구를 입력해주세요'); return; }
+        document.getElementById('family-share-modal').style.display = 'none';
+        addPoint(2,'가족공유','share_family');
+        window._sendShareLog('가족공유');
+        if(navigator.share){
+            navigator.share({ title:`${sender}의 확언`, text: msg })
+                .catch(function(e){ if(e.name!=='AbortError'){ copyToClipboard(msg); showToast('클립보드에 복사됐어요 📋'); } });
+        } else {
+            copyToClipboard(msg);
+            showToast('클립보드에 복사됐어요 📋');
+        }
+        trackEvent('share_to_family');
+    }
+
+    window.shareToFamilyFromCard = function(){
+        addPoint(2,'가족카드공유','share_family_card');
+        window._sendShareLog('가족카드공유');
+        const canvas = document.getElementById('share-canvas');
+        const affirmEl = document.getElementById('affirmation-text');
+        const sender   = safeGetItem('family_sender','엄마') || '엄마';
+        const receiver = safeGetItem('family_receiver','우리 딸') || '우리 딸';
+        const today    = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+        const parentWords  = ['엄마','아빠','부모님','어머니','아버지','할머니','할아버지'];
+        const partnerWords = ['남편','아내','여보','자기','오빠','언니'];
+        const isToParent  = parentWords.some(w => receiver.includes(w));
+        const isToPartner = partnerWords.some(w => receiver.includes(w));
+        const closing = isToParent  ? '오늘도 건강하세요! 사랑해요 💚'
+                      : isToPartner ? '오늘도 수고해요! 사랑해 💚'
+                      :               '오늘도 힘내렴! 사랑해 💚';
+        const msg = '🌿 ' + today + ' ' + receiver + '에게 보내는 ' + sender + '의 확언이에요\n\n"' + (affirmEl?affirmEl.innerText.trim():'') + '"\n\n매일 이 확언으로 하루를 시작하고 있어 😊\n' + receiver + ', ' + closing + '\n\n— ' + sender + '\n\n📱 확언 앱: https://life2radio.github.io/affirmation/';
+
+        document.getElementById('share-modal').style.display='none';
+
+        // ① 카드 이미지 먼저 저장
+        if(canvas){
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = '확언카드.png';
+            a.click();
+        }
+
+        // ② 0.8초 후 응원메시지 공유창
+        setTimeout(function(){
+            if(navigator.share){
+                navigator.share({
+                    title: receiver + '에게 보내는 오늘의 확언 💚',
+                    text: msg
+                }).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(msg); });
+            } else {
+                copyToClipboard(msg);
+                showToast('📋 응원메시지 복사됐어요! 카카오톡에 붙여넣기 하세요');
+            }
+        }, 800);
+
+        showToast('📥 카드 저장 후 응원메시지 공유창이 열려요!');
+        trackEvent('share_to_family_card');
+    }
+    function showPastMe(afterIdx){
+        const EMOJIS_LIST=['😔','😐','🙂','😊','😄'];
+        const box=document.getElementById('past-me-box');
+        if(!box) return;
+        let pastIdx=null,pastDays=0,pastDateStr='';
+        for(let days of [7,14,30]){
+            const d=new Date(todayObj);d.setDate(d.getDate()-days);
+            const ds=getFormatDate(d),val=safeGetItem(`mood_before_${ds}`,null);
+            if(val!==null){pastIdx=parseInt(val);pastDays=days;const p=ds.split('-');pastDateStr=`${parseInt(p[1])}월 ${parseInt(p[2])}일`;break;}
+        }
+        if(pastIdx===null){box.style.display='none';return;}
+        const diff=afterIdx-pastIdx;
+        const changeMap={'-4':'많이 힘드셨죠','-3':'조금 힘드셨네요','-2':'약간 낮아졌어요','-1':'조금 낮아졌어요','0':'비슷한 상태예요','1':'조금 좋아졌어요','2':'밝아지고 있어요','3':'많이 좋아지셨네요','4':'정말 많이 좋아지셨어요'};
+        const msgs={positive:['당신, 지금 분명히 나아지고 있어요 🌱','확언이 조금씩 마음을 바꾸고 있어요 💚'],negative:['힘든 날이 있어도 괜찮아요. 여기 있다는 것 자체가 대단해요','오늘 여기 온 것만으로도 충분해요 💙'],same:['꾸준히 유지하고 있어요. 그것만으로도 충분해요 🌿']};
+        const type=diff>0?'positive':diff<0?'negative':'same';
+        const msg=msgs[type][Math.floor(Math.random()*msgs[type].length)];
+        document.getElementById('past-me-emoji').textContent=EMOJIS_LIST[pastIdx];
+        document.getElementById('now-me-emoji').textContent=EMOJIS_LIST[afterIdx];
+        document.getElementById('past-me-date').textContent=`${pastDays}일 전 (${pastDateStr})`;
+        document.getElementById('past-me-label').textContent=`${pastDays}일 전과 비교`;
+        document.getElementById('past-me-change').textContent=changeMap[String(diff)]||'';
+        document.getElementById('past-me-msg').textContent=msg;
+        box.style.display='block';
+    }
+
+    /* ===== ② 정체성 라벨 시스템 ===== */
+    const IDENTITY_LABELS=[
+        {days:365,label:'인생2막의 완주자',desc:'365일을 완주한 당신. 이미 삶이 달라졌어요.'},
+        {days:300,label:'흔들리지 않는 사람',desc:'300일. 웬만한 것으로는 당신을 막을 수 없어요.'},
+        {days:100,label:'변화를 만드는 사람',desc:'100일 이상 꾸준히 자신을 돌본 사람이에요.'},
+        {days:30,label:'나를 돌보는 사람',desc:'한 달 동안 매일 나를 위한 시간을 냈어요.'},
+        {days:14,label:'습관을 만드는 사람',desc:'2주! 뇌에 새로운 회로가 생기기 시작했어요.'},
+        {days:7,label:'용기 있는 시작자',desc:'7일을 해낸 당신은 이미 보통이 아니에요.'},
+        {days:1,label:'오늘을 선택한 사람',desc:'오늘 확언을 선택한 당신은 이미 변화 중이에요.'},
+    ];
+    function renderIdentityLabel(){
+        const box=document.getElementById('identity-box');
+        if(!box) return;
+        const cd=safeGetJSON('completed_dates',[]);
+        const found=IDENTITY_LABELS.find(l=>cd.length>=l.days);
+        if(!found){box.style.display='none';return;}
+        const _iNick = safeGetItem('my_nickname','');
+        document.getElementById('identity-label').textContent=_iNick ? `"${_iNick}님은 ${found.label}입니다"` : `"나는 ${found.label}입니다"`;
+        document.getElementById('identity-desc').textContent=(_iNick ? `${_iNick}님, ` : '') + found.desc;
+        box.style.display='block';
+    }
+
+    /* ===== ③ 랜덤 특별 메시지 ===== */
+    const RANDOM_GIFTS=[
+        {title:'🎁 오늘의 특별 확언',msg:'"나는 충분히 해왔고,\n앞으로도 충분히 할 수 있다."'},
+        {title:'💌 오늘의 응원',msg:'뇌과학자들이 말해요.\n꾸준함은 재능보다 강하다고.\n\n당신이 매일 여기 오는 것, 그게 바로 그 꾸준함이에요.'},
+        {title:'🌟 인생2막 메시지',msg:'"인생 2막이 두려운 건\n그만큼 소중한 것들이 많다는 증거예요."'},
+        {title:'🌿 오늘의 선물',msg:'50세 이후의 뇌는\n더 깊이 생각하고 더 넓게 이해해요.\n\n당신의 나이는 강점이에요.'},
+        {title:'🎊 깜짝 응원!',msg:'오늘 여기 들어온 당신에게\n조용히 박수를 보내요 👏\n\n쉽지 않은데 오셨잖아요.'},
+    ];
+    function checkRandomGift(){
+        if(safeGetItem('last_random_gift','')=== getTodayStr()) return;
+        if(Math.random()>0.2) return;
+        safeSetItem('last_random_gift', getTodayStr());
+        const gift=RANDOM_GIFTS[Math.floor(Math.random()*RANDOM_GIFTS.length)];
+        setTimeout(()=>{
+            const modal=document.createElement('div');
+            modal.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#FFFFFF;border-radius:20px;padding:28px 24px;width:88%;max-width:340px;text-align:center;z-index:9997;box-shadow:0 20px 60px rgba(0,0,0,0.15);';
+            modal.innerHTML=`<div style="font-size:1.1em;font-weight:700;color:var(--primary-color);margin-bottom:14px;">${gift.title}</div><div style="font-size:0.92em;color:var(--text-color);line-height:1.8;white-space:pre-wrap;margin-bottom:20px;">${gift.msg}</div><button onclick="this.parentElement.remove()" style="width:100%;min-height:48px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">감사해요 🌿</button>`;
+            document.body.appendChild(modal);
+            launchConfetti();
+        },2000);
+    }
+
+    /* ===== ④ 미래편지 (무제한) ===== */
+
+    let _letterOpenDate = null; // 선택된 개봉일
+
+    function initLetterView(){
+        migrateLetter(); // 기존 데이터 마이그레이션
+        const input = document.getElementById('letter-input');
+        if(input) input.addEventListener('input', ()=>{
+            document.getElementById('letter-char-count').textContent = input.value.length + '자';
+        });
+        // 기본 개봉일: 1년 후
+        setLetterDate(1,'year');
+        showLetterList();
+    }
+
+    let _letterIsNextDay = false;
+    window.setLetterDate = function(amount, unit){
+        _letterIsNextDay = (unit === 'day' && amount === 1);
+        const d = new Date(todayObj);
+        if(unit === 'day')        d.setDate(d.getDate() + amount);
+        else if(unit === 'month') d.setMonth(d.getMonth() + amount);
+        else                      d.setFullYear(d.getFullYear() + amount);
+        _letterOpenDate = getFormatDate(d);
+        document.getElementById('letter-open-date-input').value = _letterOpenDate;
+        ['ldbtn-1d','ldbtn-1m','ldbtn-3m','ldbtn-6m','ldbtn-1y'].forEach(id=>{
+            document.getElementById(id)?.classList.remove('active');
+        });
+        const map = {'1day':'ldbtn-1d','1month':'ldbtn-1m','3month':'ldbtn-3m','6month':'ldbtn-6m','1year':'ldbtn-1y'};
+        const key = amount+unit;
+        if(map[key]) document.getElementById(map[key])?.classList.add('active');
+    }
+
+    window.onLetterDateChange = function(){
+        const v = document.getElementById('letter-open-date-input').value;
+        if(v) {
+            _letterOpenDate = v;
+            ['ldbtn-1m','ldbtn-3m','ldbtn-6m','ldbtn-1y'].forEach(id=>{
+                document.getElementById(id)?.classList.remove('active');
+            });
+        }
+    }
+
+    window.showLetterWrite = function(){
+        document.getElementById('letter-write-section').style.display = 'block';
+        document.getElementById('letter-list-section').style.display = 'none';
+        document.getElementById('letter-detail-section').style.display = 'none';
+        document.getElementById('letter-input').value = '';
+        document.getElementById('letter-char-count').textContent = '0자';
+        setLetterDate(1,'year');
+    }
+
+    window.showLetterList = function(){
+        document.getElementById('letter-write-section').style.display = 'none';
+        document.getElementById('letter-list-section').style.display = 'block';
+        document.getElementById('letter-detail-section').style.display = 'none';
+        renderLetterList();
+    }
+
+    window.closeLetterDetail = function(){
+        showLetterList();
+    }
+
+    function renderLetterList(){
+        const letters = safeGetJSON('future_letters', []);
+        const container = document.getElementById('letter-list-container');
+        if(!container) return;
+
+        // D-day 알림 배너 - 봉인 기간별 맞춤 알림
+        const alerts = [];
+        letters.forEach((lt, idx) => {
+            if(lt.opened) return;
+            const _od = new Date(lt.openDate);
+            const _openMid = new Date(_od.getFullYear(), _od.getMonth(), _od.getDate());
+            const _todayMid = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+            const daysLeft = Math.round((_openMid - _todayMid) / 86400000);
+            const writtenDate = new Date(lt.writtenDate || getTodayStr());
+            const totalDays = Math.ceil((new Date(lt.openDate) - writtenDate) / 86400000);
+
+            // 봉인 기간에 따라 알림 시점 결정
+            let milestones, labels;
+            if(totalDays <= 2){
+                // 내일 봉인: 당일 D-DAY만
+                milestones = [];
+                labels = [];
+            } else if(totalDays <= 35){
+                // 1개월 봉인: 7일 전, 하루 전
+                milestones = [7, 1];
+                labels = ['일주일', '하루'];
+            } else if(totalDays <= 100){
+                // 3개월 봉인: 한 달 전, 7일 전, 하루 전
+                milestones = [30, 7, 1];
+                labels = ['한 달', '일주일', '하루'];
+            } else if(totalDays <= 200){
+                // 6개월 봉인: 3개월 전, 7일 전, 하루 전
+                milestones = [91, 7, 1];
+                labels = ['3개월', '일주일', '하루'];
+            } else {
+                // 1년 봉인: 9개월, 6개월, 3개월, 한 달, 7일, 하루 전
+                milestones = [273, 182, 91, 30, 7, 1];
+                labels = ['9개월', '6개월', '3개월', '한 달', '일주일', '하루'];
+            }
+
+            milestones.forEach((m, mi) => {
+                if(daysLeft === m) alerts.push({label: labels[mi], idx, daysLeft, openDate: lt.openDate});
+            });
+            const canOpenNow = lt.openTimestamp ? Date.now() >= lt.openTimestamp : daysLeft <= 0;
+            if(canOpenNow) alerts.push({label: 'D-DAY', idx, daysLeft, openDate: lt.openDate});
+        });
+
+        let html = '';
+        alerts.forEach(a => {
+            const color = a.daysLeft <= 0 ? '#C9A84C' : '#1B4332';
+            html += `<div style="background:${a.daysLeft<=0?'#FFF8E8':'#F0F7F4'};border-radius:12px;padding:12px 16px;margin-bottom:10px;border-left:4px solid ${color};">
+                <div style="font-size:0.82em;font-weight:700;color:${color};">${a.daysLeft<=0?'🎉 지금 열 수 있어요!':'⏰ '+a.label+' 전 알림'}</div>
+                <div style="font-size:0.8em;color:#666;margin-top:2px;">${a.openDate} 개봉 예정</div>
+                ${a.daysLeft<=0?`<button onclick="viewLetter(${a.idx})" style="margin-top:8px;background:#C9A84C;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82em;font-weight:700;cursor:pointer;">📬 편지 열어보기</button>`:''}
+            </div>`;
+        });
+
+        if(letters.length === 0){
+            html += `<div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+                <div style="font-size:48px;margin-bottom:12px;">✉️</div>
+                <div style="font-size:0.9em;">아직 편지가 없어요<br>미래의 나에게 첫 편지를 써보세요!</div>
+            </div>`;
+        } else {
+            letters.slice().reverse().forEach((lt, ri) => {
+                const idx = letters.length - 1 - ri;
+                const _od = new Date(lt.openDate);
+            const _openMid = new Date(_od.getFullYear(), _od.getMonth(), _od.getDate());
+            const _todayMid = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+            const daysLeft = Math.round((_openMid - _todayMid) / 86400000);
+                const isOpen = lt.opened || (lt.openTimestamp ? Date.now() >= lt.openTimestamp : daysLeft <= 0);
+                const p = lt.openDate.split('-');
+                const dateStr = `${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일`;
+                const preview = lt.text.substring(0, 30) + (lt.text.length > 30 ? '...' : '');
+                html += `<div onclick="viewLetter(${idx})" style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:10px;border:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;gap:14px;">
+                    <div style="font-size:36px;">${isOpen ? '📬' : '📮'}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);">${dateStr} 개봉</div>
+                        <div style="font-size:0.8em;color:var(--text-muted);margin-top:2px;">${lt.opened ? preview : '🔒 봉인됨'}</div>
+                        <div style="font-size:0.78em;margin-top:4px;color:${daysLeft<=0?'#C9A84C':daysLeft<=7?'#E07000':'var(--text-muted)'};">
+                            ${daysLeft<=0 ? '📬 열 수 있어요!' : 'D-'+daysLeft}
+                        </div>
+                    </div>
+                    <div style="font-size:0.75em;color:var(--text-muted);">${lt.writtenDate}</div>
+                </div>`;
+            });
+        }
+        container.innerHTML = html;
+    }
+
+    window.openLetterById = function(idx){ window.viewLetter(idx); };
+        window.viewLetter = function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+        const _od = new Date(lt.openDate);
+            const _openMid = new Date(_od.getFullYear(), _od.getMonth(), _od.getDate());
+            const _todayMid = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+            const daysLeft = Math.round((_openMid - _todayMid) / 86400000);
+        const canOpen = lt.openTimestamp ? Date.now() >= lt.openTimestamp : daysLeft <= 0;
+        const p = lt.openDate.split('-');
+        const dateStr = `${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일`;
+
+        document.getElementById('letter-list-section').style.display = 'none';
+        document.getElementById('letter-detail-section').style.display = 'block';
+
+        const box = document.getElementById('letter-detail-box');
+        if(lt.opened || canOpen){
+            if(!lt.opened){ letters[idx].opened = true; safeSetJSON('future_letters', letters); launchConfetti(); showToast('💌 미래의 나에게 보낸 편지예요!'); }
+            box.innerHTML = `
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:48px;">💌</div>
+                <div style="font-size:0.82em;color:var(--text-muted);margin-top:6px;">${lt.writtenDate} 작성 → ${dateStr} 개봉</div>
+            </div>
+            <div style="background:var(--card-bg);border-radius:14px;padding:20px;border:1px solid var(--border-color);margin-bottom:16px;">
+                <div style="font-size:0.78em;color:var(--accent-color);font-weight:700;margin-bottom:12px;">과거의 나로부터 온 편지</div>
+                <div id="letter-text-content-${idx}" style="font-size:0.95em;color:var(--text-color);line-height:1.8;white-space:pre-wrap;">${lt.text}</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button onclick="shareLetter(${idx})" style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📮 편지지로 공유</button>
+                <button onclick="downloadLetterTxt(${idx})" style="flex:1;min-height:48px;background:var(--card-bg);color:var(--primary-color);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">💾 텍스트 저장</button>
+            </div>
+            <canvas id="letter-canvas-${idx}" style="display:none;"></canvas>`;
+        } else {
+            box.innerHTML = `<div style="text-align:center;padding:30px 0;">
+                <div style="font-size:64px;margin-bottom:14px;">📮</div>
+                <div style="font-size:1em;font-weight:700;color:var(--primary-color);margin-bottom:8px;">봉인된 편지</div>
+                <div style="font-size:0.88em;color:var(--text-muted);margin-bottom:20px;">${dateStr}에 열립니다</div>
+                <div style="background:var(--card-bg);border-radius:14px;padding:20px;margin-bottom:16px;">
+                    <div style="font-size:0.8em;color:var(--text-muted);margin-bottom:6px;">개봉까지</div>
+                    <div style="font-size:3em;font-weight:700;color:var(--primary-color);">${lt.openTimestamp ? Math.max(0,Math.ceil((lt.openTimestamp-Date.now())/3600000))+'시간' : 'D-'+daysLeft}</div>
+                </div>
+                <button onclick="deleteLetterById(${idx})" style="background:none;border:none;font-size:0.82em;color:#999;cursor:pointer;text-decoration:underline;">편지 삭제하기</button>
+            </div>`;
+        }
+    }
+
+    window.shareLetter = async function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+
+        showToast('편지지 만드는 중... 잠깐만요 💌');
+
+        // 폰트 로드
+        await document.fonts.load('20px "Nanum Pen Script"').catch(()=>{});
+
+        const canvas = document.getElementById('letter-canvas-' + idx);
+        if(!canvas) return;
+
+        const W = 800, PADDING = 60, LINE_H = 44, FONT_SIZE = 22;
+        const text = lt.text;
+
+        // 텍스트 줄 나누기
+        const ctx0 = canvas.getContext('2d');
+        ctx0.font = FONT_SIZE + 'px "Nanum Pen Script", serif';
+        const maxW = W - PADDING * 2;
+        const rawLines = text.split('\n');
+        const lines = [];
+        rawLines.forEach(raw => {
+            const words = raw.split('');
+            let line = '';
+            for(let ch of words){
+                const test = line + ch;
+                if(ctx0.measureText(test).width > maxW){ lines.push(line); line = ch; }
+                else line = test;
+            }
+            lines.push(line);
+        });
+
+        const H = PADDING * 2 + 120 + lines.length * LINE_H + 80;
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // 배경 - 크림색 편지지
+        ctx.fillStyle = '#FDF6E3';
+        ctx.fillRect(0, 0, W, H);
+
+        // 왼쪽 빨간 선 (편지지 여백선)
+        ctx.strokeStyle = '#F0C0C0';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(PADDING - 10, 0); ctx.lineTo(PADDING - 10, H); ctx.stroke();
+
+        // 가로 줄
+        ctx.strokeStyle = '#E8DCC8';
+        ctx.lineWidth = 0.8;
+        for(let y = 140; y < H - 60; y += LINE_H){
+            ctx.beginPath(); ctx.moveTo(PADDING - 10, y); ctx.lineTo(W - PADDING + 10, y); ctx.stroke();
+        }
+
+        // 상단 장식 - 인생2막라디오
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('인생2막라디오 · 미래의 나에게 쓰는 편지', W/2, 40);
+
+        // 날짜
+        ctx.fillStyle = '#888';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(lt.writtenDate + ' 작성', W - PADDING + 10, 40);
+        ctx.textAlign = 'left';
+
+        // 구분선
+        ctx.strokeStyle = '#C9A84C';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PADDING - 10, 55); ctx.lineTo(W - PADDING + 10, 55); ctx.stroke();
+
+        // 수신인
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'bold 18px "Nanum Pen Script", serif';
+        ctx.fillText('미래의 나에게,', PADDING, 90);
+
+        // 본문
+        ctx.fillStyle = '#2C2C2C';
+        ctx.font = FONT_SIZE + 'px "Nanum Pen Script", serif';
+        let y = 130;
+        lines.forEach(line => {
+            ctx.fillText(line, PADDING, y);
+            y += LINE_H;
+        });
+
+        // 마무리
+        ctx.fillStyle = '#1B4332';
+        ctx.font = 'italic 16px "Nanum Pen Script", serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('과거의 나로부터  💚', W - PADDING + 10, H - 30);
+
+        // 하단 워터마크
+        ctx.fillStyle = '#C9A84C';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('인생2막라디오 365일 확언 앱', W/2, H - 10);
+
+        // 공유 또는 다운로드
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], '미래의나에게_편지.png', {type: 'image/png'});
+            if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+                try{
+                    await navigator.share({ files:[file], title:'미래의 나에게 쓴 편지', text:'인생2막라디오 365일 확언 앱에서 작성한 편지예요 💌' });
+                } catch(e){
+                    downloadCanvasImage(canvas);
+                }
+            } else {
+                downloadCanvasImage(canvas);
+            }
+        }, 'image/png');
+    }
+
+    function downloadCanvasImage(canvas){
+        const a = document.createElement('a');
+        a.download = '미래의나에게_편지.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        showToast('편지 이미지가 저장됐어요! 📮');
+    }
+
+    window.downloadLetterTxt = function(idx){
+        const letters = safeGetJSON('future_letters', []);
+        const lt = letters[idx];
+        if(!lt) return;
+        const content = '미래의 나에게,\n\n' + lt.text + '\n\n' + lt.writtenDate + ' 과거의 나로부터\n--- 인생2막라디오 365일 확언 앱 ---';
+        const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+        const a = document.createElement('a');
+        a.download = '미래의나에게_편지_' + lt.writtenDate + '.txt';
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        showToast('텍스트 파일이 저장됐어요! 💾');
+    }
+
+    window.deleteLetterById = function(idx){
+        if(!confirm('이 편지를 삭제할까요?')) return;
+        const letters = safeGetJSON('future_letters', []);
+        letters.splice(idx, 1);
+        safeSetJSON('future_letters', letters);
+        showLetterList();
+        showToast('편지가 삭제됐어요');
+    }
+
+    window.saveLetter = function(){
+        const text = document.getElementById('letter-input').value.trim();
+        if(!text){ showToast('편지 내용을 써주세요'); return; }
+        if(!_letterOpenDate){ showToast('개봉일을 선택해주세요'); return; }
+        if(!_letterIsNextDay && _letterOpenDate <= getTodayStr()){ showToast('개봉일은 오늘 이후로 설정해주세요'); return; }
+
+        const letters = safeGetJSON('future_letters', []);
+        const isNextDay = _letterIsNextDay || false;
+        const entry = { text, writtenDate: getTodayStr(), openDate: _letterOpenDate, opened: false };
+        if(isNextDay) entry.openTimestamp = Date.now() + 24*60*60*1000; // 24시간 후
+        letters.push(entry);
+        safeSetJSON('future_letters', letters);
+
+        showToast('💌 편지가 봉인됐어요!');
+        launchConfetti();
+        addPoint(1,'미래편지','letter');
+        showLetterList();
+    }
+
+    // 기존 데이터 마이그레이션 (future_letter → future_letters)
+    function migrateLetter(){
+        const old = safeGetItem('future_letter', null);
+        if(old && old !== '' && old !== 'null'){
+            try{
+                const d = JSON.parse(old);
+                if(d && d.text){
+                    const letters = safeGetJSON('future_letters', []);
+                    if(!letters.find(l => l.writtenDate === d.writtenDate)){
+                        letters.push({ text: d.text, writtenDate: d.writtenDate||getTodayStr(), openDate: d.openDate, opened: false });
+                        safeSetJSON('future_letters', letters);
+                    }
+                    safeSetItem('future_letter', '');
+                }
+            } catch(e){}
+        }
+    }
+
+    /* ===== ⑤ 행동 지침 완료 체크 ===== */
+    window.openActionPhoto = function(){
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'camera';
+        input.style.display = 'none';
+        input.onchange = function(e){
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev){
+                const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+                modal.innerHTML =
+                    '<div style="font-size:0.88em;color:#C9A84C;font-weight:700;margin-bottom:12px;">📸 오늘의 실천 인증</div>' +
+                    '<img src="' + ev.target.result + '" style="max-width:100%;max-height:50vh;border-radius:12px;object-fit:contain;">' +
+                    '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);margin-top:8px;">이미지는 저장되지 않아요 · 카톡에서 직접 첨부해주세요</div>' +
+                    '<div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;width:100%;max-width:360px;">' +
+                    '<a id="action-send-btn" href="https://open.kakao.com/o/sKUKl3pi" target="_blank" ' +
+                    'onclick="setTimeout(function(){ var btn=document.getElementById(\'action-complete-btn\'); if(btn){ btn.style.display=\'flex\'; } }, 300);" ' +
+                    'style="min-height:52px;background:#FEE500;color:#3C1E1E;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px;">💌 인생2막♡라디오에 인증 보내기<span style="font-size:0.75em;font-weight:600;margin-top:2px;">누르면 +5PT 적립!</span></a>' +
+                    '<button id="action-complete-btn" ' +
+                    (photoDone ? 'onclick="this.closest(\'[style*=fixed]\').remove(); renderScreen();" style="display:none;min-height:52px;background:#888;color:#fff;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;">✅ 오늘 이미 인증 완료!</button>' : 'onclick="addPoint(5,\'행동지침사진\',\'action_photo\'); this.closest(\'[style*=fixed]\').remove(); renderScreen(); showToast(\'🎉 +5PT 실천 인증 완료!\'); launchConfetti();" style="display:none;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:10px;font-size:0.9em;font-weight:700;cursor:pointer;align-items:center;justify-content:center;">✅ 실천 완료! (+5PT)</button>') +
+                    '</div>' +
+                    '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:0.85em;cursor:pointer;">닫기</button>';
+                document.body.appendChild(modal);
+            };
+            reader.readAsDataURL(file);
+        };
+        document.body.appendChild(input);
+        input.click();
+    }
+
+    window.toggleActionDone=function(){
+        const key=`action_done_${getFormatDate(selectedDateObj)}`;
+        if(safeGetItem(key,'') === '1') return; // 이미 완료면 변경 불가
+        safeSetItem(key,'1');
+        const btn=document.getElementById('action-done-btn');
+        if(btn){
+            btn.style.background='var(--primary-color)';
+            btn.style.color='#FFFFFF';
+            btn.style.borderColor='var(--primary-color)';
+            btn.textContent='✓ 오늘 행동 실천 완료!';
+            btn.style.cursor='default';
+        }
+        showToast('🌿 행동을 실천하셨군요! 오늘 하루 대단해요');
+    }
+
+    const ONBOARDING_STEPS = [
+        {
+            finger:'👇', badge:'1 / 4',
+            title:'오늘 기분을 먼저 체크해요',
+            desc:'이모지를 누르면 오늘의 확언이 열려요.\n매일 기분을 기록하면 나중에 변화를 볼 수 있어요 😊',
+            highlight: null
+        },
+        {
+            finger:'👇', badge:'2 / 4',
+            title:'확언을 소리내어 읽어보세요',
+            desc:'"따라 읽기" 버튼을 누르고 확언을 소리내어 읽으면\n뇌에 더 깊이 새겨진다는 걸 알고 계셨나요?',
+            highlight: null
+        },
+        {
+            finger:'☑️', badge:'3 / 4',
+            title:'오늘 완료 체크로 하루를 마무리해요',
+            desc:'매일 체크하면 달력에 기록이 남아요.\n365일을 채우는 그날까지 함께할게요! 🌿',
+            highlight: null
+        },
+        {
+            finger:'🏅', badge:'4 / 4',
+            title:'나만의 이름과 이메일을 등록해요',
+            desc:'사연 보내기, 명예의 전당에 자동으로 사용돼요 😊',
+            highlight: null,
+            isNickname: true
+        }
+    ];
+    let obStep = 0;
+
+    function initOnboarding(){
+        if(safeGetItem('onboarding_done','') === '1') return;
+        // 딜레이 없이 즉시 표시
+        showOnboardingStep(0);
+        document.getElementById('onboarding-overlay').style.display = 'block';
+    }
+
+    function showOnboardingStep(step){
+        obStep = step;
+        const s = ONBOARDING_STEPS[step];
+        document.getElementById('onboarding-finger').textContent  = s.finger;
+        document.getElementById('onboarding-step-badge').textContent = s.badge;
+        document.getElementById('onboarding-title').textContent   = s.title;
+        document.getElementById('onboarding-desc').textContent    = s.desc;
+        document.getElementById('onboarding-next').textContent    = step < ONBOARDING_STEPS.length-1 ? '다음 →' : '시작하기 🌿';
+
+        // 닉네임+이메일 입력창
+        let nickArea = document.getElementById('ob-nickname-area');
+        if(s.isNickname){
+            if(!nickArea){
+                nickArea = document.createElement('div');
+                nickArea.id = 'ob-nickname-area';
+                nickArea.style.cssText = 'margin:14px 0 4px;';
+                nickArea.innerHTML = `
+                    <input id="ob-nick-input" type="text" maxlength="15" placeholder="이름 또는 별명 (예: 전주 60대 주부)"
+                        style="width:100%;padding:12px 14px;font-size:1em;border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:8px;">
+                    <button onclick="window._googleOneTap()" style="width:100%;padding:11px 14px;font-size:0.95em;border:1.5px solid #4285F4;border-radius:10px;box-sizing:border-box;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
+                        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+                        구글 계정에서 이메일 가져오기
+                    </button>
+                    <input id="ob-email-input" type="email" placeholder="또는 직접 입력"
+                        style="width:100%;padding:12px 14px;font-size:0.95em;border:1.5px solid #C8DDD2;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;">
+                    <label for="ob-privacy-agree" style="margin-top:10px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="ob-privacy-agree" style="width:18px;height:18px;min-width:18px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
+                        <span style="font-size:11px;color:#aaa;line-height:1.6;text-align:left;">이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.</span>
+                    </label>
+                    <div style="font-size:11px;color:#aaa;margin-top:6px;text-align:center;">이름 필수 · 이메일 필수</div>`;
+                const formContainer = document.getElementById('ob-form-container');
+                if(formContainer){
+                    formContainer.innerHTML = '';
+                    formContainer.appendChild(nickArea);
+                    formContainer.style.display = 'block';
+                } else {
+                    document.getElementById('onboarding-next').parentNode.insertBefore(nickArea, document.getElementById('onboarding-next'));
+                }
+            }
+            nickArea.style.display = 'block';
+            const existing = safeGetItem('my_nickname','');
+            const existingEmail = safeGetItem('my_email','');
+            if(existing) document.getElementById('ob-nick-input').value = existing;
+            if(existingEmail) document.getElementById('ob-email-input').value = existingEmail;
+        } else {
+            if(nickArea) nickArea.style.display = 'none';
+            const fc = document.getElementById('ob-form-container');
+            if(fc) fc.style.display = 'none';
+        }
+
+        // 점 업데이트
+        document.querySelectorAll('.ob-dot').forEach((d,i)=> d.classList.toggle('active', i===step));
+        const card = document.getElementById('onboarding-card');
+        card.style.top  = '50%';
+        card.style.left = '50%';
+        card.style.transform = 'translate(-50%,-50%)';
+    }
+
+    window.nextOnboarding = function(){
+        if(obStep < ONBOARDING_STEPS.length - 1){
+            // 4단계(닉네임) 이미 등록됐으면 스킵
+            const nextStep = obStep + 1;
+            if(ONBOARDING_STEPS[nextStep].isNickname){
+                const nick = safeGetItem('my_nickname','');
+                const email = safeGetItem('my_email','');
+                if(nick && email){
+                    // 이미 등록 → 온보딩 완료
+                    document.getElementById('onboarding-overlay').style.display = 'none';
+                    safeSetItem('onboarding_done','1');
+                    checkFirstVisit(); // ★ 첫 방문 포인트
+                    return;
+                }
+            }
+            showOnboardingStep(nextStep);
+        } else {
+            const nickInput  = document.getElementById('ob-nick-input');
+            const emailInput = document.getElementById('ob-email-input');
+            const obAgree = document.getElementById('ob-privacy-agree');
+            if(!obAgree || !obAgree.checked){
+                showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return;
+            }
+            if(!nickInput || !nickInput.value.trim()){
+                showToast('이름을 입력해주세요!'); return;
+            }
+            if(!emailInput || !emailInput.value.trim()){
+                showToast('이메일을 입력해주세요!'); return;
+            }
+            safeSetItem('my_nickname', nickInput.value.trim());
+            safeSetItem('my_email', emailInput.value.trim());
+            const ni = document.getElementById('nickname-input');
+            if(ni) ni.value = nickInput.value.trim();
+            const ei = document.getElementById('user-email-input');
+            if(ei) ei.value = emailInput.value.trim();
+            const se = document.getElementById('story-email');
+            if(se) se.value = emailInput.value.trim();
+            window._sendUserUpdate();
+            skipOnboarding();
+        }
+    }
+
+    window.skipOnboarding = function(){
+        document.getElementById('onboarding-overlay').style.display = 'none';
+        safeSetItem('onboarding_done','1');
+        // 이름+이메일 미등록 시 등록 팝업 표시
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        if(!nick || !email){
+            setTimeout(()=> showNicknameModal(), 300);
+        } else {
+            // ★ 온보딩 완료 + 등록 완료 시점에 첫 방문 포인트 지급
+            checkFirstVisit();
+        }
+    }
+
+    /* ===== 명예의 전당 ===== */
+    function render100DayCertButton(){
+        const sec = document.getElementById('cert-100-section');
+        if(!sec) return;
+        const cd   = safeGetJSON('completed_dates', []);
+        const nick = safeGetItem('my_nickname', '');
+        const sent = safeGetItem('notified_100day', '') === '1';
+
+        if(cd.length < 100){
+            // 아직 100일 미달성
+            sec.innerHTML = `<div style="text-align:center;font-size:0.82em;color:rgba(255,255,255,0.5);">현재 ${cd.length}일 달성 · 100일 달성 시 인증 가능해요</div>`;
+        } else if(sent){
+            // 이미 전송
+            sec.innerHTML = `<div style="text-align:center;font-size:0.82em;color:var(--accent-color);">✅ 인증 이메일을 보내셨어요! 곧 호명해드려요 🎙<br><button onclick="safeSetItem('notified_100day',''); render100DayCertButton();" style="margin-top:8px;background:none;border:none;font-size:0.8em;color:rgba(255,255,255,0.4);cursor:pointer;text-decoration:underline;">다시 보내기</button></div>`;
+        } else {
+            // 100일 이상 + 미전송
+            sec.innerHTML = `
+                <button onclick="send100DayEmail('${nick||'익명'}', ${cd.length})" style="width:100%;min-height:50px;background:var(--accent-color);color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:8px;">
+                    📧 100일 달성 인증 이메일 보내기
+                </button>
+                <button onclick="safeSetItem('notified_100day','1'); render100DayCertButton();" style="width:100%;min-height:40px;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:12px;font-size:0.85em;color:rgba(255,255,255,0.5);cursor:pointer;">
+                    괜찮아요, 보내지 않을게요
+                </button>
+                <div style="font-size:0.78em;color:rgba(255,255,255,0.5);text-align:center;margin-top:8px;">보내시면 유튜브 영상에서 이름을 불러드려요 🎙</div>`;
+        }
+    }
+    // ★ 구글 시트에서 챔피언 닉네임 목록도 관리 가능 (추후 연동)
+    // 지금은 100일 이상 달성한 로컬 유저 표시
+    function renderHallOfFame(){
+        const el = document.getElementById('hall-of-fame-list');
+        if(!el) return;
+        const cd = safeGetJSON('completed_dates',[]);
+        if(cd.length >= 100){
+            // 본인이 100일 이상이면 내 닉네임 표시 (설정에서 입력 가능하도록)
+            const myName = safeGetItem('my_nickname','');
+            if(myName){
+                el.innerHTML = `<div style="background:rgba(212,168,67,0.2);border:1px solid var(--accent-color);border-radius:20px;padding:6px 16px;font-size:0.88em;color:var(--accent-color);font-weight:700;">${myName} 🏅 ${cd.length}일</div>`;
+                return;
+            }
+        }
+        el.innerHTML = `<div style="font-size:0.85em;color:rgba(255,255,255,0.6);text-align:center;width:100%;line-height:1.7;">100일 달성 시 이름이 여기 올라가요!<br>이름은 설정에서 입력할 수 있어요.</div>`;
+    }
+    // ★ 매주 Shorts 영상 올릴 때 이 목록에 날짜:코드 추가하세요
+    // 형식: 'YYYY-M-D': '코드4자리'
+    const SECRET_CODES = {
+        // 예시 (실제 영상 올린 후 채워넣으세요)
+        // '2026-4-10': '1234',
+        // '2026-4-17': '5678',
+    };
+
+    window.checkSecretCode = function(){
+        const input  = document.getElementById('secret-code-input').value.trim();
+        const result = document.getElementById('secret-code-result');
+        if(input.length !== 4){ result.textContent = '4자리 코드를 입력해주세요'; return; }
+
+        const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
+        const correct = SECRET_CODES[today];
+        // ★ 오늘 날짜+코드 조합으로 중복 체크 (날짜별로 다른 코드면 여러 번 가능)
+        const usedKey = `secret_used_${today}_${input}`;
+
+        if(safeGetItem(usedKey, null)){
+            result.textContent = '✅ 이 코드는 이미 입력하셨어요!'; return;
+        }
+        if(!correct){
+            result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
+        }
+        if(input === correct){
+            safeSetItem(usedKey, '1');
+            // 패자부활: 결석 1일 삭제
+            var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
+
+            // 누적 코드 카운트 증가
+            const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
+            safeSetItem('total_secret_codes', String(totalCodes));
+
+            // 배지 저장
+            let earned = safeGetJSON('earned_badges',[]);
+            const badgeId = `secret_${today}`;
+            if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
+
+            result.textContent = '';
+            document.getElementById('secret-code-input').value = '';
+            launchConfetti();
+
+            // ★ 코드 포인트 지급
+            addPoint(10, '시크릿코드', `secret_pt_${today}`);
+            // 누적 보너스
+            if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
+            if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
+            if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
+
+            // 오늘의 특별 콘텐츠 가져오기
+            const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
+            showSecretSuccess(totalCodes, todayContent);
+            checkLevelRecovery(); // 등급 하락 상태면 회복
+        } else {
+            result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
+        }
+    }
+
+    // PDF 해금 정보 (구글 스프레드시트 앱설정에서 URL 관리)
+    const PDF_REWARDS = [
+        { threshold: 10, label: '1~3월 확언 PDF', months: '1월~3월 (90일)', urlKey: 'pdf_url_1' },
+        { threshold: 20, label: '4~6월 확언 PDF', months: '4월~6월 (91일)', urlKey: 'pdf_url_2' },
+        { threshold: 30, label: '7~9월 확언 PDF', months: '7월~9월 (92일)', urlKey: 'pdf_url_3' },
+        { threshold: 40, label: '10~12월 확언 PDF', months: '10월~12월 (92일)', urlKey: 'pdf_url_4' },
+    ];
+
+    function showSecretSuccess(totalCodes, content){
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;';
+
+        // PDF 해금 체크
+        const unlockedPdf = PDF_REWARDS.find(r =>
+            totalCodes === r.threshold &&
+            safeGetItem(`pdf_unlocked_${r.threshold}`, '') !== '1'
+        );
+        if(unlockedPdf) {
+            safeSetItem(`pdf_unlocked_${unlockedPdf.threshold}`, '1');
+            window._sendPdfAccess(unlockedPdf.label); // ★ PDF 해금 로그
+        }
+
+        // 남은 코드 수 계산
+        const nextPdf = PDF_REWARDS.find(r => totalCodes < r.threshold);
+        const remaining = nextPdf ? nextPdf.threshold - totalCodes : 0;
+
+        let contentHtml = '';
+        if(content && content.text){
+            contentHtml = `
+                <div style="background:#F0F7F4;border-radius:12px;padding:14px 16px;margin:12px 0;text-align:left;">
+                    <div style="font-size:0.75em;font-weight:700;color:#1B4332;letter-spacing:0.5px;margin-bottom:6px;">🔓 오늘의 숨겨진 ${content.type||'이야기'}</div>
+                    <div style="font-size:0.92em;color:#333;line-height:1.7;font-weight:600;">${content.text}</div>
+                </div>`;
+        }
+
+        let pdfHtml = '';
+        if(unlockedPdf){
+            const pdfUrl = safeGetItem(unlockedPdf.urlKey, '') || '#';
+            pdfHtml = `
+                <div style="background:linear-gradient(135deg,#C9A84C,#E8C97A);border-radius:12px;padding:14px 16px;margin:12px 0;text-align:center;">
+                    <div style="font-size:0.82em;font-weight:700;color:#1B4332;margin-bottom:6px;">🎁 특별 선물이 해금됐어요!</div>
+                    <div style="font-size:0.95em;font-weight:700;color:#1B4332;margin-bottom:10px;">${unlockedPdf.label}</div>
+                    <a href="${pdfUrl}" target="_blank" style="display:block;background:#1B4332;color:#C9A84C;padding:10px;border-radius:10px;font-size:0.9em;font-weight:700;text-decoration:none;">📄 PDF 받기</a>
+                </div>`;
+        }
+
+        let progressHtml = '';
+        if(nextPdf && !unlockedPdf){
+            progressHtml = `<div style="font-size:0.8em;color:#888;margin-top:8px;">🎁 ${nextPdf.label}까지 ${remaining}개 남았어요!</div>`;
+        }
+
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:90%;max-width:360px;text-align:center;max-height:90vh;overflow-y:auto;">
+                <div style="font-size:48px;margin-bottom:8px;">🏅</div>
+                <div style="font-size:1.2em;font-weight:700;color:#1B4332;margin-bottom:4px;">코드 인증 성공!</div>
+                <div style="font-size:0.85em;color:#888;margin-bottom:4px;">누적 ${totalCodes}개 달성</div>
+                ${contentHtml}
+                ${pdfHtml}
+                ${progressHtml}
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;margin-top:14px;">확인</button>
+            </div>`;
+        document.body.appendChild(modal);
+        setTimeout(()=>{ if(modal.parentNode) modal.remove(); }, 8000);
+    }
+
+    // 이미 해금된 PDF 다시 받기 (달력 탭 등에서 접근)
+    window.openUnlockedPdf = function(threshold){
+        const pdf = PDF_REWARDS.find(r => r.threshold === threshold);
+        if(!pdf) return;
+        const url = safeGetItem(pdf.urlKey, '');
+        if(url && url !== '#') window.open(url, '_blank');
+        else showToast('PDF 링크가 아직 설정되지 않았어요');
+    }
+    let sttRecognition = null;
+
+    /* ===== 💥 완료 후 감정 보상 + 공유 유도 ===== */
+
+
+    function showSTTSuccessPopup(totalDays, streak){
+        var old = document.getElementById('stt-reward-modal');
+        if(old) old.remove();
+        var tomorrow = new Date(todayObj);
+        tomorrow.setDate(tomorrow.getDate()+1);
+        var tomorrowStr = (tomorrow.getMonth()+1)+'월 '+tomorrow.getDate()+'일';
+        var nick = safeGetItem('my_nickname','');
+        var nickTxt = nick ? nick+'님, ' : '';
+        var modal = document.createElement('div');
+        modal.id = 'stt-reward-modal';
+        modal.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;z-index:9000;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;top:0;';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:#1B4332;border-radius:24px 24px 0 0;padding:32px 24px 44px;width:100%;max-width:600px;text-align:center;';
+        box.innerHTML =
+            '<div style="font-size:1.3em;font-weight:700;color:#fff;margin-bottom:8px;">🎉 따라읽기 완료!</div>' +
+            '<div style="font-size:0.9em;color:rgba(255,255,255,0.75);margin-bottom:20px;">' + nickTxt + '뇌에 긍정의 힘이 새겨졌어요!</div>' +
+            '<div style="background:rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:20px;">' +
+            '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin-bottom:4px;">내일도 이어가시겠어요? 🌿</div>' +
+            '<div style="font-size:0.95em;color:#D4A843;font-weight:700;">' + tomorrowStr + ' 확언으로 '+(streak+1)+'일 연속 달성해봐요!</div>' +
+            '</div>' +
+            '<button id="stt-share-btn" style="width:100%;min-height:52px;background:#D4A843;color:#1B4332;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">오늘 확언 공유하기</button>' +
+            '<button id="stt-close-btn" style="width:100%;background:none;border:none;color:rgba(255,255,255,0.5);font-size:0.9em;cursor:pointer;padding:8px;">닫기</button>';
+        modal.appendChild(box);
+        document.body.appendChild(modal);
+        document.getElementById('stt-share-btn').addEventListener('click', function(){
+            shareAfterComplete();
+            modal.remove();
+        });
+        document.getElementById('stt-close-btn').addEventListener('click', function(){
+            modal.remove();
+        });
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    }
+
+    function showCompleteReward(totalDays, streak){
+        if(safeGetItem(`reward_shown_${getTodayStr()}`,'') === '1') return;
+        safeSetItem(`reward_shown_${getTodayStr()}`, '1');
+        let reward = null;
+        for(let r of [...COMPLETE_REWARDS].reverse()){ if(totalDays >= r.days){ reward=r; break; } }
+        const _nick = safeGetItem('my_nickname','');
+        const _nickPrefix = _nick ? `${_nick}님, ` : '';
+        const msg = reward ? reward.msg : _nickPrefix + REWARD_MSGS[Math.floor(Math.random()*REWARD_MSGS.length)];
+        const sub = reward ? reward.sub : `${streak}일 연속 달성 중이에요!`;
+        const modal = document.createElement('div');
+        modal.id = 'complete-reward-modal';
+        modal.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:92%;max-width:380px;z-index:8000;animation:rewardSlideUp 0.4s ease;';
+        modal.innerHTML = `<style>@keyframes rewardSlideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}</style>
+            <div style="background:var(--primary-color);border-radius:18px;padding:20px 20px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+                <div style="font-size:1.05em;font-weight:700;color:#FFFFFF;margin-bottom:4px;">${msg}</div>
+                <div style="font-size:0.82em;color:rgba(255,255,255,0.75);margin-bottom:14px;">${sub}</div>
+                <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;">
+                    <div style="font-size:0.82em;color:rgba(255,255,255,0.7);margin-bottom:6px;" id="reward-continue-text">내일도 이어가시겠어요? 🌿</div>
+                    <div style="font-size:0.78em;color:rgba(255,255,255,0.55);" id="reward-tomorrow-label"></div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="shareAfterComplete()" style="flex:1;min-height:44px;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;">오늘 확언 공유하기</button>
+                </div>
+                <button onclick="document.getElementById('complete-reward-modal').remove()" style="width:100%;min-height:38px;background:none;border:none;font-size:0.8em;color:rgba(255,255,255,0.45);cursor:pointer;margin-top:8px;">닫기</button>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // 내일 날짜 표시
+        const tmr = new Date(todayObj); tmr.setDate(tmr.getDate()+1);
+        const tLabel = document.getElementById('reward-tomorrow-label');
+        if(tLabel){
+            const d = `${tmr.getMonth()+1}월 ${tmr.getDate()}일`;
+            const cd2 = safeGetJSON('completed_dates',[]);
+            const streak2 = calcCurrentStreak(cd2);
+            tLabel.textContent = `${d} 확언으로 ${streak2+1}일 연속 달성해봐요!`;
+        }
+        // 닉네임 있으면 '내일도 이어가시겠어요?' 텍스트 업데이트
+        const _ct = document.getElementById('reward-continue-text');
+        if(_ct){ const _n=safeGetItem('my_nickname',''); _ct.textContent = _n ? `${_n}님, 내일도 이어가시겠어요? 🌿` : '내일도 이어가시겠어요? 🌿'; }
+        setTimeout(()=>{ const m=document.getElementById('complete-reward-modal'); if(m)m.remove(); }, 8000);
+    }
+
+
+    window.shareAfterComplete = function(){
+        addPoint(2,'공유','share_aff');
+        window._sendShareLog('확언공유');
+        const affirmEl = document.getElementById('affirmation-text');
+        if(!affirmEl) return;
+        const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
+        const text = `🌿 ${today} 오늘의 확언\n\n"${affirmEl.innerText.trim()}"\n\n매일 아침 나를 위한 확언 한 문장 💚\n\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 인생2막라디오: https://www.youtube.com/@SecondActRadio`;
+        if(navigator.share){ navigator.share({title:'오늘의 확언 💚', text}).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(text); }); }
+        else { copyToClipboard(text); }
+        document.getElementById('complete-reward-modal')?.remove();
+        trackEvent('share_after_complete');
+    }
+
+        
+
+    function renderShortsPointSummary(){
+        try{
+            const today = getTodayStr();
+            function isDone(key){ return safeGetItem('pt_daily_'+key+'_'+today,'') === '1'; }
+            const ITEMS = [
+                {icon:'☑️', label:'확언 완료', key:'complete', pt:1, action:"goToHomeElement('btn-complete')"},
+                {icon:'🔊', label:'소리 듣기', key:'listen', pt:1, action:"goToHomeElement('btn-listen')"},
+                {icon:'🎙', label:'따라읽기', key:'stt', pt:1, action:"goToHomeElement('btn-stt')"},
+                {icon:'😊', label:'기분 체크', key:'mood_check', pt:1, action:"goToHomeElement('affirmation-view')"},
+                {icon:'📸', label:'실천 인증', key:'action_photo', pt:5, action:"switchView('home');setTimeout(()=>openActionPhoto(),400)"},
+                {icon:'✏️', label:'필사', key:'memo', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('write'),100)"},
+                {icon:'📔', label:'일기', key:'diary', pt:1, action:"switchView('memo');setTimeout(()=>switchMemoTab('diary'),100)"},
+                {icon:'📤', label:'확언 공유', key:'share_aff', pt:2, action:"switchView('home');setTimeout(shareAfterComplete,300)"},
+                {icon:'🌅', label:'카드 공유', key:'share_card', pt:2, action:"switchView('home');setTimeout(openShareCard,300)"},
+                {icon:'💚', label:'가족 공유', key:'share_family', pt:2, action:"switchView('home');setTimeout(shareToFamily,300)"},
+                {icon:'✨', label:'한마디 공유', key:'share_oracle', pt:2, action:"switchView('home');setTimeout(openOracle,300)"},
+                {icon:'📺', label:'쇼츠 보기', key:'shorts_visit', pt:2, action:"addPoint(2,'쇼츠클릭','shorts_visit');window.open('https://www.youtube.com/@SecondActRadio/shorts','_blank')"},
+                {icon:'🎬', label:'영상 보기', key:'episode_visit', pt:2, action:"addPoint(2,'영상클릭','episode_visit');var _ep=document.getElementById('btn-episode');var _href=_ep?_ep.getAttribute('href'):'';var _url=(_href&&_href!=='#'&&_href.indexOf('youtube')>-1)?_ep.href:'https://www.youtube.com/@SecondActRadio';window.open(_url,'_blank')"},
+            ];
+            let earned = 0, done = 0;
+            ITEMS.forEach(item => {
+                if(isDone(item.key)){ earned += item.pt; done++; }
+            });
+            earned = Math.min(earned, 23);
+            const pct = Math.round(earned/23*100);
+
+            const bar = document.getElementById('shorts-pt-bar');
+            const doneEl = document.getElementById('shorts-pt-done');
+            const scoreEl = document.getElementById('shorts-pt-score');
+            const itemsEl = document.getElementById('shorts-pt-items');
+            if(!bar) return;
+
+            bar.style.width = pct + '%';
+            bar.style.background = pct >= 100 ? '#1B4332' : pct >= 60 ? '#C9A84C' : 'var(--primary-color)';
+            doneEl.textContent = '✓ ' + done + ' / ' + ITEMS.length + '개 항목';
+            scoreEl.textContent = earned + ' / 23 PT';
+            scoreEl.style.color = pct >= 100 ? '#1B4332' : '#C9A84C';
+
+            itemsEl.innerHTML = ITEMS.map(item => {
+                const d = isDone(item.key);
+                return '<div onclick="' + item.action + '" style="display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;background:' +
+                    (d ? '#F0F7F4' : 'var(--card-bg)') + ';border:1px solid ' + (d ? '#C8DDD2' : 'var(--border-color)') + ';cursor:pointer;">' +
+                    '<span style="font-size:14px;flex-shrink:0;">' + item.icon + '</span>' +
+                    '<span style="font-size:12px;flex:1;color:' + (d ? 'var(--primary-color)' : 'var(--text-muted)') + ';font-weight:' + (d ? '700' : '400') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.label + '</span>' +
+                    '<span style="font-size:12px;font-weight:700;color:' + (d ? '#1B4332' : '#C9A84C') + ';flex-shrink:0;">' + (d ? '✓' : '+' + item.pt + 'P') + '</span>' +
+                    '</div>';
+            }).join('');
+        }catch(e){}
+    }
+
+
+    window.openKakaoWithConsent = function(){
+        const old = document.getElementById('kakao-consent-modal');
+        if(old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'kakao-consent-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:7000;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        const inner = document.createElement('div');
+        inner.style.cssText = 'background:var(--bg-color);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-sizing:border-box;';
+        inner.innerHTML =
+            '<div style="text-align:center;margin-bottom:16px;">' +
+            '<div style="font-size:28px;margin-bottom:6px;">💬</div>' +
+            '<div style="font-size:1em;font-weight:700;color:var(--primary-color);">카카오 오픈채팅으로 연결해요</div>' +
+            '<div style="font-size:0.8em;color:var(--text-muted);margin-top:4px;line-height:1.6;">이메일을 남겨주시면 답변과 채널 소식을<br>직접 보내드릴 수 있어요</div></div>' +
+            '<input id="kakao-consent-email" type="email" placeholder="이메일 주소 (예: abc@gmail.com)" ' +
+            'style="width:100%;box-sizing:border-box;font-size:0.9em;padding:12px 14px;border:1.5px solid var(--border-color);border-radius:10px;background:var(--bg-color);color:var(--text-color);outline:none;margin-bottom:10px;">' +
+            '<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:0.8em;color:var(--text-muted);line-height:1.6;margin-bottom:16px;">' +
+            '<input type="checkbox" id="kakao-consent-check" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--primary-color);">' +
+            '<span>인생2막라디오 소식과 채널 정보를 이메일로 받는 것에 동의합니다. <span style="opacity:0.7;">(언제든 철회 가능)</span></span></label>' +
+            '<button id="kakao-go-btn" style="width:100%;min-height:48px;background:#FEE500;color:#3A1D1D;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:8px;">✅ 이메일 등록 후 카카오로 연결</button>' +
+            '<button id="kakao-skip-btn" style="width:100%;min-height:40px;background:none;border:none;font-size:0.82em;color:var(--text-muted);cursor:pointer;">이메일 없이 그냥 연결할게요</button>';
+        modal.appendChild(inner);
+        document.body.appendChild(modal);
+        document.getElementById('kakao-go-btn').onclick = function(){
+            const email = document.getElementById('kakao-consent-email').value.trim();
+            const agreed = document.getElementById('kakao-consent-check').checked;
+            // 이메일 필수
+            if(!email){ showToast('이메일 주소를 입력해주세요 📧'); return; }
+            if(!email.includes('@')){ showToast('올바른 이메일 주소를 입력해주세요'); return; }
+            // 체크박스 필수
+            if(!agreed){ showToast('소식 수신 동의를 체크해주세요 ☑️'); return; }
+            if(email){
+                const emails = safeGetJSON('marketing_emails',[]);
+                if(!emails.includes(email)){ emails.push(email); safeSetJSON('marketing_emails',emails); }
+                fetch('https://formspree.io/f/xqewzqqg',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({유형:'카카오_마케팅동의',이메일:email,동의:'동의'})}).catch(()=>{});
+                showToast('✅ 이메일이 등록됐어요!');
+            }
+            modal.remove();
+            onStoryKakaoClick();
+            setTimeout(function(){ window.open('https://open.kakao.com/o/sKUKl3pi','_blank'); }, 300);
+        };
+        document.getElementById('kakao-skip-btn').onclick = function(){
+            modal.remove();
+            // 이메일 없이 그냥 연결 → 외부 링크 열기
+            window.open('https://open.kakao.com/o/sKUKl3pi','_blank');
+        };
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    };
+
+    // ★ 사연 카카오 오픈채팅 관련
+    function getStoryKakaoKey(){
+        return 'story_kakao_' + todayObj.getFullYear() + '_' + (todayObj.getMonth()+1);
+    }
+    window.onStoryKakaoClick = function(){
+        var key = getStoryKakaoKey();
+        var done = safeGetItem(key,'') === '1';
+        if(!done){
+            setTimeout(function(){
+                var btn = document.getElementById('story-kakao-done-btn');
+                if(btn) btn.style.display = 'flex';
+            }, 600);
+        }
+    };
+    window.onStoryKakaoDone = function(){
+        var key = getStoryKakaoKey();
+        addPoint(10,'사연보내기_카카오', key);
+        safeSetItem(key,'1');
+        showToast('💛 +10PT 적립! 사연 감사해요 😊');
+        launchConfetti();
+        var btn = document.getElementById('story-kakao-done-btn');
+        if(btn) btn.style.display = 'none';
+        var msg = document.getElementById('story-kakao-done-msg');
+        if(msg) msg.style.display = 'block';
+    };
+    function initStoryKakaoUI(){
+        var key = getStoryKakaoKey();
+        var done = safeGetItem(key,'') === '1';
+        var btn = document.getElementById('story-kakao-done-btn');
+        var msg = document.getElementById('story-kakao-done-msg');
+        if(!btn || !msg) return;
+        if(done){
+            btn.style.display = 'none';
+            msg.style.display = 'block';
+        } else {
+            btn.style.display = 'none';
+            msg.style.display = 'none';
+        }
+    }
+
+    window.setTomorrowRemind = function(){
+        if(!('Notification' in window)){
+            showToast('이 브라우저는 알림을 지원하지 않아요');
+            return;
+        }
+
+        if(Notification.permission === 'granted'){
+            document.getElementById('complete-reward-modal')?.remove();
+            showToast('✅ 이미 알림이 설정되어 있어요! 설정에서 시간을 조정해보세요 🌿');
+            setTimeout(()=> switchView('settings'), 1000);
+            return;
+        }
+
+        if(Notification.permission === 'denied'){
+            document.getElementById('complete-reward-modal')?.remove();
+            // 차단된 경우 상세 안내 모달
+            const guide = document.createElement('div');
+            guide.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            guide.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;">
+                    <div style="font-size:36px;margin-bottom:12px;">🔔</div>
+                    <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">알림 허용 방법</div>
+                    <div style="background:#F5F5F5;border-radius:12px;padding:16px;margin-bottom:16px;text-align:left;">
+                        <div style="font-size:0.88em;color:#333;line-height:2;">
+                            📱 <b>안드로이드</b><br>
+                            주소창 왼쪽 <b>🔒 자물쇠</b> 탭<br>
+                            → <b>권한</b> → <b>알림 허용</b><br><br>
+                            🍎 <b>아이폰 Safari</b><br>
+                            주소창 왼쪽 <b>AA</b> 탭<br>
+                            → <b>웹사이트 설정</b> → <b>알림 허용</b>
+                        </div>
+                    </div>
+                    <div style="font-size:0.82em;color:#888;margin-bottom:16px;">설정 후 페이지를 새로고침해주세요</div>
+                    <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인했어요</button>
+                </div>`;
+            document.body.appendChild(guide);
+            return;
+        }
+
+        // 권한 미결정 → 안내 먼저 보여주고 요청
+        document.getElementById('complete-reward-modal')?.remove();
+
+        const preGuide = document.createElement('div');
+        preGuide.id = 'notif-pre-guide';
+        preGuide.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:20px;box-sizing:border-box;';
+        preGuide.innerHTML = `
+            <div style="background:#1B4332;border-radius:16px;padding:16px 20px;width:88%;max-width:360px;text-align:center;margin-bottom:16px;">
+                <div style="font-size:0.82em;color:rgba(255,255,255,0.7);margin-bottom:4px;">👆 화면 위쪽을 확인해주세요</div>
+                <div style="font-size:0.95em;font-weight:700;color:#C9A84C;">"허용" 또는 "Allow" 버튼을 눌러주세요!</div>
+            </div>
+            <div style="animation:arrowBounce 0.8s ease-in-out infinite;font-size:48px;">☝️</div>
+            <div style="background:#FFFFFF;border-radius:20px;padding:24px 22px;width:88%;max-width:360px;text-align:center;margin-top:16px;">
+                <div style="font-size:36px;margin-bottom:10px;">🔔</div>
+                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:8px;">매일 아침편지 알림 받기</div>
+                <div style="font-size:0.85em;color:#666;line-height:1.6;margin-bottom:16px;">
+                    지금 화면 위쪽에 팝업이 떴어요.<br>
+                    <b style="color:#1B4332;">"허용"</b>을 눌러주시면<br>
+                    내일부터 확언 알림이 와요 🌿
+                </div>
+                <button onclick="document.getElementById('notif-pre-guide').remove()" style="width:100%;min-height:48px;background:#F5F5F5;color:#888;border:none;border-radius:12px;font-size:0.9em;font-weight:600;cursor:pointer;">취소</button>
+            </div>
+            <style>@keyframes arrowBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}</style>`;
+        document.body.appendChild(preGuide);
+
+        // 팝업 안내 보여준 직후 권한 요청
+        setTimeout(()=>{
+            Notification.requestPermission().then(perm=>{
+                document.getElementById('notif-pre-guide')?.remove();
+                if(perm === 'granted'){
+                    showToast('✅ 알림이 설정됐어요! 내일 아침 확언 알림이 올 거예요 🌿');
+                    setTimeout(()=> switchView('settings'), 800);
+                } else if(perm === 'denied'){
+                    showToast('알림이 차단됐어요. 브라우저 설정에서 허용해주세요');
+                }
+            });
+        }, 300);
+    }
+
+    /* ===== 💥 홈 오늘 추천 영상 1개 + 감정 훅 ===== */
+    const YT_EMOTION_HOOKS = {
+        sad:     '"왜 이렇게 힘든 걸까?" → 이 영상에서 이유를 알 수 있어요 🎬',
+        neutral: '"무기력함을 끊는 방법" → 3분이면 달라져요 🎬',
+        happy:   '"이 좋은 흐름, 더 키우는 법" → 지금 딱 맞는 영상이에요 🎬',
+        default: '"오늘 당신에게 꼭 필요한 이야기" → 지금 바로 확인해보세요 🎬',
+    };
+
+    /* ===== ① 오늘의 핵심 질문 티저 ===== */
+    // 테마별 질문 + 연결 영상 타입 정의
+
+
+    // ★ 에피소드 DB - 키워드 매핑
+
+    // 키워드 선택 → 매칭 영상 찾기 (점수 기반)
+    function findMatchingEpisode(selectedKeywords){
+        if(!selectedKeywords.length) return null;
+        let scored = EPISODE_DB.map(ep => {
+            const score = selectedKeywords.filter(k => ep.keywords.includes(k)).length;
+            return { ...ep, score };
+        }).filter(ep => ep.score > 0);
+        if(!scored.length) return EPISODE_DB[EPISODE_DB.length-1]; // 최신 에피소드 fallback
+        const maxScore = Math.max(...scored.map(e => e.score));
+        const top = scored.filter(e => e.score === maxScore);
+        return top[Math.floor(Math.random() * top.length)]; // 동점이면 랜덤
+    }
+
+    function renderKeyQuestion(){
+        const box = document.getElementById('key-question-box');
+        if(!box) return;
+
+        // dayCount를 직접 계산 (renderScreen과 동일한 로직)
+        const msPerDay = 86400000;
+        const startOf2026 = new Date(2026, 0, 1);
+        const localDayCount = Math.floor((selectedDateObj - startOf2026) / msPerDay) + 1;
+        const di   = (localDayCount - 1) % affirmationsData.length;
+        const data = affirmationsData[di];
+        if(!data){ box.style.display='none'; return; }
+
+        const theme = data.theme || '';
+        // 테마 키워드 매칭
+        let matched = THEME_QUESTIONS.default;
+        for(let key of Object.keys(THEME_QUESTIONS)){
+            if(key !== 'default' && theme.includes(key)){
+                matched = THEME_QUESTIONS[key]; break;
+            }
+        }
+
+        document.getElementById('key-question-text').textContent = matched.q;
+
+        // ③ Shorts vs 롱폼 문구 구분
+        const isShorts = matched.type === 'shorts';
+        document.getElementById('key-question-duration').textContent =
+            isShorts ? '📱 Shorts · 1분 이내'
+                     : '🎙 인생2막라디오 에피소드';
+
+        // 링크 연결 (에피소드 있으면 해당 URL, 없으면 채널)
+        const link = document.getElementById('key-question-link');
+        if(data.episode && data.episode.trim()){
+            // 실제 에피소드 있을 때 → 약속 유지
+            link.href = data.episode;
+            document.getElementById('key-question-cta').textContent =
+                isShorts ? '1분이면 충분해요 — 답이 여기 있어요 🎬'
+                         : '이 이야기에서 이유를 알 수 있어요 🎬';
+        } else if(latestEpisode && latestEpisode.url){
+            // 최신 에피소드만 있을 때 → 부드러운 초대
+            link.href = latestEpisode.url;
+            document.getElementById('key-question-cta').textContent = '비슷한 감정, 함께 이야기해요 🎙';
+        } else {
+            // 채널만 있을 때 → 박스 숨김 (약속 불이행 방지)
+            box.style.display = 'none';
+            return;
+        }
+
+        box.style.display = 'block';
+        renderKeywordChips();
+    }
+
+
+    // ★ 키워드 칩 UI
+    const ALL_KEYWORDS = [
+        {label:'💔 상처', key:'상처'},
+        {label:'😔 외로움', key:'외로움'},
+        {label:'🌱 자존감', key:'자존감'},
+        {label:'😰 거절당함', key:'거절당함'},
+        {label:'🤝 인간관계', key:'인간관계'},
+        {label:'👨‍👩‍👧 가족관계', key:'가족관계'},
+        {label:'😴 번아웃', key:'번아웃'},
+        {label:'😶 우울', key:'우울'},
+        {label:'🫶 위로', key:'위로'},
+        {label:'💚 감정회복', key:'감정회복'},
+        {label:'🙅 거절못함', key:'거절못함'},
+        {label:'🌀 마음치유', key:'마음치유'},
+        {label:'🚀 변화/성장', key:'변화'},
+        {label:'🎭 가짜인연', key:'가짜인연'},
+        {label:'💛 착한사람', key:'착한사람'},
+        {label:'🔗 헌신/배려', key:'헌신'},
+    ];
+    let selectedKeywords = [];
+
+    function renderKeywordChips(){
+        const container = document.getElementById('keyword-chips');
+        if(!container) return;
+        selectedKeywords = [];
+        container.innerHTML = '';
+        ALL_KEYWORDS.forEach(function(kw){
+            const btn = document.createElement('button');
+            btn.textContent = kw.label;
+            btn.dataset.key = kw.key;
+            btn.style.cssText = 'padding:5px 12px;border-radius:20px;border:1.5px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);font-size:0.78em;cursor:pointer;transition:all 0.2s;';
+            btn.addEventListener('click', function(){ toggleKeyword(btn, kw.key); });
+            container.appendChild(btn);
+        });
+        const findBtn = document.getElementById('keyword-find-btn');
+        if(findBtn) findBtn.style.display = 'none';
+    }
+
+    window.toggleKeyword = function(el, key){
+        const idx = selectedKeywords.indexOf(key);
+        if(idx > -1){
+            selectedKeywords.splice(idx, 1);
+            el.style.background = 'var(--card-bg)';
+            el.style.color = 'var(--text-muted)';
+            el.style.borderColor = 'var(--border-color)';
+        } else {
+            selectedKeywords.push(key);
+            el.style.background = 'var(--primary-color)';
+            el.style.color = '#fff';
+            el.style.borderColor = 'var(--primary-color)';
+        }
+        const btn = document.getElementById('keyword-find-btn');
+        if(btn) btn.style.display = selectedKeywords.length > 0 ? 'block' : 'none';
+    };
+
+    window.openKeywordEpisode = function(){
+        const ep = findMatchingEpisode(selectedKeywords);
+        if(!ep){ showToast('매칭되는 영상이 없어요'); return; }
+        showToast('🎬 ' + ep.title);
+        setTimeout(()=>{ window.open(ep.url, '_blank'); }, 300);
+    };
+
+
+    /* ===== ③ Shorts/롱폼 문구 구분 (홈 추천 카드) ===== */
+    function renderHomeYTRecommend(){
+        const box = document.getElementById('home-yt-recommend');
+        if(!box) return;
+        const availableShorts = (typeof SHORTS_DATA !== 'undefined')
+            ? SHORTS_DATA.filter(s=>s.url&&s.url.trim()!=='') : [];
+        const hasContent = (latestEpisode&&latestEpisode.title) || availableShorts.length>0;
+        if(!hasContent){
+            // fallback: 최신 에피소드 하드코딩
+            document.getElementById('home-yt-title').textContent = '좋게 변하려 하면 가까운 사람이 멀어지는 이유';
+            document.getElementById('home-yt-hook').textContent = '오늘 당신에게 꼭 필요한 이야기예요 🎬';
+            const lnk = document.getElementById('home-yt-link');
+            if(lnk) lnk.href = 'https://www.youtube.com/watch?v=t7QbS_CJJso&list=PLD0aoVhJxK0qyi9nBysVexOtXJeI77J6O';
+            const durEl = document.getElementById('home-yt-duration');
+            if(durEl) durEl.textContent = '🎙 에피소드 · 인생2막라디오';
+            box.style.display = 'block';
+            return;
+        }
+
+        const pattern = analyzeRecentMood();
+        // 감정별 훅 (Shorts/롱폼 구분)
+        const HOOKS = {
+            sad: {
+                episode: '왜 이렇게 힘든 건지 — 이 이야기에서 이유를 알 수 있어요 🎬',
+                shorts:  '딱 1분 — 지금 이 감정의 이유가 여기 있어요 🎬'
+            },
+            neutral: {
+                episode: '무기력함을 끊는 방법 — 지금 당신에게 꼭 맞는 이야기예요 🎬',
+                shorts:  '1분이면 충분해요 — 다시 불꽃을 찾아드릴게요 🎬'
+            },
+            happy: {
+                episode: '이 좋은 흐름을 더 키우는 법 — 오늘 딱 맞는 이야기예요 🎬',
+                shorts:  '1분 — 이 에너지 계속 이어가는 방법이에요 🎬'
+            },
+            default: {
+                episode: '오늘 당신에게 꼭 필요한 이야기예요 🎬',
+                shorts:  '1분이면 충분해요 — 오늘 당신에게 필요한 것 🎬'
+            }
+        };
+
+        let title, url, isShort = false;
+        if(latestEpisode&&latestEpisode.title){
+            title=latestEpisode.title; url=latestEpisode.url; isShort=false;
+        } else if(availableShorts.length>0){
+            const s=availableShorts[0]; title=s.title; url=s.url; isShort=true;
+        }
+
+        const hookSet = HOOKS[pattern] || HOOKS.default;
+        const hook    = isShort ? hookSet.shorts : hookSet.episode;
+        const durText = isShort ? '📱 Shorts · 1분 이내' : '🎙 에피소드 · 인생2막라디오';
+
+        document.getElementById('home-yt-title').textContent = title;
+        document.getElementById('home-yt-hook').textContent  = hook;
+        document.getElementById('home-yt-link').href         = url;
+
+        // 재생 시간 표시 추가
+        const durEl = document.getElementById('home-yt-duration');
+        if(durEl) durEl.textContent = durText;
+
+        box.style.display = 'block';
+    }
+
+    window.startSTT = function(){
+        const affirmEl = document.getElementById('affirmation-text');
+        if(!affirmEl || affirmEl.closest('.blurred-content')){
+            showToast('먼저 기분을 선택해 확언을 열어주세요!'); return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SR){ showToast('음성인식 미지원 브라우저예요. 안드로이드 Chrome에서 사용해주세요!'); return; }
+
+        // file:// 환경에서는 마이크 사용 불가 안내
+        if(location.protocol === 'file:'){
+            const g = document.createElement('div');
+            g.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            g.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;">
+                    <div style="font-size:36px;margin-bottom:10px;">🎤</div>
+                    <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">인터넷 주소에서 사용 가능해요</div>
+                    <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:16px;">
+                        음성인식은 보안상 파일로 열 때는<br>작동하지 않아요.<br><br>
+                        <b style="color:#1B4332;">GitHub Pages에 올린 후</b><br>
+                        인터넷 주소로 접속하면<br>
+                        정상 작동해요 🌿
+                    </div>
+                    <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button>
+                </div>`;
+            document.body.appendChild(g);
+            return;
+        }
+
+        startSTTCore(affirmEl);
+    }
+
+    function startSTTCore(affirmEl){
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SR) return;
+        if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition = null; }
+        sttActive = true; sttRetryCount = 0;
+        let sessionFinal = ''; // 재시작해도 누적 유지
+
+        const sttBox=document.getElementById('stt-box');
+        const sttStatus=document.getElementById('stt-status');
+        const sttResult=document.getElementById('stt-result-text');
+        const sttWave=document.getElementById('stt-wave');
+        if(sttBox) sttBox.style.display='block';
+        if(sttResult) sttResult.textContent='';
+        if(sttStatus) sttStatus.textContent='🎤 확언을 소리내어 읽어주세요...';
+        if(sttWave) sttWave.style.display='flex';
+
+        const target = affirmEl.innerText.replace(/\s+/g,' ').trim();
+
+        function createRec(){
+            const r = new SR(); // sessionFinal은 startSTTCore 스코프에서 공유
+            r.lang='ko-KR';
+            r.continuous=true;
+            r.interimResults=true;
+            r.maxAlternatives=1;
+            r.onstart=function(){ if(sttStatus) sttStatus.textContent='🎤 읽고 계신 내용이 인식되고 있어요...'; };
+            r.onresult=function(e){
+                let interim='';
+                for(let i=e.resultIndex;i<e.results.length;i++){
+                    if(e.results[i].isFinal) sessionFinal+=e.results[i][0].transcript;
+                    else interim+=e.results[i][0].transcript;
+                }
+                const combined=sessionFinal+interim;
+                const progress=Math.min(Math.round(calcSimilarity(combined,target)*100),100);
+                const bar=document.getElementById('stt-progress-bar');
+                const resultEl=document.getElementById('stt-result-text');
+                if(bar) bar.style.width=progress+'%';
+                if(resultEl) resultEl.textContent=progress+'%';
+                if(combined && calcSimilarity(combined,target)>0.75){
+                    sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
+                }
+            };
+            r.onend=function(){
+                if(!sttActive) return;
+                if(sttRetryCount<5){
+                    sttRetryCount++;
+                    setTimeout(()=>{
+                        if(!sttActive) return;
+                        try{ sttRecognition=createRec(); sttRecognition.start(); }
+                        catch(err){ stopSTT(); }
+                    }, 300);
+                } else { stopSTT(); showToast('음성을 인식하지 못했어요. 다시 눌러보세요 😊'); }
+            };
+            r.onerror=function(e){
+                if(!sttActive) return;
+                sttActive=false; sttRecognition=null;
+                if(sttBox) sttBox.style.display='none';
+                if(e.error==='not-allowed'){
+                    const g=document.createElement('div');
+                    g.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                    g.innerHTML=`<div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;"><div style="font-size:36px;margin-bottom:10px;">🎤</div><div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">마이크 허용이 필요해요</div><div style="background:#F5F5F5;border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.88em;color:#333;line-height:2;">📱 <b>안드로이드</b><br>주소창 🔒 탭 → <b>마이크 허용</b><br><br>🍎 <b>아이폰</b><br>설정 → Safari → <b>마이크 허용</b></div><button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button></div>`;
+                    document.body.appendChild(g);
+                } else if(e.error==='no-speech'){
+                    return; // no-speech는 무시 (멈춤 허용)
+                } else if(e.error==='network'){
+                    showToast('인터넷 연결을 확인해주세요');
+                } else {
+                    showToast('음성인식 오류: '+e.error);
+                }
+            };
+            return r;
+        }
+
+        try{ sttRecognition=createRec(); sttRecognition.start(); }
+        catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
+    }
+
+    let sttActive = false;
+    let sttRetryCount = 0;
+
+    function startSTTCore(affirmEl){
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(!SR) return;
+        if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition = null; }
+        sttActive = true; sttRetryCount = 0;
+        let sessionFinal = ''; // 재시작해도 누적 유지
+
+        const sttBox=document.getElementById('stt-box');
+        const sttStatus=document.getElementById('stt-status');
+        const sttResult=document.getElementById('stt-result-text');
+        const sttWave=document.getElementById('stt-wave');
+        if(sttBox) sttBox.style.display='block';
+        if(sttResult) sttResult.textContent='';
+        if(sttStatus) sttStatus.textContent='🎤 확언을 소리내어 읽어주세요...';
+        if(sttWave) sttWave.style.display='flex';
+
+        const target = affirmEl.innerText.replace(/\s+/g,' ').trim();
+
+        function createRec(){
+            const r = new SR(); // sessionFinal은 startSTTCore 스코프에서 공유
+            r.lang='ko-KR';
+            r.continuous=true;
+            r.interimResults=true;
+            r.maxAlternatives=1;
+            r.onstart=function(){ if(sttStatus) sttStatus.textContent='🎤 읽고 계신 내용이 인식되고 있어요...'; };
+            r.onresult=function(e){
+                let interim='';
+                for(let i=e.resultIndex;i<e.results.length;i++){
+                    if(e.results[i].isFinal) sessionFinal+=e.results[i][0].transcript;
+                    else interim+=e.results[i][0].transcript;
+                }
+                const combined=sessionFinal+interim;
+                const progress=Math.min(Math.round(calcSimilarity(combined,target)*100),100);
+                const bar=document.getElementById('stt-progress-bar');
+                const resultEl=document.getElementById('stt-result-text');
+                if(bar) bar.style.width=progress+'%';
+                if(resultEl) resultEl.textContent=progress+'%';
+                if(combined && calcSimilarity(combined,target)>0.75){
+                    sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
+                }
+            };
+            r.onend=function(){
+                if(!sttActive) return;
+                if(sttRetryCount<5){
+                    sttRetryCount++;
+                    setTimeout(()=>{
+                        if(!sttActive) return;
+                        try{ sttRecognition=createRec(); sttRecognition.start(); }
+                        catch(err){ stopSTT(); }
+                    }, 300);
+                } else { stopSTT(); showToast('음성을 인식하지 못했어요. 다시 눌러보세요 😊'); }
+            };
+            r.onerror=function(e){
+                if(!sttActive) return;
+                sttActive=false; sttRecognition=null;
+                if(sttBox) sttBox.style.display='none';
+                if(e.error==='not-allowed'){
+                    const g=document.createElement('div');
+                    g.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+                    g.innerHTML=`<div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;"><div style="font-size:36px;margin-bottom:10px;">🎤</div><div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">마이크 허용이 필요해요</div><div style="background:#F5F5F5;border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.88em;color:#333;line-height:2;">📱 <b>안드로이드</b><br>주소창 🔒 탭 → <b>마이크 허용</b><br><br>🍎 <b>아이폰</b><br>설정 → Safari → <b>마이크 허용</b></div><button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button></div>`;
+                    document.body.appendChild(g);
+                } else if(e.error==='no-speech'){
+                    return; // no-speech는 무시 (멈춤 허용)
+                } else if(e.error==='network'){
+                    showToast('인터넷 연결을 확인해주세요');
+                } else {
+                    showToast('음성인식 오류: '+e.error);
+                }
+            };
+            return r;
+        }
+
+        try{ sttRecognition=createRec(); sttRecognition.start(); }
+        catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
+    }
+
+    // 수동 완료 버튼
+    window.sttManualSuccess = function(){
+        sttActive = false;
+        sttRetryCount = 0;
+        if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition = null; }
+        sttSuccess();
+    }
+
+    window.stopSTT = function(){
+        sttActive=false; sttRetryCount=0;
+        if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition=null; }
+        const box=document.getElementById('stt-box');
+        if(box) box.style.display='none';
+    }
+
+    function calcSimilarity(spoken, target){
+        // 한글/숫자만 남기고 정리
+        const clean = s => s.replace(/[^가-힣a-z0-9]/gi, ' ').trim().toLowerCase();
+        const sp = clean(spoken);
+        const tg = clean(target);
+        if(!tg.length) return 0;
+
+        // 어절(단어) 단위로 분리
+        const spWords = sp.split(/\s+/).filter(w => w.length >= 1);
+        const tgWords = tg.split(/\s+/).filter(w => w.length >= 1);
+        if(!tgWords.length) return 0;
+
+        // 목표 어절 중 몇 개가 인식됐는지 체크 (앞 2글자 이상 일치)
+        let matched = 0;
+        const used = new Set();
+        for(const tw of tgWords){
+            const stem = tw.substring(0, Math.min(tw.length, 2));
+            for(let i=0; i<spWords.length; i++){
+                if(!used.has(i) && spWords[i].includes(stem)){
+                    matched++; used.add(i); break;
+                }
+            }
+        }
+        return matched / tgWords.length;
+    }
+
+    function sttSuccess(){
+        const box = document.getElementById('stt-box');
+        document.getElementById('stt-status').textContent = '🎉 완벽해요! 뇌에 긍정의 힘이 새겨졌습니다!';
+        document.getElementById('stt-wave').style.display = 'none';
+        box.style.display = 'block';
+        launchConfetti();
+        // 완료 처리 + 팝업 (이미 완료돼도 팝업은 항상 표시)
+        const cd = safeGetJSON('completed_dates',[]);
+        addPoint(1,'따라읽기','stt');
+        if(!cd.includes(getFormatDate(selectedDateObj))){
+            completeToday(); // 완료 처리
+            // STT 성공 팝업 (completeToday의 reward_shown 무시하고 항상)
+            setTimeout(function(){ const cd2=safeGetJSON('completed_dates',[]); showSTTSuccessPopup(cd2.length, calcCurrentStreak(cd2)); }, 400);
+        } else {
+            // 이미 완료됐어도 따라읽기 성공 팝업 표시 (reward_shown 무시)
+            const streak = calcCurrentStreak(cd);
+            showSTTSuccessPopup(cd.length, streak);
+        }
+        setTimeout(()=>{ box.style.display='none'; document.getElementById('stt-wave').style.display='flex'; }, 3500);
+    }
+
+    function launchConfetti(){
+        const colors=['#1B4332','#C9A84C','#52B788','#FFD700','#FF6B6B','#74C69D'];
+        for(let i=0;i<60;i++){
+            const el=document.createElement('div');
+            el.className='confetti';
+            el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()}s;width:${Math.random()*8+6}px;height:${Math.random()*8+6}px;`;
+            document.body.appendChild(el);
+            setTimeout(()=>el.remove(), 3000);
+        }
+    }
+
+    /* ===== ★ 닉네임 인사말 ===== */
+    function renderNicknameGreeting(){
+        const nick = safeGetItem('my_nickname', '');
+        const box  = document.getElementById('nickname-greeting-box');
+        if(!box) return;
+        if(!nick){ box.style.display='none'; return; }
+
+        const today     = getTodayStr();
+        const lastVisit = safeGetItem('last_visit_date', '');
+        const cd        = safeGetJSON('completed_dates', []);
+        const isFirstEver = cd.length === 0 && !lastVisit;
+
+        // 방문일 기록 (오늘 처음 열었을 때만)
+        if(lastVisit !== today){
+            safeSetItem('last_visit_date', today);
+        }
+
+        const yesterday = (()=>{ const d=new Date(todayObj); d.setDate(d.getDate()-1); return getFormatDate(d); })();
+        const daysDiff  = lastVisit ? Math.floor((new Date(today) - new Date(lastVisit)) / 86400000) : 999;
+
+        let msg = '';
+        if(isFirstEver){
+            msg = `처음 오셨군요! 반가워요 😊`;
+        } else if(lastVisit === today){
+            // 오늘 이미 방문 기록 있음 → 재접속
+            msg = `오늘도 오셨군요! 대단해요 🌿`;
+        } else if(daysDiff <= 1){
+            msg = `어제에 이어 오늘도! 연속 중이에요 💚`;
+        } else if(daysDiff <= 3){
+            msg = `며칠 만이에요! 잘 오셨어요 🌿`;
+        } else if(daysDiff <= 6){
+            msg = `일주일이 다 됐네요! 반가워요 😊`;
+        } else {
+            msg = `오랜만이에요! 오늘부터 다시 함께해요 🌱`;
+        }
+
+        document.getElementById('nickname-greeting-text').textContent = `${nick}님, ${msg}`;
+        box.style.display = 'block';
+    }
+
+    /* ===== ★ 100일 달성 이메일 알림 ===== */
+    function check100DayNotify(){
+        const cd = safeGetJSON('completed_dates', []);
+        if(cd.length < 100) return;
+        if(safeGetItem('notified_100day', '') === '1') return; // 이메일 전송 완료 시에만 생략
+
+        const nick = safeGetItem('my_nickname', '익명');
+        const g = document.createElement('div');
+        g.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:center;justify-content:center;';
+        g.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:28px 22px;width:90%;max-width:380px;text-align:center;">
+                <div style="font-size:52px;margin-bottom:10px;">🌟</div>
+                <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:8px;">100일 달성!</div>
+                <div style="font-size:0.9em;color:#555;line-height:1.7;margin-bottom:20px;">
+                    <b>${nick}</b>님, 100일을 해내셨어요!<br>
+                    인생2막라디오에 알려주시면<br>
+                    유튜브 영상에서 직접 이름을 불러드려요 🎙
+                </div>
+                <button onclick="send100DayEmail('${nick}', ${cd.length})" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">📧 인생2막라디오에 알리기</button>
+                <button onclick="safeSetItem('notified_100day','1'); this.closest('div[style*=fixed]').remove();" style="width:100%;min-height:44px;background:none;border:1px solid #E8E5E0;border-radius:12px;font-size:0.88em;color:#888;cursor:pointer;margin-bottom:8px;">괜찮아요, 보내지 않을게요</button>
+                <button onclick="this.closest('div[style*=fixed]').remove();" style="width:100%;min-height:40px;background:none;border:none;font-size:0.82em;color:#bbb;cursor:pointer;">나중에 할게요</button>
+            </div>`;
+        document.body.appendChild(g);
+    }
+
+    window.send100DayEmail = function(nick, days){
+        const subject = encodeURIComponent(`[100일 달성 인증] ${nick}님`);
+        const body    = encodeURIComponent(
+            `안녕하세요 인생2막라디오!\n\n이름: ${nick}\n달성일수: ${days}일\n달성날짜: ${getTodayStr()}\n\n100일을 달성했어요! 🌟`
+        );
+        window.location.href = `mailto:life2radio@gmail.com?subject=${subject}&body=${body}`;
+        safeSetItem('notified_100day', '1');
+        document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>{
+            if(el.innerHTML.includes('100일 달성')) el.remove();
+        });
+        showToast('📧 이메일 앱이 열렸어요! 전송해주세요 😊');
+    }
+
+    /* ===== ★ 포인트 시스템 ===== */
+    const LEVELS = [
+        {name:'씨앗',             emoji:'🌱', min:0},
+        {name:'새싹',             emoji:'🌿', min:50},
+        {name:'풀잎',             emoji:'🍀', min:150},
+        {name:'확언러 (나무)',    emoji:'🌳', min:350},
+        {name:'실천가 (숲)',      emoji:'🌲', min:680},
+        {name:'인생2막러 (산)',   emoji:'🏔️', min:1150},
+        {name:'라디오스타 (구름)',emoji:'☁️', min:1780},
+        {name:'인생챔피언 (빛)', emoji:'✨', min:2300},
+    ];
+
+    // [탑(TOP)이 개선한 포인트 중앙 관리 로직]
+    function getPoints() { 
+        let pts = appState.get('user', 'points');
+        // 기존 유저의 포인트가 남아있다면, 새 심장으로 안전하게 이사시킴 (데이터 증발 방지)
+        if (pts === 0 && localStorage.getItem('user_points')) {
+            pts = parseInt(localStorage.getItem('user_points')) || 0;
+            appState.set('user', 'points', pts);
+        }
+        return pts; 
+    }
+    function setPoints(p) { 
+        const finalPts = Math.max(0, p);
+        appState.set('user', 'points', finalPts); 
+        localStorage.setItem('user_points', String(finalPts)); // 구버전 안전 호환용
+    }
+
+    function getLevel(pts){
+        let lv = 0;
+        for(let i=0;i<LEVELS.length;i++){ if(pts>=LEVELS[i].min) lv=i; }
+        return lv;
+    }
+
+    // 포인트 지급 (하루 1회 제한 있는 항목은 key 전달)
+    const DAILY_MAX_PT = 23;
+
+    let _pendingLevelUp = -1; // 레벨업 대기 인덱스
+
+    window.addPoint = function(amount, reason, dailyKey){
+        if(dailyKey){
+            const k = `pt_daily_${dailyKey}_${getTodayStr()}`;
+            if(safeGetItem(k,'') === '1') return; // 오늘 이미 지급
+            safeSetItem(k,'1');
+        }
+
+        // 하루 최대 25점 한도 체크 (첫방문 30pt는 예외)
+        if(reason !== '첫 방문 기념'){
+            const todayKey = `pt_today_total_${getTodayStr()}`;
+            const todayTotal = parseInt(safeGetItem(todayKey,'0'))||0;
+            if(todayTotal >= DAILY_MAX_PT) return; // 한도 초과
+            const actual = Math.min(amount, DAILY_MAX_PT - todayTotal);
+            safeSetItem(todayKey, String(todayTotal + actual));
+            amount = actual;
+            if(amount <= 0) return;
+        }
+
+        const before = getPoints();
+        const after  = before + amount;
+        setPoints(after);
+
+        const lvBefore = getLevel(before);
+        const lvAfter  = getLevel(after);
+
+        // 포인트 애니메이션
+        showPointAnim(amount);
+
+        // 포인트 바 업데이트
+        renderPointBar();
+
+        // 레벨업 체크
+        if(lvAfter > lvBefore){
+            setTimeout(()=> showLevelUp(lvAfter), 800);
+        }
+
+        // 점수 삭감 타이머 갱신
+        safeSetItem('last_activity_date', getTodayStr());
+    }
+
+    // 포인트 떠오르는 애니메이션
+    function showPointAnim(amount){
+        const el = document.createElement('div');
+        const size  = amount >= 50 ? 28 : amount >= 10 ? 22 : 16;
+        const icon  = amount >= 50 ? '💫' : amount >= 10 ? '🌟' : '✨';
+        el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:120px;z-index:99999;font-size:'+size+'px;font-weight:700;color:#C9A84C;pointer-events:none;animation:ptFloat 1.6s ease forwards;white-space:nowrap;';
+        el.textContent = icon + ' +' + amount + 'PT';
+        document.body.appendChild(el);
+        setTimeout(function(){ if(el.parentNode) el.remove(); }, 1700);
+    }
+
+    // 레벨업 팝업
+    function showLevelUp(lvIdx){
+        const lv = LEVELS[lvIdx];
+
+        // ★ 이름+이메일 미등록 시 → 레벨업 보류 + 등록 팝업
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        if(!nick || !email){
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:12px;">${lv.emoji}</div>
+                    <div style="font-size:1.1em;font-weight:700;color:#1B4332;margin-bottom:8px;">${lv.name} 등급까지 왔어요!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.8;margin-bottom:20px;">
+                        레벨업 기록을 저장하려면<br>
+                        <b style="color:#1B4332;">이름과 이메일 등록</b>이 필요해요.<br>
+                        등록하면 바로 레벨업이 확정돼요! 🎉
+                    </div>
+                    <button onclick="this.closest('div[style*=fixed]').remove();showNicknameModal();_pendingLevelUp=${lvIdx};"
+                        style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                        🏅 등록하고 레벨업 받기
+                    </button>
+                    <button onclick="this.closest('div[style*=fixed]').remove();"
+                        style="width:100%;min-height:44px;background:none;border:1px solid #CCC;border-radius:14px;font-size:0.9em;color:#888;cursor:pointer;">
+                        나중에 할게요
+                    </button>
+                </div>`;
+            document.body.appendChild(modal);
+            return; // 등록 전까지 레벨업 팝업 보류
+        }
+
+        window._sendLevelUp(lv.name);
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                <div style="font-size:64px;margin-bottom:8px;">${lv.emoji}</div>
+                <div style="font-size:0.85em;color:#C9A84C;font-weight:700;letter-spacing:1px;margin-bottom:6px;">LEVEL UP!</div>
+                <div style="font-size:1.4em;font-weight:700;color:#1B4332;margin-bottom:8px;">${lv.name} 등급 달성!</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    꾸준히 함께해주셔서 감사해요 🌿<br>앞으로도 매일 함께해요!
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">감사해요! 🎉</button>
+            </div>`;
+        document.body.appendChild(modal);
+        launchConfetti();
+    }
+
+    // 점수 삭감 (7일 이상 결석)
+    function checkPointDeduction(){
+        const last = safeGetItem('last_activity_date','');
+        if(!last) return;
+        const diff = Math.floor((todayObj - new Date(last)) / 86400000);
+        if(diff === 0) return;
+
+        // ① 포인트 삭감 (3일째부터 하루 1점)
+        if(diff >= 3){
+            const deduct = diff - 2; // 3일째부터 1점씩
+            const alreadyKey = `pt_deduct_${getTodayStr()}`;
+            if(safeGetItem(alreadyKey,'') !== '1'){
+                safeSetItem(alreadyKey,'1');
+                const before = getPoints();
+                setPoints(before - deduct);
+            }
+        }
+
+        // ② 등급 하락 (15일째)
+        if(diff >= 15){
+            const alreadyDrop = `pt_lvdrop_${safeGetItem('last_activity_date','')}`;
+            if(safeGetItem(alreadyDrop,'') !== '1'){
+                safeSetItem(alreadyDrop,'1');
+                const curLv = parseInt(safeGetItem('user_level_override','-1'));
+                const calcLv = getLevel(getPoints());
+                const baseLv = curLv >= 0 ? curLv : calcLv;
+                if(baseLv > 0){
+                    const newLv = baseLv - 1;
+                    safeSetItem('user_level_override', String(newLv));
+                    showLevelDrop(newLv);
+                }
+            }
+        }
+
+        // ③ 경고 배너 표시
+        renderAbsenceBanner(diff);
+    }
+
+    // 등급 하락 팝업
+    function showLevelDrop(lvIdx){
+        const lv = LEVELS[lvIdx];
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:360px;text-align:center;">
+                <div style="font-size:52px;margin-bottom:8px;">😔</div>
+                <div style="font-size:1.1em;font-weight:700;color:#C0392B;margin-bottom:8px;">등급이 하락했어요</div>
+                <div style="font-size:1.3em;font-weight:700;color:#1B4332;margin-bottom:12px;">${lv.emoji} ${lv.name}</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    15일 이상 자리를 비우셨군요.<br>
+                    오늘 유튜브 쇼츠를 보고<br>
+                    <b style="color:#1B4332;">시크릿 코드를 입력하면<br>등급이 즉시 회복돼요! 📺</b>
+                </div>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:1em;font-weight:700;cursor:pointer;">확인했어요</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    // 결석 경고 배너 렌더링
+    function renderAbsenceBanner(diff){
+        const existing = document.getElementById('absence-banner');
+        if(existing) existing.remove();
+        if(diff === null || diff === undefined){
+            const last = safeGetItem('last_activity_date','');
+            if(!last) return;
+            diff = Math.floor((todayObj - new Date(last)) / 86400000);
+        }
+        if(diff < 7) return;
+        let msg = '', color = '', bg = '';
+        if(diff >= 14){
+            msg = '🔴 내일이면 등급이 하락해요!! 지금 확언 완료하세요!';
+            color = '#C0392B'; bg = '#FFF0EE';
+        } else if(diff >= 10){
+            msg = '🚨 ' + diff + '일째예요! ' + (15-diff) + '일 후 등급이 하락해요!';
+            color = '#E07000'; bg = '#FFF8EE';
+        } else {
+            msg = '⚠️ ' + diff + '일째예요! 오늘 확언 완료하면 등급 유지!';
+            color = '#1B4332'; bg = '#FFFBE6';
+        }
+        const banner = document.createElement('div');
+        banner.id = 'absence-banner';
+        banner.style.cssText = 'background:'+bg+';border-left:4px solid '+color+';padding:12px 16px;margin-bottom:12px;border-radius:10px;font-size:0.88em;font-weight:700;color:'+color+';line-height:1.5;';
+        banner.textContent = msg;
+        const affView = document.getElementById('affirmation-view');
+        if(affView) affView.insertBefore(banner, affView.firstChild);
+    }
+
+    // 시크릿 코드 성공 시 등급 회복
+    function checkLevelRecovery(){
+        const dropped = safeGetItem('user_level_override','-1');
+        if(dropped === '-1') return; // 하락 없음
+        const calcLv = getLevel(getPoints());
+        const droppedLv = parseInt(dropped);
+        if(droppedLv < calcLv){
+            // 포인트 기준 등급이 더 높으면 override 제거
+            safeSetItem('user_level_override','-1');
+            return;
+        }
+        // 코드 입력으로 회복
+        const recovered = droppedLv + 1;
+        safeSetItem('user_level_override', String(Math.min(recovered, LEVELS.length-1)));
+        showToast(`🎉 등급이 회복됐어요! ${LEVELS[Math.min(recovered, LEVELS.length-1)].emoji}`);
+        launchConfetti();
+        // override가 calcLv 이상이면 제거
+        if(recovered >= calcLv) safeSetItem('user_level_override','-1');
+    }
+
+    // 첫 방문 포인트
+    // ★ 심리테스트 이메일없이 이탈 후 등록 팝업
+    function showPsychRegisterPopup(){
+        // 이미 등록돼 있으면 실행 안 함
+        if(safeGetItem('my_nickname','') && safeGetItem('my_email','')) return;
+        // 팝업 중복 방지
+        if(document.getElementById('psych-register-popup')) return;
+
+        const pop = document.createElement('div');
+        pop.id = 'psych-register-popup';
+        pop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        pop.innerHTML = `
+            <div style="background:var(--bg-color);border-radius:24px;padding:28px 24px;width:100%;max-width:360px;text-align:center;">
+                <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+                <div style="font-size:1.2em;font-weight:900;color:var(--primary-color);margin-bottom:8px;">결과를 저장해드릴게요!</div>
+                <div style="font-size:0.88em;color:var(--text-muted);line-height:1.8;margin-bottom:20px;">
+                    이름과 이메일을 등록하면<br>
+                    <b style="color:var(--accent-color);">30포인트</b>를 드리고<br>
+                    30일 후 성장을 비교할 수 있어요!
+                </div>
+                <input id="preg-name" type="text" placeholder="닉네임 (예: 김영희)"
+                    style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:10px;text-align:center;outline:none;">
+                <input id="preg-email" type="email" placeholder="이메일 (선택)"
+                    style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:16px;text-align:center;outline:none;">
+                <button id="preg-submit"
+                    style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                    ✅ 등록하고 30PT 받기
+                </button>
+                <button id="preg-skip"
+                    style="width:100%;min-height:40px;background:none;border:none;font-size:0.85em;color:var(--text-muted);cursor:pointer;">
+                    나중에 하기
+                </button>
+            </div>`;
+        document.body.appendChild(pop);
+
+        document.getElementById('preg-submit').addEventListener('click', function(){
+            const name = (document.getElementById('preg-name').value || '').trim();
+            const email = (document.getElementById('preg-email').value || '').trim();
+            if(!name){ showToast('닉네임을 입력해주세요!'); return; }
+            safeSetItem('my_nickname', name);
+            if(email) safeSetItem('my_email', email);
+            safeSetItem('onboarding_done', '1');
+            pop.remove();
+            addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
+            renderPointBar();
+            // 환영 팝업
+            setTimeout(function(){ checkFirstVisit(); }, 300);
+        });
+
+        document.getElementById('preg-skip').addEventListener('click', function(){
+            pop.remove();
+        });
+    }
+
+        function checkFirstVisit(){
+        // ★ 이름 등록 안 한 경우 실행 안 함
+        if(!safeGetItem('my_nickname','')) return;
+        // ★ 단일 키 사용 (PWA/크롬 구분 없이 동일)
+        const KEY = 'pt_first_visit';
+        if(safeGetItem(KEY,'') === '1') return;
+        if(safeGetItem('pt_first_standalone','') === '1'){
+            safeSetItem(KEY,'1'); return;
+        }
+        if(getPoints() >= 30){
+            safeSetItem(KEY,'1'); return;
+        }
+        safeSetItem(KEY,'1');
+        safeSetItem('pt_first_standalone','1');
+
+        // ★ 첫 방문 환영 팝업
+        const _nick = safeGetItem('my_nickname','') || '회원';
+        setTimeout(function(){
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML =
+                '<div style="background:#fff;border-radius:24px;padding:32px 24px;width:88%;max-width:340px;text-align:center;">'
+                + '<div style="font-size:52px;margin-bottom:12px;">🌿</div>'
+                + '<div style="font-size:1.3em;font-weight:900;color:#1B4332;margin-bottom:8px;">'+ _nick +'님, 환영해요!</div>'
+                + '<div style="font-size:0.9em;color:#555;line-height:1.9;margin-bottom:8px;">'
+                + '오늘부터 매일 한 문장으로<br><b style="color:#1B4332;">나를 바꾸는 365일 여정</b>이 시작돼요.<br><br>'
+                + '첫 방문 기념으로 <b style="color:#C9A84C;">+30PT</b>가 적립됐어요 🎉'
+                + '</div>'
+                + '<div style="font-size:0.78em;color:#aaa;margin-bottom:18px;">매일 확언 완료 시 포인트가 쌓여요</div>'
+                + '<button onclick="this.closest(\'div[style*=fixed]\').remove();" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">오늘 확언 보러 가기 🌱</button>'
+                + '</div>';
+            document.body.appendChild(modal);
+            addPoint(30, '첫 방문 기념');
+        }, 800);
+        setTimeout(sendUserDataToSheet, 3000);
+    }
+
+    // ★ 사용자 데이터 구글 시트 전송
+    function sendUserDataToSheet(){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        try {
+            const cd = safeGetJSON('completed_dates', []);
+            const pts = getPoints();
+            const lvIdx = getLevel(pts);
+            const nick = safeGetItem('my_nickname', '');
+            const today = getTodayStr();
+            const startDate = safeGetItem('start_date_B', '') || safeGetItem('app_install_date', today);
+            // 앱 설치일 기록
+            if(!safeGetItem('app_install_date','')) safeSetItem('app_install_date', today);
+            const streak = calcCurrentStreak(cd);
+            const userData = {
+                action: 'user_log',
+                nickname:   nick || '미설정',
+                email:      safeGetItem('my_email',''),
+                device_id:  _getDeviceId(),
+                date:       today,
+                installDate: startDate,
+                totalDays:  cd.length,
+                streak:     streak,
+                points:     pts,
+                level:      LEVELS[lvIdx].name,
+                lastVisit:  today,
+                device:     /Android/i.test(navigator.userAgent) ? '안드로이드' : /iPhone|iPad/i.test(navigator.userAgent) ? '아이폰' : 'PC'
+            };
+            fetch(SHEET_API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(userData)
+            }).catch(()=>{});
+        } catch(e) {}
+    }
+
+    // ★ 매일 접속 시 업데이트 (닉네임 설정 후, 완료 체크 후)
+    // ====================================================
+    // ★ 기기 고유 ID 생성/관리
+    // ====================================================
+    function _getDeviceId(){
+        let did = safeGetItem('device_id','');
+        if(!did){
+            did = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+            safeSetItem('device_id', did);
+        }
+        return did;
+    }
+
+    // ★ 통합 데이터 전송 시스템
+    // ====================================================
+    function _sheetSend(data){
+        if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+        // 카톡/인앱브라우저 CORS 차단 시 조용히 실패
+        try {
+            fetch(SHEET_API_URL, {
+                method:'POST', mode:'no-cors',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(data)
+            }).catch(()=>{});
+        } catch(e){}
+    }
+    function _getNick(){ return safeGetItem('my_nickname','미설정'); }
+    function _getEmail(){ return safeGetItem('my_email',''); }
+
+    // ① 닉네임/이메일 등록
+    window._sendUserRegister = function(trigger){
+        _sheetSend({
+            action: 'user_register',
+            nickname: _getNick(),
+            email: _getEmail(),
+            device_id: _getDeviceId(),
+            trigger: trigger || '설정',
+            date: getTodayStr()
+        });
+    }
+
+    // ★ 앱 설치 기록
+    window._sendAppInstall = function(){
+        const key = 'app_install_reported';
+        if(safeGetItem(key,'') === '1') return; // 중복 방지
+        safeSetItem(key, '1');
+        _sheetSend({
+            action: 'app_install',
+            nickname: _getNick(),
+            email: _getEmail(),
+            device_id: _getDeviceId(),
+            date: getTodayStr()
+        });
+    }
+
+    // ★ 공유 기록
+    window._sendShareLog = function(shareType, extra){
+        _sheetSend({
+            action: 'share_log',
+            nickname: _getNick(),
+            email: _getEmail(),
+            device_id: _getDeviceId(),
+            share_type: shareType,
+            extra: extra || '',
+            date: getTodayStr()
+        });
+    }
+
+    // ② 레벨업
+    window._sendLevelUp = function(levelName){
+        _sheetSend({
+            action: 'level_up',
+            nickname: _getNick(),
+            email: _getEmail(),
+            level: levelName,
+            date: getTodayStr()
+        });
+    }
+
+    // ③ 연속달성 마일스톤 (100/200/300일)
+    window._sendStreakMilestone = function(days){
+        _sheetSend({
+            action: 'streak_milestone',
+            nickname: _getNick(),
+            email: _getEmail(),
+            days: days,
+            date: getTodayStr()
+        });
+    }
+
+    // ④ 사연 보내기
+    window._sendStoryLog = function(){
+        _sheetSend({
+            action: 'story_sent',
+            nickname: _getNick(),
+            email: _getEmail(),
+            date: getTodayStr()
+        });
+    }
+
+    // ⑤ 설문 정보 저장
+    window._sendSurveyLog = function(surveyData){
+        _sheetSend({
+            action: 'survey_saved',
+            nickname: _getNick(),
+            email: _getEmail(),
+            data: surveyData,
+            date: getTodayStr()
+        });
+    }
+
+    // ⑥ PDF 접근
+    window._sendPdfAccess = function(pdfName){
+        _sheetSend({
+            action: 'pdf_access',
+            nickname: _getNick(),
+            email: _getEmail(),
+            pdf: pdfName,
+            date: getTodayStr()
+        });
+    }
+
+    // ⑦ 행동 로그 (확언완료/즐겨찾기/공유 등)
+    window._sendActionLog = function(action, detail){
+        _sheetSend({
+            action: 'action_log',
+            nickname: _getNick(),
+            email: _getEmail(),
+            event: action,
+            detail: detail || '',
+            date: getTodayStr()
+        });
+    }
+
+    window._sendUserUpdate = function(){
+        setTimeout(sendUserDataToSheet, 1000);
+    }
+
+    // 연속 달성 보너스
+    function checkStreakBonus(streak){
+        const key = `pt_streak_bonus_${streak}`;
+        if(safeGetItem(key,'') === '1') return;
+        const bonuses = {7:10, 30:50, 100:200, 365:500};
+        if(bonuses[streak]){
+            safeSetItem(key,'1');
+            addPoint(bonuses[streak], `${streak}일 연속 보너스`);
+            showToast(`🔥 ${streak}일 연속 달성! +${bonuses[streak]}PT 보너스!`);
+            // ★ 마일스톤 전송 (100/200/300일)
+            if([100,200,300].includes(streak)){
+                window._sendStreakMilestone(streak);
+            }
+        }
+    }
+
+    function renderPointBar(){
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const lv = LEVELS[lvIdx];
+        const nextLv = LEVELS[lvIdx + 1];
+
+        document.getElementById('point-bar-emoji').textContent = lv.emoji;
+        document.getElementById('point-bar-level').textContent = lv.name;
+        document.getElementById('point-bar-pts').textContent = pts + ' PT';
+
+        let pct = 100;
+        if(nextLv){
+            const range = nextLv.min - lv.min;
+            const prog  = pts - lv.min;
+            pct = Math.min(100, Math.round((prog / range) * 100));
+        }
+        document.getElementById('point-bar-progress').style.width = pct + '%';
+    }
+
+    window.openLevelGuide = function(){
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const lv = LEVELS[lvIdx];
+        const nextLv = LEVELS[lvIdx + 1];
+
+        document.getElementById('lg-emoji').textContent = lv.emoji;
+        document.getElementById('lg-name').textContent = lv.name + ' 등급';
+        document.getElementById('lg-pts').textContent = pts + ' PT';
+
+        let pct = 100, nextTxt = '최고 등급 달성! 🎉';
+        if(nextLv){
+            const range = nextLv.min - lv.min;
+            const prog  = pts - lv.min;
+            pct = Math.min(100, Math.round((prog / range) * 100));
+            nextTxt = '다음 등급 ' + nextLv.emoji + ' ' + nextLv.name + '까지 ' + (nextLv.min - pts) + ' PT';
+        }
+        document.getElementById('lg-bar').style.width = pct + '%';
+        document.getElementById('lg-next').textContent = nextTxt;
+
+        // 등급별 혜택 + PDF URL
+        const BENEFITS = [
+            { text: '앱 기본 기능 전체 이용', pdf: null, diary: false },
+            { text: '🔓 오늘의 한마디 해금!', pdf: null, diary: false },
+            { text: '🧪 확언 처방전 오픈! (오늘의 선언 탭)', pdf: null, diary: false },
+            { text: '📄 1~3월 확언 PDF 해금', pdf: 'pdf_url_1', diary: false },
+            { text: '📄 4~6월 확언 PDF 해금', pdf: 'pdf_url_2', diary: false },
+            { text: '📄 7~9월 확언 PDF 해금', pdf: 'pdf_url_3', diary: false },
+            { text: '📄 10~12월 확언 PDF 해금', pdf: 'pdf_url_4', diary: false },
+            { text: '🎁 365일 완전판 확언 다이어리 선물', pdf: null, diary: true },
+        ];
+
+        // 등급 목록 렌더링
+        let html = '';
+        LEVELS.forEach((l, i) => {
+            const isCur = i === lvIdx;
+            const isDone = pts >= l.min;
+            const b = BENEFITS[i];
+            const pdfUrl = b.pdf ? safeGetItem(b.pdf, '') : '';
+            const canDownload = isDone && b.pdf && pdfUrl;
+            const canDiary = isDone && b.diary;
+
+            // 우측 버튼 (잠금/PDF/다이어리)
+            let rightBtn = '';
+            if(b.pdf){
+                if(canDownload){
+                    rightBtn = `<a href="${pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:#C9A84C;color:#fff;border-radius:10px;padding:8px 10px;font-size:0.7em;font-weight:700;text-decoration:none;text-align:center;min-width:52px;line-height:1.3;">📄<br>PDF</a>`;
+                } else {
+                    rightBtn = `<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(201,168,76,0.12);border:1px dashed #C9A84C;border-radius:10px;padding:8px 10px;font-size:0.68em;color:#C9A84C;text-align:center;min-width:52px;line-height:1.4;">🔒<br>PDF<br>대기중</div>`;
+                }
+            } else if(b.diary){
+                if(canDiary){
+                    rightBtn = `<button onclick="openDiaryApplyForm()" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:#C9A84C;color:#fff;border:none;border-radius:10px;padding:8px 10px;font-size:0.7em;font-weight:700;cursor:pointer;text-align:center;min-width:52px;line-height:1.3;">🎁<br>신청</button>`;
+                } else {
+                    rightBtn = `<div style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;background:rgba(201,168,76,0.12);border:1px dashed #C9A84C;border-radius:10px;padding:8px 10px;font-size:0.68em;color:#C9A84C;text-align:center;min-width:52px;line-height:1.4;">🔒<br>다이어리<br>대기중</div>`;
+                }
+            } else {
+                rightBtn = isDone ? `<span style="color:#C9A84C;font-size:1.1em;">✓</span>` : '';
+            }
+
+            html += `<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;margin-bottom:8px;background:${isCur?'linear-gradient(135deg,#1B4332,#2D6A4F)':isDone?'#F0F7F4':'var(--card-bg)'};border:1px solid ${isCur?'transparent':isDone?'#C8DDD2':'var(--border-color)'};">
+                <span style="font-size:28px;">${l.emoji}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.9em;font-weight:700;color:${isCur?'#C9A84C':isDone?'#1B4332':'var(--text-muted)'};">${l.name} ${isCur?'← 현재':''}</div>
+                    <div style="font-size:0.75em;color:${isCur?'rgba(255,255,255,0.6)':'var(--text-muted)'};">${l.min.toLocaleString()} PT 이상</div>
+                    <div style="font-size:0.78em;margin-top:3px;color:${isCur?'rgba(255,255,255,0.85)':isDone?'#1B4332':'var(--text-muted)'};">혜택: ${b.text}</div>
+                </div>
+                ${rightBtn}
+            </div>`;
+        });
+        document.getElementById('lg-level-list').innerHTML = html;
+        document.getElementById('level-guide-modal').style.display = 'block';
+    }
+
+    window.openPointGuide = function(){
+        const pts = getPoints();
+        const today = getTodayStr();
+        document.getElementById('pg-pts').textContent = pts + ' PT';
+
+        // 오늘 적립 완료 여부 확인 함수
+        function isDone(key){ return safeGetItem('pt_daily_'+key+'_'+today,'') === '1'; }
+
+        // 항목 행 생성
+        function row(icon, label, pt, key, action, desc){
+            const done = isDone(key);
+            return `<div onclick="${action}" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-color);cursor:pointer;background:${done?'#F0F7F4':'transparent'};">
+                <span style="font-size:18px;">${icon}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.88em;font-weight:600;color:var(--text-color);">${label}</div>
+                    <div style="font-size:0.73em;color:var(--text-muted);">${desc} →</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:0.88em;font-weight:700;color:#C9A84C;">+${pt}PT</span>
+                    ${done ? '<span style="font-size:1em;color:#1B4332;">✓</span>' : '<span style="font-size:0.75em;color:#ccc;">○</span>'}
+                </div>
+            </div>`;
+        }
+
+        const closeAndGo = (action) => `document.getElementById('point-guide-modal').style.display='none'; ${action}`;
+
+        // 오늘 적립 현황 계산
+        const DAILY_ITEMS = [
+            {key:'complete',pt:1}, {key:'listen',pt:1}, {key:'stt',pt:1},
+            {key:'mood_check',pt:1}, {key:'action_photo',pt:5},
+            {key:'memo',pt:1}, {key:'diary',pt:1},
+            {key:'share_aff',pt:2}, {key:'share_card',pt:2},
+            {key:'share_family',pt:2}, {key:'share_oracle',pt:2},
+            {key:'shorts_visit',pt:2}, {key:'episode_visit',pt:2},
+        ];
+        const DAILY_MAX = 23;
+        let todayEarned = 0, todayDone = 0;
+        DAILY_ITEMS.forEach(item => {
+            if(isDone(item.key)){ todayEarned += item.pt; todayDone++; }
+        });
+        todayEarned = Math.min(todayEarned, DAILY_MAX);
+        const todayLeft = Math.max(0, DAILY_MAX - todayEarned);
+        const pct = Math.round((todayEarned / DAILY_MAX) * 100);
+        const barColor = pct >= 100 ? '#1B4332' : pct >= 60 ? '#C9A84C' : '#888';
+        const todayStatus = pct >= 100
+            ? `🎉 오늘 최대 적립 완료! (${DAILY_MAX}PT)`
+            : todayLeft > 0
+                ? `${todayLeft}PT만 더 하면 오늘 100% 달성!`
+                : `오늘 ${todayEarned}PT 적립 중`;
+
+        const progressHtml = `
+            <div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--border-color);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);">📊 오늘의 적립 현황</div>
+                    <div style="font-size:0.88em;font-weight:700;color:${barColor};">${todayEarned} / ${DAILY_MAX} PT</div>
+                </div>
+                <div style="background:#E8E5E0;border-radius:20px;height:10px;overflow:hidden;margin-bottom:8px;">
+                    <div style="height:100%;width:${pct}%;background:${barColor};border-radius:20px;transition:width 0.4s ease;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:0.78em;color:var(--text-muted);">✓ ${todayDone} / ${DAILY_ITEMS.length}개 항목 완료</div>
+                    <div style="font-size:0.78em;font-weight:700;color:${pct>=100?'#1B4332':'#C9A84C'};">${todayStatus}</div>
+                </div>
+            </div>`;
+
+        const html = `
+            <div style="background:var(--card-bg);border-radius:14px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border-color);">
+                ${row('☑️','확언 완료 체크',1,'complete', closeAndGo("goToHomeElement('btn-complete')"),'홈 화면 완료 버튼')}
+                ${row('🔊','소리 듣기',1,'listen', closeAndGo("goToHomeElement('btn-listen')"),'홈 화면 → 소리 듣기 버튼')}
+                ${row('🎙','따라읽기 완료',1,'stt', closeAndGo("goToHomeElement('btn-stt')"),'홈 화면 따라읽기 버튼')}
+                ${row('😊','확언 후 기분 체크',1,'mood_check', closeAndGo("goToHomeElement('affirmation-view')"),'홈 화면 → 기분 이모지 선택')}
+                ${row('📸','오늘의 실천 인증',5,'action_photo', closeAndGo("switchView('home');setTimeout(()=>openActionPhoto(),400)"),'홈 화면 → 실천 인증 버튼')}
+                ${row('✏️','필사 저장',1,'memo', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('write'),100)"),'메모장 → 필사 탭')}
+                ${row('📔','일기 저장',1,'diary', closeAndGo("switchView('memo'); setTimeout(()=>switchMemoTab('diary'),100)"),'메모장 → 일기장 탭')}
+                ${row('📤','오늘 확언 공유',2,'share_aff', closeAndGo("shareAfterComplete()"),'홈 → 완료 후 공유 버튼')}
+                ${row('🌅','아침 인사 카드 공유',2,'share_card', closeAndGo("openShareCard()"),'홈 화면 → 아침 인사 카드')}
+                ${row('💚','가족에게 보내기',2,'share_family', closeAndGo("goToHomeElement('affirmation-view'); setTimeout(()=>shareToFamily(),300)"),'홈 화면 → 가족에게 보내기')}
+                ${getLevel(pts) >= 1
+                    ? row('✨','오늘의 한마디 공유',2,'share_oracle', closeAndGo("openOracle()"),'홈 화면 → 오늘의 한마디')
+                    : `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border-color);background:#F8F8F8;opacity:0.6;">
+                        <span style="font-size:18px;">🔒</span>
+                        <div style="flex:1;">
+                            <div style="font-size:0.88em;font-weight:600;color:#999;">오늘의 한마디 공유</div>
+                            <div style="font-size:0.73em;color:#bbb;">🌿 새싹 달성 후 이용 가능해요</div>
+                        </div>
+                        <span style="font-size:0.88em;font-weight:700;color:#ccc;">+2PT</span>
+                    </div>`
+                }
+                ${row('📺','쇼츠 보러가기',2,'shorts_visit', "addPoint(2,'쇼츠클릭','shorts_visit'); window.open('https://www.youtube.com/@SecondActRadio/shorts','_blank'); setTimeout(()=>openPointGuide(),300)",'유튜브 쇼츠 채널')}
+                ${row('🎬','오늘의 영상 보기',2,'episode_visit', "addPoint(2,'영상클릭','episode_visit'); document.getElementById('point-guide-modal').style.display='none'; var _ep=document.getElementById('btn-episode'); var _href=_ep?_ep.getAttribute('href'):''; var _url=(_href&&_href!=='#'&&_href.indexOf('youtube')>-1)?_ep.href:'https://www.youtube.com/@SecondActRadio'; window.open(_url,'_blank');",'홈 화면 → 이야기 들어보기 버튼')}
+            </div>
+            <div style="font-size:0.78em;color:var(--text-muted);text-align:center;margin-bottom:4px;">✓ 표시는 오늘 이미 적립한 항목이에요. 자정에 초기화돼요.</div>`;
+
+        document.getElementById('pg-items').innerHTML = progressHtml + html;
+        document.getElementById('point-guide-modal').style.display = 'block';
+    }
+
+    // 오늘의 한마디 버튼 잠금/해금
+    function renderOracleBtn(){
+        const wrap = document.getElementById('oracle-btn-wrap');
+        if(!wrap) return;
+        const pts = getPoints();
+        const lvIdx = getLevel(pts);
+        const unlocked = lvIdx >= 1; // 새싹(1) 이상
+        const needed = 50 - pts;
+
+        if(unlocked){
+            wrap.innerHTML = `<button class="btn-oracle" onclick="openOracle()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>오늘의 한마디</button>`;
+        } else {
+            wrap.innerHTML = `
+                <button onclick="openPointGuide()" style="width:100%;min-height:52px;background:#E8E5E0;color:#888;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.85em;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    🔒 오늘의 한마디
+                    <span style="background:#C9A84C;color:#fff;border-radius:20px;padding:2px 10px;font-size:0.78em;">🌿 새싹 달성 시 오픈</span>
+                </button>
+                <div style="text-align:center;font-size:0.78em;color:#C9A84C;font-weight:600;margin-top:-10px;margin-bottom:14px;">
+                    ${needed > 0 ? `🌱 ${needed}PT만 더 모으면 새싹이 돼요!` : '오늘 확언 완료하면 새싹이 돼요! 🌿'}
+                </div>`;
+        }
+    }
+
+    window.shareOracle = function(){
+        addPoint(2,'한마디공유','share_oracle');
+        window._sendShareLog('한마디공유');
+        const text = document.getElementById('oracle-affirmation-text')?.innerText || '';
+        const theme = document.getElementById('oracle-theme-text')?.innerText || '';
+        const msg = `✨ 오늘의 한마디\n\n${theme}\n"${text}"\n\n— 인생2막라디오 365일 확언 앱\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 채널: https://www.youtube.com/@SecondActRadio`;
+        if(navigator.share){
+            navigator.share({title:'오늘의 한마디', text:msg}).catch(function(e){ if(e.name!=='AbortError') copyToClipboard(msg); });
+        } else {
+            copyToClipboard(msg);
+        }
+    }
+
+    window.openDiaryApplyForm = function(){
+        document.getElementById('level-guide-modal').style.display = 'none';
+        document.getElementById('diary-apply-form-modal').style.display = 'block';
+    }
+
+    window.submitDiaryApply = function(){
+        const name    = document.getElementById('diary-form-name').value.trim();
+        const phone   = document.getElementById('diary-form-phone').value.trim();
+        const address = document.getElementById('diary-form-address').value.trim();
+        const agreed  = document.getElementById('diary-form-agree').checked;
+
+        if(!name)    { showToast('성함을 입력해주세요'); return; }
+        if(!phone)   { showToast('연락처를 입력해주세요'); return; }
+        if(!address) { showToast('배송 주소를 입력해주세요'); return; }
+        if(!agreed)  { showToast('개인정보 수집 및 이용에 동의해주세요'); return; }
+
+        // 이메일로 신청 정보 전송
+        const subject = encodeURIComponent('[365일 확언 다이어리 신청] ' + name);
+        const body    = encodeURIComponent(
+            '성함: ' + name + '\n' +
+            '연락처: ' + phone + '\n' +
+            '주소: ' + address + '\n\n' +
+            '--- 앱 정보 ---\n' +
+            '닉네임: ' + (safeGetItem('my_nickname','미설정')) + '\n' +
+            '포인트: ' + getPoints() + ' PT\n' +
+            '신청일: ' + getTodayStr()
+        );
+        window.open('mailto:life2radio@gmail.com?subject=' + subject + '&body=' + body);
+
+        // 신청 완료 표시
+        safeSetItem('diary_365_applied', '1');
+        document.getElementById('diary-apply-form-modal').style.display = 'none';
+        launchConfetti();
+        showToast('🎉 신청이 완료됐어요! 이메일로 확인해드릴게요 😊');
+    }
+
+    // 홈화면 특정 요소로 스크롤 이동
+    window.goToHomeElement = function(elementId){
+        document.getElementById('point-guide-modal').style.display = 'none';
+        switchView('home');
+        setTimeout(()=>{
+            const el = document.getElementById(elementId);
+            if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); }
+        }, 400);
+    }
+
+    /* ===== ② 가상 연대감 카운터 ===== */
+    function initSolidarity(){
+        const el=document.getElementById('solidarity-count');
+        if(!el) return;
+        const hour=new Date().getHours();
+        // 밤10시(22)~아침8시(7): 30~99명, 나머지: 시간대별
+        const base=( hour>=22 || hour<8 ) ? 30
+                 : hour>=8&&hour<10  ? 300
+                 : hour>=10&&hour<13 ? 1200
+                 : hour>=13&&hour<18 ? 800
+                 : hour>=18&&hour<22 ? 1500 : 600;
+        const max =( hour>=22 || hour<8 ) ? 99 : base+300;
+        let count=base+Math.floor(Math.random()*(max-base));
+        el.textContent=count.toLocaleString();
+        setInterval(()=>{
+            count+=Math.floor(Math.random()*5)-2;
+            if(count<base) count=base;
+            if(count>max)  count=max;
+            el.textContent=count.toLocaleString();
+        }, 30000);
+    }
+
+    /* ===== ③ Formspree 사연 전송 ===== */
+    // ★ https://formspree.io 에서 무료 폼 생성 후 ID 교체
+    const FORMSPREE_ID = 'xqewzqqg';
+    // 이메일 CF 마스킹 방지 - JS로 조립
+    const _em = ['life2radio','gmail.com'].join('@');
+    document.addEventListener('DOMContentLoaded', function(){
+        var el = document.getElementById('story-email-display');
+        if(el) el.textContent = _em;
+    });
+
+    window.sendStory = async function(){
+        const title=document.getElementById('story-title').value.trim();
+        const body2=document.getElementById('story-body').value.trim();
+        const name=document.getElementById('story-name').value.trim();
+        if(!title){ showToast('제목을 입력해주세요'); return; }
+        if(!body2) { showToast('사연 내용을 입력해주세요'); return; }
+
+        let emailBody = name ? `[이름] ${name}\n\n${body2}` : body2;
+        if(affirmInclude){
+            const ae=document.getElementById('affirmation-text'), de=document.getElementById('day-label');
+            if(ae&&de) emailBody+=`\n\n——\n오늘의 확언 (${de.innerText})\n"${ae.innerText}"`;
+        }
+
+        if(FORMSPREE_ID!=='YOUR_FORM_ID'){
+            try{
+                const res=await fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
+                    method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
+                    body:JSON.stringify({이름:name||'익명', 제목:title, 사연:emailBody, 이메일:document.getElementById('story-email')?.value.trim()||'', 마케팅동의:document.getElementById('story-marketing')?.checked?'동의':'미동의'})
+                });
+                if(res.ok){
+                    showToast('💌 사연이 전송됐어요! +10PT 적립됐어요 😊');
+                    addPoint(10,'사연보내기',`story_send_${todayObj.getFullYear()}_${todayObj.getMonth()+1}`);
+                    window._sendStoryLog(); // ★ 사연 전송 로그
+                    // 패자부활: 월 1회, 결석 최대 7일 삭제
+                    var revKey='revival_story_'+todayObj.getFullYear()+'_'+(todayObj.getMonth()+1);
+                    if(!safeGetItem(revKey,'')){
+                        var ab=parseInt(safeGetItem('revival_absent_days','0'))||0;
+                        if(ab>0){
+                            var del=Math.min(ab,7);
+                            safeSetItem('revival_absent_days',String(ab-del));
+                            safeSetItem(revKey,'1');
+                            showToast('🎉 패자부활! 결석 '+del+'일이 삭제됐어요!');
+                        }
+                    }
+                    ['story-title','story-body','story-name'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
+                    document.getElementById('story-char-count').textContent='0자';
+                } else throw new Error();
+            } catch(e){ window.location.href=`mailto:life2radio@gmail.com?subject=${encodeURIComponent('[인생2막라디오 사연] '+title)}&body=${encodeURIComponent(emailBody)}`; }
+        } else {
+            window.location.href=`mailto:life2radio@gmail.com?subject=${encodeURIComponent('[인생2막라디오 사연] '+title)}&body=${encodeURIComponent(emailBody)}`;
+        }
+    }
+
+    function downloadTxt(filename, text){
+        const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        a.click(); URL.revokeObjectURL(url);
+        showToast('다운로드됐어요!');
+    }
+    function shareText(title, text){
+        if(navigator.share){ navigator.share({title, text}).catch(()=> copyToClipboard(text)); }
+        else { copyToClipboard(text); }
+    }
+    function copyToClipboard(text){
+        if(navigator.clipboard){
+            navigator.clipboard.writeText(text)
+                .then(()=> showToast('📋 클립보드에 복사됐어요!'))
+                .catch(()=>{
+                    const ta=document.createElement('textarea');
+                    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showToast('📋 복사됐어요!');
+                });
+        } else {
+            const ta=document.createElement('textarea');
+            ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('📋 복사됐어요!');
+        }
+    }
+    window.shareDiaryEntry = function(){
+        const input=document.getElementById('diary-input');
+        const ds=input.dataset.targetDate||getTodayStr();
+        const text=input.value.trim();
+        if(!text){ showToast('작성된 일기가 없어요'); return; }
+        const parts=ds.split('-');
+        const title=`${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일 일기`;
+        shareText(title, `[${title}]\n\n${text}`);
+    }
+    window.downloadAllDiary = function(){
+        let result='[ 인생2막라디오 — 나의 일기장 ]\n\n', count=0;
+        for(let i=0;i<730;i++){
+            const d=new Date(todayObj); d.setDate(d.getDate()-i);
+            const ds=getFormatDate(d), txt=safeGetItem(`diary_${ds}`,null);
+            if(txt&&txt.trim()){
+                const p=ds.split('-');
+                result+=`━━━━━━━━━━━━━━━━━━━━\n${p[0]}년 ${parseInt(p[1])}월 ${parseInt(p[2])}일\n━━━━━━━━━━━━━━━━━━━━\n${txt.trim()}\n\n`;
+                count++;
+            }
+        }
+        if(!count){ showToast('저장된 일기가 없어요'); return; }
+        downloadTxt(`인생2막라디오_일기장_${getTodayStr()}.txt`, result+`총 ${count}개의 일기`);
+    }
+    window.downloadAllMemo = function(){
+        const memos=safeGetJSON('memos',[]);
+        if(!memos.length){ showToast('저장된 필사가 없어요'); return; }
+        let result='[ 인생2막라디오 — 나의 필사 기록 ]\n\n';
+        memos.forEach(m=>{ result+=`━━━━━━━━━━━━━━━━━━━━\n${m.date}\n━━━━━━━━━━━━━━━━━━━━\n${m.text.trim()}\n\n`; });
+        downloadTxt(`인생2막라디오_필사_${getTodayStr()}.txt`, result+`총 ${memos.length}개의 필사`);
+    }
+    window.downloadAllFreeNote = function(){
+        const notes=safeGetJSON('free_notes',[]);
+        if(!notes.length){ showToast('저장된 메모가 없어요'); return; }
+        let result='[ 인생2막라디오 — 나의 메모 ]\n\n';
+        notes.forEach(n=>{ result+=`━━━━━━━━━━━━━━━━━━━━\n${n.date}  ${n.title}\n━━━━━━━━━━━━━━━━━━━━\n${n.body.trim()}\n\n`; });
+        downloadTxt(`인생2막라디오_메모_${getTodayStr()}.txt`, result+`총 ${notes.length}개의 메모`);
+    }
+
+    function initSettings(){
+        renderSurvey();
+        syncNicknameEmail(); // ★ 닉네임/이메일 동기화
+        const surveyLabel = document.getElementById('survey-saved-label');
+        if(surveyLabel){
+            surveyLabel.textContent = safeGetItem('survey_saved','') === '1'
+                ? '✅ 저장됨 · 수정하려면 클릭' : '선택 사항 · 클릭해서 열기';
+        }
+        // 닉네임/이메일 현재값 채우기
+        const nick = safeGetItem('my_nickname','');
+        const ni = document.getElementById('nickname-input');
+        if(ni) ni.value = nick;
+        const email = safeGetItem('my_email','');
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        // 글자 크기
+        const fs = safeGetItem('setting_fontsize','normal');
+        ['normal','large','xlarge'].forEach(s=>{
+            const btn = document.getElementById('size-'+s);
+            if(btn) btn.className = 'setting-size-btn' + (fs===s?' active':'');
+        });
+        // 다크모드
+        const dark = safeGetItem('setting_dark','off')==='on';
+        updateDarkToggle(dark);
+        // 기본 모드
+        const mode = safeGetItem('app_mode','A');
+        ['A','B'].forEach(m=>{
+            const btn = document.getElementById('mode-btn-'+m);
+            if(btn) btn.className = 'setting-mode-btn' + (mode===m?' active':'');
+        });
+        // 배경음악 자동
+        const bgmAuto = safeGetItem('setting_bgm_auto','off')==='on';
+        updateBgmAutoToggle(bgmAuto);
+        initNotifSettings();
+    }
+
+    window.setFontSize = function(size){
+        safeSetItem('setting_fontsize', size);
+        applyFontSize(size);
+        ['normal','large','xlarge'].forEach(s=>{
+            const btn = document.getElementById('size-'+s);
+            if(btn) btn.className = 'setting-size-btn' + (size===s?' active':'');
+        });
+        showToast('글자 크기가 변경됐어요');
+    }
+
+    function applyFontSize(size){
+        const root = document.documentElement;
+        if(size === 'large'){
+            root.style.setProperty('--font-base', '21px');
+            root.style.setProperty('--font-sm',   '16px');
+            root.style.setProperty('--font-md',   '18px');
+            root.style.setProperty('--font-lg',   '23px');
+            root.style.setProperty('--font-xl',   '25px');
+        } else if(size === 'xlarge'){
+            root.style.setProperty('--font-base', '24px');
+            root.style.setProperty('--font-sm',   '18px');
+            root.style.setProperty('--font-md',   '21px');
+            root.style.setProperty('--font-lg',   '26px');
+            root.style.setProperty('--font-xl',   '28px');
+        } else {
+            root.style.setProperty('--font-base', '18px');
+            root.style.setProperty('--font-sm',   '14px');
+            root.style.setProperty('--font-md',   '16px');
+            root.style.setProperty('--font-lg',   '20px');
+            root.style.setProperty('--font-xl',   '22px');
+        }
+    }
+
+    window.toggleDarkMode = function(){
+        const isDark = document.body.classList.toggle('dark-mode');
+        safeSetItem('setting_dark', isDark?'on':'off');
+        updateDarkToggle(isDark);
+        showToast(isDark?'🌙 다크모드 켜짐':'☀️ 라이트모드 켜짐');
+    }
+    function updateDarkToggle(on){
+        const tog  = document.getElementById('dark-toggle');
+        const thumb= document.getElementById('dark-toggle-thumb');
+        if(!tog) return;
+        tog.style.background  = on ? 'var(--primary-color)' : '#E8E5E0';
+        thumb.style.left      = on ? '29px' : '3px';
+    }
+
+    window.setDefaultMode = function(mode){
+        safeSetItem('app_mode', mode);
+        ['A','B'].forEach(m=>{
+            const btn = document.getElementById('mode-btn-'+m);
+            if(btn) btn.className = 'setting-mode-btn' + (mode===m?' active':'');
+        });
+        currentMode = mode;
+        switchMode(mode);
+        showToast('기본 모드가 변경됐어요. 홈 화면에 반영됐어요!');
+    }
+
+    window.toggleBgmAuto = function(){
+        const cur = safeGetItem('setting_bgm_auto','off')==='on';
+        const next = !cur;
+        safeSetItem('setting_bgm_auto', next?'on':'off');
+        updateBgmAutoToggle(next);
+        showToast(next?'🎵 자동 시작 켜짐':'음악 자동 시작 꺼짐');
+    }
+    function updateBgmAutoToggle(on){
+        const tog  = document.getElementById('bgm-auto-toggle');
+        const thumb= document.getElementById('bgm-auto-thumb');
+        if(!tog) return;
+        tog.style.background = on ? 'var(--primary-color)' : '#E8E5E0';
+        thumb.style.left     = on ? '29px' : '3px';
+    }
+
+    // ★ 초기화 확인 창
+    window.confirmReset = function(){
+        // 체크박스 먼저 확인
+        const check = document.getElementById('reset-confirm-check');
+        if(!check || !check.checked){
+            showToast('⚠️ 먼저 체크박스를 클릭해주세요!');
+            return;
+        }
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:20px;padding:28px 24px;width:88%;max-width:340px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+                <div style="font-size:1.1em;font-weight:700;color:#C0392B;margin-bottom:8px;">정말 초기화할까요?</div>
+                <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
+                    <b>모든 기록이 완전히 삭제돼요.</b><br>
+                    완료 체크, 기분, 메모, 일기,<br>포인트까지 되돌릴 수 없어요.
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="this.closest('div[style*=fixed]').remove(); if(document.getElementById('reset-confirm-check')) document.getElementById('reset-confirm-check').checked=false;" style="flex:1;min-height:48px;background:#F5F5F5;color:#333;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">취소</button>
+                    <button onclick="this.closest('div[style*=fixed]').remove(); resetAppData();" style="flex:1;min-height:48px;background:#D32F2F;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">초기화</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    // ★ 설문 렌더링
+    const SURVEYS = {
+        age:   { key:'survey_age',   items:['40대','50대','60대','70대 이상','비공개'] },
+        route: { key:'survey_route', items:['인생2막라디오 유튜브','지인 공유','검색','광고','기타'] },
+        type:  { key:'survey_type',  items:['단순 평범하게','생각이 많은 편','감성적인 편','활동적인 편','기타'] },
+        mood:  { key:'survey_mood',  items:['대체로 즐거워요','잔잔한 편이에요','우울할 때가 많아요','신경이 예민해요','들쭉날쭉해요'] },
+        happy: { key:'survey_happy', items:['책 읽을 때','산책할 때','운동할 때','음악 들을 때','잠잘 때','영화 볼 때','일기 쓸 때','요리할 때','여행할 때','가족과 함께'] },
+    };
+
+    function renderSurvey(){
+        Object.entries(SURVEYS).forEach(([name, cfg])=>{
+            const el = document.getElementById('survey-' + name);
+            if(!el) return;
+            const saved = safeGetItem(cfg.key, '');
+            el.innerHTML = cfg.items.map(item => {
+                const active = saved === item;
+                return `<button onclick="selectSurvey('${cfg.key}','${item}',this.parentNode)" style="padding:7px 14px;border-radius:20px;font-size:0.85em;font-weight:600;cursor:pointer;border:1.5px solid ${active?'var(--primary-color)':'var(--border-color)'};background:${active?'var(--primary-color)':'var(--card-bg)'};color:${active?'#fff':'var(--text-color)'};">${item}</button>`;
+            }).join('');
+        });
+    }
+
+    window.selectSurvey = function(key, val, container){
+        safeSetItem(key, val);
+        // 버튼 스타일 업데이트
+        container.querySelectorAll('button').forEach(btn => {
+            const active = btn.textContent === val;
+            btn.style.border = `1.5px solid ${active?'var(--primary-color)':'var(--border-color)'}`;
+            btn.style.background = active ? 'var(--primary-color)' : 'var(--card-bg)';
+            btn.style.color = active ? '#fff' : 'var(--text-color)';
+        });
+    }
+
+    window.saveSurvey = function(){
+        // 설문 데이터 수집
+        const surveyData = {
+            age: safeGetItem('survey_age',''),
+            route: safeGetItem('survey_route',''),
+            type: safeGetItem('survey_type',''),
+            mood: safeGetItem('survey_mood',''),
+            happy: safeGetItem('survey_happy',''),
+        };
+        showToast('😊 저장됐어요! 감사해요!');
+        window._sendUserUpdate();
+        window._sendSurveyLog(surveyData); // ★ 설문 로그
+    }
+
+    window.resetAppData = function(){
+        const area = document.querySelector('#view-settings');
+        // 인라인 확인 UI
+        const confirmBox = document.createElement('div');
+        confirmBox.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);width:90%;max-width:400px;background:#FFFFFF;border-radius:16px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:9999;text-align:center;border:2px solid #D32F2F;';
+        confirmBox.innerHTML = `
+            <div style="font-size:20px;font-weight:bold;color:#D32F2F;margin-bottom:10px;">⚠️ 정말 초기화할까요?</div>
+            <div style="font-size:17px;color:#555;margin-bottom:20px;line-height:1.6;">모든 기록이 영구 삭제됩니다.<br>되돌릴 수 없어요.</div>
+            <div style="display:flex;gap:10px;">
+                <button onclick="doResetApp()" style="flex:1;min-height:52px;font-size:18px;font-weight:bold;background:#D32F2F;color:#fff;border:none;border-radius:12px;cursor:pointer;">초기화</button>
+                <button onclick="this.closest('div[style]').remove()" style="flex:1;min-height:52px;font-size:18px;font-weight:bold;background:#E8E5E0;color:#333;border:none;border-radius:12px;cursor:pointer;">취소</button>
+            </div>`;
+        document.body.appendChild(confirmBox);
+    }
+
+    window.doResetApp = function(){
+        const keys = ['completed_dates','favorites','memos','free_notes','earned_badges','used_tickets',
+            'fav_count_total','memo_count_total','insight_last_shown','subscribe_nudge_shown',
+            'banner_hidden_date','start_date_B'];
+        keys.forEach(k=> { try{localStorage.removeItem(k);}catch(e){} });
+        // 일기 삭제
+        for(let i=0;i<365;i++){
+            const d=new Date(todayObj); d.setDate(d.getDate()-i);
+            try{localStorage.removeItem(`diary_${getFormatDate(d)}`);}catch(e){}
+            try{localStorage.removeItem(`mood_rose_${getFormatDate(d)}`);}catch(e){}
+        }
+        document.querySelectorAll('div[style*="position:fixed"]').forEach(el=>el.remove());
+        showToast('✅ 초기화 완료! 새로 시작해요.');
+        setTimeout(()=> location.reload(), 1500);
+    }
+
+    // initApp에서 저장된 설정 적용
+    function applyStoredSettings(){
+        applyFontSize(safeGetItem('setting_fontsize','normal'));
+        if(safeGetItem('setting_dark','off')==='on') document.body.classList.add('dark-mode');
+        const nick = safeGetItem('my_nickname','');
+        const ni = document.getElementById('nickname-input');
+        if(ni && nick) ni.value = nick;
+        // 이메일 로딩
+        const email = safeGetItem('my_email','');
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = email;
+        const se = document.getElementById('story-email');
+        if(se && email) se.value = email;
+        const sender = safeGetItem('family_sender','');
+        const si = document.getElementById('family-sender-input');
+        if(si) si.value = sender || '';
+        const receiver = safeGetItem('family_receiver','');
+        const ri = document.getElementById('family-receiver-input');
+        if(ri) ri.value = receiver || '';
+    }
+    let affirmInclude = true;
+
+    window.toggleAffirmInclude = function(){
+        affirmInclude = !affirmInclude;
+        const box = document.getElementById('affirm-check');
+        box.style.background = affirmInclude ? 'var(--primary-color)' : '#E8E5E0';
+        box.innerHTML = affirmInclude
+            ? '<span style="color:#fff;font-size:16px;font-weight:bold;">✓</span>'
+            : '';
+    }
+
+    function initStoryView(){
+        // 닉네임/이메일 자동 입력
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+        const nameEl = document.getElementById('story-name');
+        const emailEl = document.getElementById('story-email');
+        if(nameEl && nick && !nameEl.value) nameEl.value = nick;
+        if(emailEl && email && !emailEl.value) emailEl.value = email;
+
+        // 글자수 카운터
+        const body = document.getElementById('story-body');
+        if(body){
+            body.addEventListener('input', ()=>{
+                document.getElementById('story-char-count').textContent = body.value.length + '자';
+            });
+        }
+        // 체크박스 초기화
+        affirmInclude = true;
+        const box = document.getElementById('affirm-check');
+        if(box){
+            box.style.background = 'var(--primary-color)';
+            box.innerHTML = '<span style="color:#fff;font-size:16px;font-weight:bold;">✓</span>';
+        }
+    }
+
+    window.sendStory = function(){
+        const title = document.getElementById('story-title').value.trim();
+        const body  = document.getElementById('story-body').value.trim();
+        const name  = document.getElementById('story-name').value.trim();
+
+        if(!title){ showToast('제목을 입력해주세요'); return; }
+        if(!body)  { showToast('사연 내용을 입력해주세요'); return; }
+
+        let emailBody = '';
+        if(name) emailBody += `[이름] ${name}\n\n`;
+        emailBody += body;
+
+        // 오늘 확언 포함
+        if(affirmInclude){
+            const affirmEl = document.getElementById('affirmation-text');
+            const dayEl    = document.getElementById('day-label');
+            if(affirmEl && dayEl){
+                emailBody += `\n\n——————————\n오늘의 확언 (${dayEl.innerText})\n"${affirmEl.innerText}"`;
+            }
+        }
+
+        const to      = 'life2radio@gmail.com';
+        const subject = encodeURIComponent(`[인생2막라디오 사연] ${title}`);
+        const bodyEnc = encodeURIComponent(emailBody);
+
+        window.location.href = `mailto:${to}?subject=${subject}&body=${bodyEnc}`;
+    }
+
+    /* ===== ★ 10단계: 알림 설정 ===== */
+    function initNotifSettings(){
+        const statusBox  = document.getElementById('notif-status-box');
+        const timeBox    = document.getElementById('notif-time-box');
+        const requestBox = document.getElementById('notif-request-box');
+        if(!statusBox) return;
+
+        if(!('Notification' in window)){
+            statusBox.style.background='#FFF0F0';
+            statusBox.style.color='#D32F2F';
+            statusBox.style.background='#FFF8E7';statusBox.style.color='#7B5800';statusBox.innerHTML='<div style="font-size:0.9em;font-weight:700;">⚠️ 이 환경에서는 알림을 받을 수 없어요</div><div style="font-size:0.82em;margin-top:6px;color:#555;line-height:1.7;">파일로 실행 중이라 브라우저 알림이 작동하지 않아요.<br>대신 폰에 꺼내두기 후 폰 알람 앱을 활용해보세요!</div>';
+            return;
+        }
+
+        const perm = Notification.permission;
+        const savedTime = safeGetItem('notif_time','');
+
+        if(perm === 'granted'){
+            statusBox.style.background='#F0F7F4';
+            statusBox.style.color='var(--primary-color)';
+            statusBox.textContent = savedTime
+                ? `✅ 알림이 설정되어 있어요 — 매일 ${savedTime}`
+                : '✅ 알림 권한이 허용됐어요. 시간을 설정해주세요.';
+            timeBox.style.display='block';
+            requestBox.style.display='none';
+            if(savedTime) document.getElementById('notif-time-input').value = savedTime;
+        } else if(perm === 'denied'){
+            statusBox.style.background='#FFF8E7';
+            statusBox.style.color='#7B5800';
+            statusBox.innerHTML=`
+                <div style="font-size:0.95em;font-weight:700;margin-bottom:10px;">⚠️ 이 방식으로는 알림을 받기 어려워요</div>
+                <div style="font-size:0.85em;color:#555;line-height:1.8;margin-bottom:12px;">
+                    이 앱은 파일로 실행되고 있어요. 파일 방식에서는 브라우저 알림이 작동하지 않아요.<br>
+                    대신 아래 방법을 추천해요!
+                </div>
+                <div style="background:#FFFFFF;border-radius:10px;padding:14px;border:1px solid #E8D88A;">
+                    <div style="font-size:0.88em;font-weight:700;color:var(--primary-color);margin-bottom:6px;">✅ 추천 — 폰에 꺼내두기 + 폰 알람 사용</div>
+                    <div style="font-size:0.82em;color:#444;line-height:1.8;">
+                        1️⃣ 아래 <b>"내 폰에 앱으로 꺼내두기"</b> 안내대로 추가<br>
+                        2️⃣ 폰 기본 <b>알람 앱</b>에서 원하는 시간에 알람 설정<br>
+                        3️⃣ 알람 울리면 홈화면 아이콘 탭 → 바로 확언 시작
+                    </div>
+                </div>`;
+            timeBox.style.display='none';
+            requestBox.style.display='none';
+        } else {
+            statusBox.style.background='#FFF8E7';
+            statusBox.style.color='#8B6914';
+            statusBox.textContent='💡 알림 허용을 하면 매일 정해진 시간에 확언 알림을 받을 수 있어요.';
+            timeBox.style.display='none';
+            requestBox.style.display='block';
+        }
+    }
+
+    window.requestNotifPermission = async function(){
+        try{
+            const result = await Notification.requestPermission();
+            if(result === 'granted'){
+                showToast('🔔 알림이 허용됐어요! 시간을 설정해주세요.');
+                initNotifSettings();
+                scheduleTestNotif();
+            } else {
+                showToast('알림이 차단됐어요. 브라우저 설정에서 허용해주세요.');
+                initNotifSettings();
+            }
+        } catch(e){ showToast('알림 설정 중 오류가 발생했어요.'); }
+    }
+
+    function scheduleTestNotif(){
+        setTimeout(()=>{
+            if(Notification.permission==='granted'){
+                new Notification('🌿 인생2막라디오 확언 앱', {
+                    body:'알림이 정상적으로 설정됐어요! 매일 확언으로 하루를 시작해보세요 😊',
+                    icon:''
+                });
+            }
+        }, 1500);
+    }
+
+    window.setNotifPreset = function(time){
+        document.getElementById('notif-time-input').value = time;
+        saveNotifTime(time);
+    }
+
+    window.saveNotifTime = function(presetTime){
+        const time = presetTime || document.getElementById('notif-time-input').value;
+        if(!time){ showToast('시간을 선택해주세요'); return; }
+        safeSetItem('notif_time', time);
+        // ServiceWorker 없이는 실제 백그라운드 알림 불가 → 탭 열려있을 때 알림 예약
+        scheduleNotifForToday(time);
+        showToast(`🔔 매일 ${time}에 알림이 설정됐어요!`);
+        initNotifSettings();
+    }
+
+    window.cancelNotif = function(){
+        safeSetItem('notif_time','');
+        showToast('🔕 알림이 꺼졌어요.');
+        initNotifSettings();
+    }
+
+    function scheduleNotifForToday(timeStr){
+        if(Notification.permission!=='granted') return;
+        const [h,m] = timeStr.split(':').map(Number);
+        const now = new Date();
+        const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+        if(target <= now) target.setDate(target.getDate()+1);
+        const delay = target - now;
+        // 탭이 열려있는 동안만 유효 (ServiceWorker 없이 가능한 방법)
+        clearTimeout(window._notifTimer);
+        window._notifTimer = setTimeout(()=>{
+            const dc = getDayCountNow();
+            const data = affirmationsData[(dc-1)%affirmationsData.length];
+            new Notification('🌿 오늘의 확언', {
+                body: data.text.substring(0,60)+'...',
+                icon:''
+            });
+        }, delay);
+    }
+
+    // 앱 시작 시 저장된 알림 시간 복원
+    function restoreNotifSchedule(){
+        const time = safeGetItem('notif_time','');
+        if(time && Notification.permission==='granted'){
+            scheduleNotifForToday(time);
+        }
+    }
+    // ★ 영상 업로드 시 url만 채워넣으면 됩니다. url이 빈 문자열이면 "준비중"으로 표시
+
+    // 현재 확언 테마와 가장 가까운 Shorts 추천
+    function getTodayMatchedShorts(){
+        const affirmEl = document.getElementById('affirmation-text');
+        const themeEl  = document.getElementById('theme-text');
+        const todayTheme = themeEl ? themeEl.innerText.replace(/["""]/g,'').trim() : '';
+        // 테마 키워드 매칭
+        const keywords = ['감사','용기','자존감','관계','감정','성장','현재','치유','습관','주도권','회복','자기수용','건강','완성'];
+        let matched = SHORTS_DATA.filter(s=> todayTheme.includes(s.theme) || s.theme.split('').some(c=> todayTheme.includes(c)));
+        if(!matched.length) matched = [SHORTS_DATA[Math.floor(Math.random()*SHORTS_DATA.length)]];
+        return matched[0];
+    }
+
+    function initShortsView(){
+        // 오늘의 추천
+        const matched = getTodayMatchedShorts();
+        const todayCard = document.getElementById('today-shorts-card');
+        if(todayCard){
+            todayCard.innerHTML = renderShortsCard(matched, true);
+        }
+        // 전체 목록
+        const listEl = document.getElementById('shorts-list');
+        if(listEl){
+            listEl.innerHTML = SHORTS_DATA.map(s=> renderShortsCard(s, false)).join('');
+        }
+    }
+
+    function renderShortsCard(s, featured){
+        const hasUrl = s.url && s.url.trim() !== '';
+        const badge = `<span style="background:${featured?'var(--primary-color)':'#E8E5E0'};color:${featured?'#fff':'#666'};font-size:13px;font-weight:bold;padding:3px 10px;border-radius:20px;">${s.theme}</span>`;
+        const epBadge = `<span style="font-size:14px;color:#888;font-weight:bold;">EP.${String(s.ep).padStart(2,'0')}</span>`;
+        const btn = hasUrl
+            ? `<a href="${s.url}" target="_blank" style="display:inline-block;background:var(--primary-color);color:#fff;font-size:15px;font-weight:bold;padding:8px 18px;border-radius:20px;text-decoration:none;white-space:nowrap;">▶ 보러가기</a>`
+            : `<span style="background:#F0F0F0;color:#aaa;font-size:15px;font-weight:bold;padding:8px 18px;border-radius:20px;">🔜 준비중</span>`;
+        return `<div style="background:#FFFFFF;border:1px solid #E8E5E0;border-radius:14px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;${featured?'border-color:var(--accent-color);':''}">
+            <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${epBadge}${badge}</div>
+                <div style="font-size:18px;font-weight:bold;color:var(--primary-color);line-height:1.4;">${s.title}</div>
+              </div>
+            <div style="flex-shrink:0;">${btn}</div>
+        </div>`;
+    }
+
+    // ===== 앱 시작 =====
+    document.addEventListener('DOMContentLoaded', function(){
+        // ★ 필사 입력창 붙여넣기 차단
+        document.addEventListener('paste', function(e){
+            if(e.target && e.target.id === 'memo-input'){
+                e.preventDefault();
+                showToast('붙여넣기는 안 돼요! 직접 손으로 써보세요 ✏️');
+            }
+        });
+
+        // ★ 등급/포인트 텍스트 자동 클릭 연결
+        function linkLevelAndPoint(){
+            // PT 텍스트 포함 요소 → 포인트 가이드
+            document.querySelectorAll('[id^="shorts-pt"]').forEach(el => {
+                if(!el.onclick) el.style.cursor = 'pointer';
+            });
+            // 등급명 텍스트 포함 span/div → 등급 가이드
+            const levelNames = ['씨앗','새싹','풀잎','확언러','실천가','인생2막러','라디오스타','인생챔피언'];
+            document.querySelectorAll('.affirmation-view, #view-home, #view-calendar, #view-shorts').forEach(view => {
+                view.querySelectorAll('span, div').forEach(el => {
+                    // 직접 텍스트만 있고 자식 없는 요소만
+                    if(el.children.length === 0 && el.onclick === null){
+                        const txt = el.textContent.trim();
+                        if(levelNames.some(n => txt.includes(n) && txt.length < 30)){
+                            el.style.cursor = 'pointer';
+                            el.onclick = openLevelGuide;
+                        }
+                        if(txt.includes('PT') && txt.length < 15 && /\d/.test(txt)){
+                            el.style.cursor = 'pointer';
+                            el.onclick = openPointGuide;
+                        }
+                    }
+                });
+            });
+        }
+        setTimeout(linkLevelAndPoint, 1500);
+
+        // ★ 구글 OAuth 처리
+        const _oauthHash = window.location.hash;
+        if(_oauthHash && _oauthHash.includes('access_token')){
+            const _oauthParams = new URLSearchParams(_oauthHash.substring(1));
+            const _oauthToken = _oauthParams.get('access_token');
+            if(_oauthToken){
+                history.replaceState(null, '', window.location.pathname);
+                fetch('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' + _oauthToken)
+                    .then(function(r){ return r.json(); })
+                    .then(function(info){
+                        if(info.email){
+                            // 새 탭에서 열린 경우: opener에게 postMessage 후 탭 닫기
+                            if(window.opener && !window.opener.closed){
+                                window.opener.postMessage({
+                                    type: 'oauth_email',
+                                    email: info.email,
+                                    name: info.name || ''
+                                }, '*');
+                                setTimeout(function(){ window.close(); }, 500);
+                            } else {
+                                // 리디렉션으로 온 경우: 기존 방식
+                                safeSetItem('oauth_pending_email', info.email);
+                                if(info.name) safeSetItem('oauth_pending_name', info.name);
+                            }
+                        }
+                    }).catch(function(){});
+            }
+        }
+
+        // ★ #psych 해시 & 카카오톡 처리 — 가장 먼저 실행
+        const _urlParams = new URLSearchParams(window.location.search);
+        const _hasPsychParam = _urlParams.get('psych')==='1' || window.location.hash === '#psych';
+        const _rParam = _urlParams.get('r');  // ★ 결과 공유 링크
+        const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+        const _isAndroid = /Android/i.test(navigator.userAgent);
+
+        // ★ ?r= 결과 공유 링크 처리 (최우선)
+        if(_rParam){
+            history.replaceState(null, '', location.pathname);
+            try {
+                const compact = JSON.parse(decodeURIComponent(atob(_rParam)));
+                const animalData = PSYCH_ANIMALS[compact.a];
+                if(animalData && compact.s){
+                    window._sharedResult = { typeKey:compact.a, animal:animalData, scores:compact.s, viaStrengths:compact.v||[] };
+                }
+            } catch(e){ console.log('결과 링크 오류', e); }
+        }
+
+        if((_hasPsychParam || _rParam) && _isKakao){
+            // 카톡 → 크롬으로 이동 (결과 링크 포함해서)
+            const _destUrl = _rParam
+                ? 'https://life2radio.github.io/affirmation/?r=' + encodeURIComponent(_rParam)
+                : (window.getPsychResultUrl() || 'https://life2radio.github.io/affirmation/?psych=1');
+            history.replaceState(null, '', window.location.pathname);
+            const psychUrl = _destUrl;
+            const pm = document.createElement('div');
+            pm.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
+            pm.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:12px;">🧠</div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:8px;">크롬에서 열어야 결과가 저장돼요!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
+                        카카오톡에서는 심리테스트 결과가<br>
+                        저장되지 않아요.<br>
+                        아래 버튼을 누르면 크롬이 열려요.<br><br>
+                        크롬 주소창에 <b>붙여넣기</b>만 하면<br>
+                        <b style="color:#1B4332;">결과가 저장되는 심리테스트</b>를 시작할 수 있어요 😊
+                    </div>
+                    <button id="psych-chrome-btn2" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                        🌿 인생확언 앱에서 심리테스트 시작하기
+                    </button>
+                </div>`;
+            document.body.appendChild(pm);
+            document.getElementById('psych-chrome-btn2').addEventListener('click', function(){
+                const t = document.createElement('textarea');
+                t.value = psychUrl; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); document.body.removeChild(t);
+                if(navigator.clipboard) navigator.clipboard.writeText(psychUrl).catch(()=>{});
+                this.textContent = '✅ 주소 복사됨! 크롬 열리면 붙여넣기 하세요';
+                this.style.background = '#2E7D32';
+                setTimeout(()=>{
+                    window.open('intent://life2radio.github.io/affirmation/?psych=1#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                }, 400);
+            });
+            // initApp은 "그냥 여기서" 버튼 클릭 시에만 실행
+
+        } else if(_isKakao && _isAndroid && !_hasPsychParam){
+            // 일반 카톡 → 기존 설치 안내 팝업
+            const appUrl = 'https://life2radio.github.io/affirmation/';
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#FFFFFF;border-radius:24px;padding:32px 24px;width:90%;max-width:380px;text-align:center;">
+                    <div style="font-size:40px;margin-bottom:12px;">🌿</div>
+                    <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:8px;">크롬에서 열어야 설치돼요!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.9;margin-bottom:20px;">
+                        카카오톡에서는 앱 설치가 안 돼요.<br>
+                        아래 버튼을 누르면<br>
+                        <b style="color:#1B4332;">주소가 자동 복사되고 크롬이 열려요.</b><br><br>
+                        크롬 주소창에 <b>붙여넣기</b>만 하면 끝! 😊
+                    </div>
+                    <button id="kakao-chrome-btn" style="width:100%;min-height:56px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
+                        🌿 인생확언 앱 열기
+                    </button>
+                </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('kakao-chrome-btn').addEventListener('click', function(){
+                const t = document.createElement('textarea');
+                t.value = appUrl; document.body.appendChild(t);
+                t.select(); document.execCommand('copy'); document.body.removeChild(t);
+                if(navigator.clipboard) navigator.clipboard.writeText(appUrl).catch(()=>{});
+                this.textContent = '✅ 주소 복사됨! 크롬 열리면 붙여넣기 하세요';
+                this.style.background = '#2E7D32';
+                setTimeout(()=>{
+                    window.open('intent://life2radio.github.io/affirmation/#Intent;scheme=https;package=com.android.chrome;end','_blank');
+                }, 400);
+            });
+            window.initApp();
+
+        } else {
+            // 일반 크롬/사파리
+            if(_hasPsychParam){
+                // ★ 심리테스트 모드: 설치 팝업 건너뛰고 바로 심리테스트
+                window._psychMode = true;
+                history.replaceState(null, '', window.location.pathname);
+                window.initApp();
+                window._psychMode = false;
+                setTimeout(()=>{ startPsychTest(); }, 600);
+            } else {
+                window.initApp();
+            }
+        }
+
+        // ★ 뒤로가기 처리 시스템
+        // 항상 뒤로가기를 가로채기 위해 dummy state push
+        history.pushState(null, null, location.href);
+
+        window.addEventListener('popstate', function(e){
+            // 다음 뒤로가기도 가로채기 위해 즉시 dummy state 재push
+            history.pushState(null, null, location.href);
+
+            // ── 1순위: 검색 모달 ──
+            var searchModal = document.getElementById('search-modal');
+            if(searchModal && searchModal.style.display !== 'none'){
+                searchModal.style.display = 'none';
+                return;
+            }
+
+            // ── 2순위: 공유 모달들 ──
+            var shareModal = document.getElementById('share-modal');
+            if(shareModal && shareModal.style.display !== 'none'){
+                shareModal.style.display = 'none';
+                return;
+            }
+            var shareAppModal = document.getElementById('share-app-modal');
+            if(shareAppModal && shareAppModal.style.display !== 'none'){
+                shareAppModal.style.display = 'none';
+                return;
+            }
+
+            // ── 3순위: BGM 모달 ──
+            var bgmModal = document.getElementById('bgm-modal');
+            if(bgmModal && bgmModal.style.display !== 'none'){
+                bgmModal.style.display = 'none';
+                return;
+            }
+
+            // ── 4순위: 기타 팝업 (style 속성에 fixed 포함된 것) ──
+            var skipIds = ['main-app','onboarding-overlay','search-modal',
+                'share-modal','share-app-modal','bgm-modal','toast-container'];
+            var allDivs = document.querySelectorAll('body > div');
+            var popup = null;
+            for(var i = allDivs.length - 1; i >= 0; i--){
+                var el = allDivs[i];
+                if(skipIds.indexOf(el.id) !== -1) continue;
+                var css = el.getAttribute('style') || '';
+                if(css.indexOf('fixed') !== -1 && el.style.display !== 'none'){
+                    popup = el; break;
+                }
+            }
+            if(popup){
+                try { popup.remove(); } catch(er){ popup.style.display = 'none'; }
+                return;
+            }
+
+            // ── 5순위: 이전 뷰로 이동 ──
+            if(window._viewHistory && window._viewHistory.length > 0){
+                var prev = window._viewHistory.pop();
+                window.switchView(prev, true);
+                return;
+            }
+
+            // ── 6순위: 홈이 아니면 홈으로 ──
+            if(window._currentView && window._currentView !== 'home'){
+                window._viewHistory = [];
+                window.switchView('home', true);
+                return;
+            }
+
+            // ── 7순위: 홈에서 두 번 뒤로가기 ──
+            if(window._backPressedOnce){
+                window._backPressedOnce = false;
+                window.history.go(-(window.history.length));
+                return;
+            }
+            window._backPressedOnce = true;
+            showToast('한 번 더 누르면 앱을 나가요.');
+            setTimeout(function(){ window._backPressedOnce = false; }, 2000);
+        });
+    });
+
