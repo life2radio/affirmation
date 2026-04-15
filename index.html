@@ -304,7 +304,7 @@
     <header>
         <a onclick="switchView('settings')" class="header-icon-btn" style="left:16px;" title="설정">⚙️</a>
         <a onclick="shareApp()" class="header-icon-btn" style="left:62px;" title="앱 공유">🔗</a>
-        <a onclick="startPsychTest()" class="header-icon-btn" style="left:108px;" title="심리테스트">🧠</a>
+        <a onclick="switchView('psych')" class="header-icon-btn" style="left:108px;" title="심리테스트">🧠</a>
         <span id="main-header-title">오늘의 확언</span>
         <a onclick="openSearch()" class="header-icon-btn" style="right:110px;" title="검색">🔍</a>
         <a id="header-bgm-btn" onclick="isBgmOn?(pauseBGM(),updateBgmUI()):openBgmSelector()" class="header-icon-btn" style="right:64px;font-size:1em;" title="배경음악">🎵</a>
@@ -3651,8 +3651,12 @@
                 🔄 30일 후 재검사로 변화를 숫자로 확인할 수 있어요
             </div>
             <button onclick="${done ? 'psychStartReal()' : 'psychStartReal()'}"
-                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:12px;">
+                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:10px;">
                 ${done ? '🔄 다시 테스트하기' : '🧠 지금 바로 시작하기 →'}
+            </button>
+            <button onclick="sharePsychInvite()"
+                style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:12px;">
+                📤 친구에게 심리테스트 추천하기
             </button>
             <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">약 10분 소요 · 무료 · 결과 저장됨</div>
             </div>
