@@ -3453,31 +3453,31 @@
 
     // ★ 빠른 테스트용 단축 문항
     const BFI_ITEMS_SHORT = [
-        // ── E 외향성 (4문항: 정2 + 역2) ──
+        // ── E 외향성 4문항 (BFI-44: E1,E8,E3,E2) ──
         { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
         { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
-        { id:'E3',  axis:'E', rev:true,  text:'나는 조용하고 내성적인 편이에요' },
-        { id:'E6',  axis:'E', rev:true,  text:'나는 혼자 있는 시간이 더 편하고 활력이 생겨요' },
-        // ── O 개방성 (4문항: 정2 + 역2) ──
+        { id:'E3',  axis:'E', rev:false, text:'나는 활기차고 에너지가 넘쳐요' },
+        { id:'E2',  axis:'E', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
+        // ── O 개방성 4문항 (BFI-44: O1,O2,O5,O9) ──
         { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
         { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
-        { id:'O5',  axis:'O', rev:true,  text:'나는 틀에 박힌 것이 더 편하고 변화를 선호하지 않아요' },
-        { id:'O7',  axis:'O', rev:true,  text:'나는 예술이나 창의적인 활동에 관심이 별로 없어요' },
-        // ── A 친화성 (4문항: 정2 + 역2) ──
+        { id:'O5',  axis:'O', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
+        { id:'O9',  axis:'O', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
+        // ── A 친화성 4문항 (BFI-44: A2,A7,A5,A3) ──
         { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
         { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
-        { id:'A3',  axis:'A', rev:true,  text:'나는 때로 다른 사람과 논쟁하거나 비판적이에요' },
-        { id:'A5',  axis:'A', rev:true,  text:'나는 나 자신의 이익을 먼저 챙기는 편이에요' },
-        // ── C 성실성 (4문항: 정2 + 역2) ──
+        { id:'A5',  axis:'A', rev:false, text:'나는 일반적으로 다른 사람을 믿는 편이에요' },
+        { id:'A3',  axis:'A', rev:true,  text:'나는 다른 사람과 다툴 때가 있어요' },
+        // ── C 성실성 4문항 (BFI-44: C1,C6,C5,C9) ──
         { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
         { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
-        { id:'C3',  axis:'C', rev:true,  text:'나는 즉흥적으로 행동하거나 계획 없이 움직이는 편이에요' },
-        { id:'C8',  axis:'C', rev:true,  text:'나는 쉽게 집중이 흐트러지고 마무리가 약한 편이에요' },
-        // ── N 정서안정성 (4문항: 정2 + 역2) ──
+        { id:'C5',  axis:'C', rev:true,  text:'나는 게으른 편이에요' },
+        { id:'C9',  axis:'C', rev:true,  text:'나는 쉽게 주의가 산만해지는 편이에요' },
+        // ── N 정서안정성 4문항 (BFI-44: N1,N4,N5,N7) ──
         { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
         { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
-        { id:'N6',  axis:'N', rev:true,  text:'나는 스트레스 상황에서도 비교적 침착하게 대처해요' },
-        { id:'N8',  axis:'N', rev:true,  text:'나는 감정이 안정적이고 잘 동요하지 않아요' },
+        { id:'N5',  axis:'N', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
+        { id:'N7',  axis:'N', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
     ];
     const RSE_ITEMS_SHORT = [
         // ★ 모두 정방향 (높은 점수 = 높은 자존감, 역문항 없음)
@@ -3675,10 +3675,7 @@
                 </div>
                 <button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;margin-bottom:8px;">💌 친구에게 테스트 추천하기</button>
                 ${isStandalone
-                    ? `<div style="display:flex;gap:8px;margin-top:8px;">
-                        <button onclick="downloadPsychResult()" style="flex:1;min-height:40px;background:var(--card-bg);color:#1B4332;border:1px solid #1B4332;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📥 이미지 저장</button>
-                        <button onclick="downloadPsychPDF()" style="flex:1;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📄 상세 PDF</button>
-                      </div>`
+                    ? `<button onclick="downloadPsychPDF()" style="width:100%;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;margin-top:8px;">📄 결과지 PDF 저장</button>`
                     : `<button onclick="document.getElementById('psych-modal').remove();installFromPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📲 앱 설치하기 → 결과 저장</button>`}
                 <div style="text-align:center;margin-top:10px;">
                     <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
@@ -4084,7 +4081,7 @@
         let r;
         try { r = JSON.parse(saved); } catch(e){ showToast('결과 데이터 오류'); return; }
         if(!r || !r.animal || !r.scores){ showToast('결과 데이터가 없어요. 테스트를 다시 완료해주세요.'); return; }
-        showToast('⏳ 이미지 생성 중...');
+        // ⏳ 토스트 제거 - 사용자 제스처 컨텍스트 유지
         try {
         const s = r.scores;
 
@@ -4360,13 +4357,17 @@
             return;
         }
 
-        // ★ 확언카드 저장과 동일한 방식
+        // ★ dataURL 전역 저장 + 확언카드와 동일한 방식
+        window._psychResultDataUrl = fc.toDataURL('image/png');
+        window._psychResultName = '인생확언_' + r.animal.name + '_결과지.png';
         const link = document.createElement('a');
-        link.download = '인생확언_' + r.animal.name + '_결과지.png';
-        link.href = fc.toDataURL('image/png');
+        link.download = window._psychResultName;
+        link.href = window._psychResultDataUrl;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         showToast('📥 결과지가 저장됐어요!');
-       }
+    }
     window.psychStartReal = function(mode){
         window._psychMode = mode || 'full'; // 전역으로 저장
         // 이전 검사 날짜 확인
@@ -4651,6 +4652,10 @@
                     window.removeEventListener('message', _pe);
                     const inp = document.getElementById('psych-email-input');
                     if(inp && e.data.email) inp.value = e.data.email;
+                    // ★ 이름도 함께 (기존 닉네임 없을 때만)
+                    if(e.data.name && !safeGetItem('my_nickname','')) {
+                        safeSetItem('my_nickname', e.data.name);
+                    }
                     showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
                 }
             });
@@ -4661,14 +4666,20 @@
         const val = (document.getElementById('psych-email-input')?.value || '').trim();
         if(val){
             safeSetItem('my_email', val);
-            const ni = document.getElementById('nickname-input');
             const ei = document.getElementById('user-email-input');
             if(ei) ei.value = val;
+            // ★ 심리테스트 이메일 등록 = 앱 가입으로 인정
+            if(safeGetItem('onboarding_done','') !== '1'){
+                safeSetItem('onboarding_done', '1');
+                addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
+            }
         }
         calcAndShowResult();
     }
 
     function calcAndShowResult(){
+        // ★ 이메일 없이 결과보기 여부 기록
+        if(!safeGetItem('my_email','')) window._psychNoEmailResult = true;
         // ★ 결과 완료 시에만 날짜 저장
         safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
         // BFI-44 채점
@@ -5288,7 +5299,33 @@
         const affEl = document.getElementById('psych-affirmation-text');
         if(affEl) affEl.textContent = '"' + (affirmations[animal.animal] || '나는 오늘도 충분히 괜찮은 사람이다') + '"';
 
-        // ★ 유형별 맞춤 확언으로 이동
+        // ② 심리테스트 이탈 시 앱설치 팝업 (MutationObserver)
+        // ④ 이메일 없이 결과보기 후 이탈 시 등록 팝업
+        (function(){
+            const _obs = new MutationObserver(function(mutations){
+                mutations.forEach(function(m){
+                    m.removedNodes.forEach(function(node){
+                        if(node.id !== 'psych-modal') return;
+                        _obs.disconnect();
+                        const _isStandalone = window.matchMedia('(display-mode:standalone)').matches || !!navigator.standalone;
+                        const _isDone = safeGetItem('onboarding_done','') === '1';
+                        setTimeout(function(){
+                            if(!_isDone && !_isStandalone){
+                                // ② 앱 미설치 → 앱설치 팝업
+                                showInstallPrompt && showInstallPrompt();
+                            } else if(window._psychNoEmailResult && !safeGetItem('my_email','')){
+                                // ④ 이메일 없이 결과본 사람 → 등록 팝업 (1회)
+                                window._psychNoEmailResult = false;
+                                showPsychRegisterPopup && showPsychRegisterPopup();
+                            }
+                        }, 400);
+                    });
+                });
+            });
+            _obs.observe(document.body, { childList: true });
+        })();
+
+                // ★ 유형별 맞춤 확언으로 이동
         (function(){
             var _targetDay = getAnimalAffirmationDay(animal.animal);
             var _themeMap = {
@@ -9927,7 +9964,60 @@ https://life2radio.github.io/affirmation/
     }
 
     // 첫 방문 포인트
-    function checkFirstVisit(){
+    // ★ 심리테스트 이메일없이 이탈 후 등록 팝업
+    function showPsychRegisterPopup(){
+        // 이미 등록돼 있으면 실행 안 함
+        if(safeGetItem('my_nickname','') && safeGetItem('my_email','')) return;
+        // 팝업 중복 방지
+        if(document.getElementById('psych-register-popup')) return;
+
+        const pop = document.createElement('div');
+        pop.id = 'psych-register-popup';
+        pop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        pop.innerHTML = `
+            <div style="background:var(--bg-color);border-radius:24px;padding:28px 24px;width:100%;max-width:360px;text-align:center;">
+                <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+                <div style="font-size:1.2em;font-weight:900;color:var(--primary-color);margin-bottom:8px;">결과를 저장해드릴게요!</div>
+                <div style="font-size:0.88em;color:var(--text-muted);line-height:1.8;margin-bottom:20px;">
+                    이름과 이메일을 등록하면<br>
+                    <b style="color:var(--accent-color);">30포인트</b>를 드리고<br>
+                    30일 후 성장을 비교할 수 있어요!
+                </div>
+                <input id="preg-name" type="text" placeholder="닉네임 (예: 김영희)"
+                    style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:10px;text-align:center;outline:none;">
+                <input id="preg-email" type="email" placeholder="이메일 (선택)"
+                    style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:16px;text-align:center;outline:none;">
+                <button id="preg-submit"
+                    style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
+                    ✅ 등록하고 30PT 받기
+                </button>
+                <button id="preg-skip"
+                    style="width:100%;min-height:40px;background:none;border:none;font-size:0.85em;color:var(--text-muted);cursor:pointer;">
+                    나중에 하기
+                </button>
+            </div>`;
+        document.body.appendChild(pop);
+
+        document.getElementById('preg-submit').addEventListener('click', function(){
+            const name = (document.getElementById('preg-name').value || '').trim();
+            const email = (document.getElementById('preg-email').value || '').trim();
+            if(!name){ showToast('닉네임을 입력해주세요!'); return; }
+            safeSetItem('my_nickname', name);
+            if(email) safeSetItem('my_email', email);
+            safeSetItem('onboarding_done', '1');
+            pop.remove();
+            addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
+            renderPointBar();
+            // 환영 팝업
+            setTimeout(function(){ checkFirstVisit(); }, 300);
+        });
+
+        document.getElementById('preg-skip').addEventListener('click', function(){
+            pop.remove();
+        });
+    }
+
+        function checkFirstVisit(){
         // ★ 이름 등록 안 한 경우 실행 안 함
         if(!safeGetItem('my_nickname','')) return;
         // ★ 단일 키 사용 (PWA/크롬 구분 없이 동일)
