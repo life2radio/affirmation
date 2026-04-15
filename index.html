@@ -3688,10 +3688,29 @@
                 📊 <b>정확도 약 90%</b> (BFI-44 기준)<br>
                 🔄 30일 후 재검사로 변화를 숫자로 확인할 수 있어요
             </div>
-            <button onclick="${done ? 'psychStartReal()' : 'psychStartReal()'}"
-                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:10px;">
-                ${done ? '🔄 다시 테스트하기' : '🧠 지금 바로 시작하기 →'}
-            </button>
+            <div style="background:#F0F7F4;border-radius:16px;padding:16px;margin-bottom:12px;">
+                <div style="font-size:0.85em;font-weight:700;color:#1B4332;text-align:center;margin-bottom:12px;">
+                    검사 방식을 선택해주세요
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button id="psych-quick-btn"
+                        style="width:100%;min-height:64px;background:#fff;color:#1B4332;border:2px solid #1B4332;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 18px;gap:12px;text-align:left;">
+                        <span style="font-size:1.7em;">⚡</span>
+                        <div>
+                            <div style="font-size:1em;font-weight:900;">빠른 테스트</div>
+                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 5분 · 20문항</div>
+                        </div>
+                    </button>
+                    <button id="psych-full-btn"
+                        style="width:100%;min-height:64px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 18px;gap:12px;text-align:left;">
+                        <span style="font-size:1.7em;">🔬</span>
+                        <div>
+                            <div style="font-size:1em;font-weight:900;">정밀 테스트</div>
+                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 12분 · 66문항 · 정확도 90%</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
             <button onclick="sharePsychInvite()"
                 style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:12px;">
                 📤 친구에게 심리테스트 추천하기
@@ -3700,6 +3719,17 @@
             </div>
         </div>`;
         document.body.appendChild(modal);
+        // ★ 빠른/정밀 버튼 이벤트 바인딩
+        var _qb = document.getElementById('psych-quick-btn');
+        var _fb = document.getElementById('psych-full-btn');
+        if(_qb) _qb.addEventListener('click', function(){
+            document.getElementById('psych-modal').remove();
+            psychStartReal('quick');
+        });
+        if(_fb) _fb.addEventListener('click', function(){
+            document.getElementById('psych-modal').remove();
+            psychStartReal('full');
+        });
         setTimeout(renderPsychPreview, 100);
     }
 
