@@ -3165,12 +3165,11 @@
 
     window.switchView = function switchView(viewName, _fromBack){
         if(typeof window.stopTTS==='function')stopTTS();
-        // history 스택 관리 (뒤로가기용)
+        // 뷰 히스토리 스택 관리
         if(!_fromBack){
             if(window._currentView && window._currentView !== viewName){
                 window._viewHistory.push(window._currentView);
             }
-            history.pushState({ view: viewName }, '');
         }
         window._currentView = viewName;
         document.querySelectorAll('.view-section').forEach(el=>el.classList.remove('active'));
@@ -10636,55 +10635,45 @@ https://life2radio.github.io/affirmation/
             }
         }
 
-        // ★ 뒤로가기 처리 시스템 (완전 재설계)
-        history.replaceState({ view: 'home' }, '');
-
-        // 모달 추가 시 history에 push
-        const _origAppendChild = document.body.appendChild.bind(document.body);
-        document.body.appendChild = function(el){
-            const result = _origAppendChild(el);
-            if(el && el.style && el.style.cssText && el.style.cssText.includes('position:fixed')
-               && el.style.cssText.includes('z-index')
-               && !el.id?.includes('onboarding')){
-                history.pushState({ modal: el.id || 'overlay' }, '');
-            }
-            return result;
-        };
+        // ★ 뒤로가기 처리 시스템
+        // 항상 뒤로가기를 가로채기 위해 dummy state push
+        history.pushState(null, null, location.href);
 
         window.addEventListener('popstate', function(e){
-            // 1순위: 열린 fixed 오버레이/모달 닫기
-            const fixedEls = Array.from(document.querySelectorAll('body > div[style*="position:fixed"]'))
-                .filter(el => el.style.display !== 'none'
-                    && !el.id?.includes('onboarding')
-                    && el.id !== 'main-app');
+            // 항상 dummy state 다시 push (다음 뒤로가기를 위해)
+            history.pushState(null, null, location.href);
+
+            // 1순위: 열린 팝업/모달/오버레이 닫기
+            const fixedEls = Array.from(document.querySelectorAll('body > div'))
+                .filter(el => {
+                    const s = el.style;
+                    return s.position === 'fixed'
+                        && s.display !== 'none'
+                        && !el.id.includes('onboarding')
+                        && el.id !== 'main-app'
+                        && el.id !== 'toast-container';
+                });
             if(fixedEls.length > 0){
                 const last = fixedEls[fixedEls.length - 1];
-                // 부드럽게 닫기
-                if(last.id) last.remove();
-                else last.style.display = 'none';
-                history.pushState({ view: window._currentView || 'home' }, '');
+                last.style.display = 'none';
+                try { last.remove(); } catch(e){}
                 return;
             }
 
-            // 2순위: 공유/검색 등 특수 UI 닫기
-            const shareModal = document.getElementById('share-modal');
-            if(shareModal && shareModal.style.display !== 'none'){
-                shareModal.style.display = 'none';
-                history.pushState({ view: window._currentView || 'home' }, '');
-                return;
-            }
-            const shareAppModal = document.getElementById('share-app-modal');
-            if(shareAppModal && shareAppModal.style.display !== 'none'){
-                shareAppModal.style.display = 'none';
-                history.pushState({ view: window._currentView || 'home' }, '');
-                return;
+            // 2순위: 특수 UI 닫기
+            const specials = ['share-modal','share-app-modal','bgm-modal'];
+            for(const id of specials){
+                const el = document.getElementById(id);
+                if(el && el.style.display !== 'none'){
+                    el.style.display = 'none';
+                    return;
+                }
             }
 
-            // 3순위: 이전 뷰로 이동
+            // 3순위: 이전 뷰로
             if(window._viewHistory && window._viewHistory.length > 0){
                 const prev = window._viewHistory.pop();
-                switchView(prev, true); // _fromBack=true → history 재push 안함
-                history.pushState({ view: prev }, '');
+                switchView(prev, true);
                 return;
             }
 
@@ -10692,19 +10681,17 @@ https://life2radio.github.io/affirmation/
             if(window._currentView && window._currentView !== 'home'){
                 window._viewHistory = [];
                 switchView('home', true);
-                history.pushState({ view: 'home' }, '');
                 return;
             }
 
-            // 5순위: 홈에서 뒤로가기 → 앱 종료 방지 + 안내
-            history.pushState({ view: 'home' }, '');
-            showToast('홈 화면이에요. 한 번 더 누르면 나가요.');
-            // 2초 내 한 번 더 누르면 실제 종료
+            // 5순위: 홈에서 뒤로가기
             if(window._backPressedOnce){
-                window.history.go(-window.history.length);
+                window._backPressedOnce = false;
+                history.go(-(history.length));
                 return;
             }
             window._backPressedOnce = true;
+            showToast('한 번 더 누르면 앱을 나가요.');
             setTimeout(function(){ window._backPressedOnce = false; }, 2000);
         });
     });
