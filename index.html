@@ -5389,7 +5389,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
     window._saveNicknameModal = function(){
         // ★ 동의 체크를 가장 먼저 확인
         const agreed = document.getElementById('nm-privacy-agree');
-        if(agreed && !agreed.checked){ showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return; }
+        if(!agreed || !agreed.checked){ showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return; }
         const nick  = (document.getElementById('nm-nick')?.value || '').trim();
         const email = (document.getElementById('nm-email')?.value || '').trim();
         if(!nick){ showToast('이름을 입력해주세요!'); return; }
@@ -8333,7 +8333,7 @@ https://life2radio.github.io/affirmation/
             const nickInput  = document.getElementById('ob-nick-input');
             const emailInput = document.getElementById('ob-email-input');
             const obAgree = document.getElementById('ob-privacy-agree');
-            if(obAgree && !obAgree.checked){
+            if(!obAgree || !obAgree.checked){
                 showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return;
             }
             if(!nickInput || !nickInput.value.trim()){
