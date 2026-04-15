@@ -5150,6 +5150,11 @@ https://life2radio.github.io/affirmation/?psych=1`;
     function showInstallPrompt(){
         // ★ 심리테스트 링크로 왔을 때는 설치 팝업 건너뜀
         if(window._psychMode){ initOnboarding(); return; }
+        // ★ 기존 사용 이력 있으면 설치 팝업 건너뜀 (크롬 재접속 시 첫 화면 방지)
+        const _hasExistingData = (parseInt(safeGetItem('user_points','0'))||0) > 0
+            || safeGetJSON('completed_dates',[]).length > 0
+            || safeGetItem('my_nickname','') !== '';
+        if(_hasExistingData){ initOnboarding(); return; }
         safeSetItem('install_prompt_v10','1');
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isAndroid = /Android/.test(navigator.userAgent);
