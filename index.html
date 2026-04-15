@@ -2681,6 +2681,7 @@
 
     window.shareCard = function(){
         addPoint(1,'확언카드공유','share_card');
+        window._sendShareLog('확언카드공유');
         const canvas = document.getElementById('share-canvas');
         canvas.toBlob(async (blob) => {
             if(navigator.share && navigator.canShare){
@@ -4897,6 +4898,7 @@ ${desc}
 
 너는 어떤 유형이야? 🧠
 👉 https://life2radio.github.io/affirmation/?psych=1`;
+        window._sendShareLog('심리결과공유', r.animal.name);
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 결과가 복사됐어요!')); }
     }
@@ -4916,6 +4918,7 @@ ${desc}
 
 👇 아래 링크에서 바로 시작하세요
 https://life2radio.github.io/affirmation/?psych=1`;
+        window._sendShareLog('심리테스트추천공유');
         if(navigator.share){ navigator.share({ text }).catch(()=>{}); }
         else { navigator.clipboard?.writeText(text).then(()=> showToast('📋 복사됐어요! 카톡에 붙여넣기 하세요')); }
     }
@@ -6891,6 +6894,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
 
     window.shareAppLink = function(){
         addPoint(2,'앱소개공유','share_app');
+        window._sendShareLog('앱링크공유');
         const url = 'https://life2radio.github.io/affirmation/';
         const text = '🌿 인생2막라디오 365일 확언 앱\n매일 나를 위한 한 문장. 무료예요 😊';
         if(navigator.share){
@@ -6916,6 +6920,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
 
     window.shareAppMessage = function(){
         addPoint(2,'앱소개공유','share_app');
+        window._sendShareLog('앱메시지공유');
         const msg = `🌿 인생2막라디오 365일 확언 앱
 
 오늘 하루, 나를 위한 한 문장을 읽는 것부터 시작해보세요.
@@ -7293,6 +7298,7 @@ https://life2radio.github.io/affirmation/
         if(!msg){ showToast('문구를 입력해주세요'); return; }
         document.getElementById('family-share-modal').style.display = 'none';
         addPoint(2,'가족공유','share_family');
+        window._sendShareLog('가족공유');
         if(navigator.share){
             navigator.share({ title:`${sender}의 확언`, text: msg })
                 .catch(function(e){ if(e.name!=='AbortError'){ copyToClipboard(msg); showToast('클립보드에 복사됐어요 📋'); } });
@@ -7305,6 +7311,7 @@ https://life2radio.github.io/affirmation/
 
     window.shareToFamilyFromCard = function(){
         addPoint(2,'가족카드공유','share_family_card');
+        window._sendShareLog('가족카드공유');
         const canvas = document.getElementById('share-canvas');
         const affirmEl = document.getElementById('affirmation-text');
         const sender   = safeGetItem('family_sender','엄마') || '엄마';
@@ -8239,6 +8246,7 @@ https://life2radio.github.io/affirmation/
 
     window.shareAfterComplete = function(){
         addPoint(2,'공유','share_aff');
+        window._sendShareLog('확언공유');
         const affirmEl = document.getElementById('affirmation-text');
         if(!affirmEl) return;
         const today = getTodayStr().replace(/(\d+)-(\d+)-(\d+)/, '$1년 $2월 $3일');
@@ -9411,6 +9419,19 @@ https://life2radio.github.io/affirmation/
         });
     }
 
+    // ★ 공유 기록
+    window._sendShareLog = function(shareType, extra){
+        _sheetSend({
+            action: 'share_log',
+            nickname: _getNick(),
+            email: _getEmail(),
+            device_id: _getDeviceId(),
+            share_type: shareType,
+            extra: extra || '',
+            date: getTodayStr()
+        });
+    }
+
     // ② 레벨업
     window._sendLevelUp = function(levelName){
         _sheetSend({
@@ -9712,6 +9733,7 @@ https://life2radio.github.io/affirmation/
 
     window.shareOracle = function(){
         addPoint(2,'한마디공유','share_oracle');
+        window._sendShareLog('한마디공유');
         const text = document.getElementById('oracle-affirmation-text')?.innerText || '';
         const theme = document.getElementById('oracle-theme-text')?.innerText || '';
         const msg = `✨ 오늘의 한마디\n\n${theme}\n"${text}"\n\n— 인생2막라디오 365일 확언 앱\n📱 확언 앱: https://life2radio.github.io/affirmation/\n📺 채널: https://www.youtube.com/@SecondActRadio`;
