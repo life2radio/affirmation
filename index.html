@@ -986,10 +986,10 @@
                     </div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <button onclick="psychStartReal('quick')" style="width:100%;min-height:54px;background:#fff;color:var(--primary-color);border:2px solid var(--primary-color);border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+                    <button onclick="pMode='quick';psychStartReal('quick')" style="width:100%;min-height:54px;background:#fff;color:var(--primary-color);border:2px solid var(--primary-color);border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
                         ⚡ 빠른 테스트 <span style="font-size:0.82em;opacity:0.7;">5분 · 20문항</span>
                     </button>
-                    <button onclick="psychStartReal('full')" style="width:100%;min-height:54px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+                    <button onclick="pMode='full';psychStartReal('full')" style="width:100%;min-height:54px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
                         🔬 정밀 테스트 <span style="font-size:0.82em;opacity:0.75;">12분 · 66문항</span>
                     </button>
                 </div>
@@ -3255,7 +3255,7 @@
                             <div style="font-size:0.8em;color:#C9A84C;font-weight:700;">🌱 현재: ${LEVELS[getLevel(getPoints())].emoji} ${LEVELS[getLevel(getPoints())].name}</div>
                             <div style="font-size:0.76em;color:rgba(255,255,255,0.7);margin-top:2px;">풀잎까지 <b style="color:#C9A84C;">${Math.max(0,150-getPoints())}PT</b> 남았어요! (약 6일)</div>
                         </div>
-                        <button onclick="switchView('home')" style="width:100%;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:12px;padding:12px;font-size:0.9em;font-weight:700;cursor:pointer;">오늘 확언 하러 가기 →</button>
+                        <button onclick="switchView('home')" style="width:100%;background:var(--accent-color);color:var(--primary-color);border:none;border-radius:12px;padding:12px;font-size:0.9em;font-weight:700;cursor:pointer;">🌿 오늘 확언 보러 가기</button>
                     </div>
                     <div style="font-size:0.78em;color:var(--text-muted);text-align:center;margin-top:8px;line-height:1.6;">
                         풀잎 달성 후 <b>실천 탭</b>을 다시 누르면 확언 처방전이 열려요 🌿
@@ -3479,7 +3479,30 @@
     function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
     function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
 
-    // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
+    // ★ 동물 유형별 추천 확언 day 매핑
+    function getAnimalAffirmationDay(animalEmoji){
+        const MAP = {
+            '🦁': 213,  // 사자 → 용기 (Day 213)
+            '🐘': 121,  // 코끼리 → 가족과 나 (Day 121)
+            '🦋': 335,  // 나비 → 완성된 나 (Day 335)
+            '🐺': 274,  // 늑대 → 관계 맺기 (Day 274)
+            '🐋': 91,   // 고래 → 감정의 주인 되기 (Day 91)
+            '🐆': 244,  // 표범 → 삶의 주도권 (Day 244)
+            '🦊': 182,  // 여우 → 습관과 뇌의 과학 (Day 182)
+            '🐢': 182,  // 거북이 → 습관과 뇌의 과학 (Day 182)
+            '🦉': 60,   // 올빼미 → 상처받은 나를 이해하기 (Day 60)
+            '🐯': 213,  // 호랑이 → 용기 (Day 213)
+            '🦌': 152,  // 사슴 → 자존감의 회복 (Day 152)
+            '🦅': 244,  // 독수리 → 삶의 주도권 (Day 244)
+            '🐝': 32,   // 꿀벌 → 관계를 다시 보다 (Day 32)
+            '🦢': 335,  // 백조 → 완성된 나 (Day 335)
+            '🐱': 152,  // 고양이 → 자존감의 회복 (Day 152)
+            '🦒': 1,    // 기린 → 새로 시작하는 나 (Day 1)
+        };
+        return MAP[animalEmoji] || 1;
+    }
+
+        // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
     function renderPsychPreview(){
         const CATEGORIES = [
             { icon:'💕', title:'연애 스타일', desc:'나는 어떤 방식으로 사랑하는 사람인가?', key:'love' },
@@ -3617,7 +3640,7 @@
                         <button onclick="downloadPsychResult()" style="flex:1;min-height:40px;background:var(--card-bg);color:#1B4332;border:1px solid #1B4332;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📥 이미지 저장</button>
                         <button onclick="downloadPsychPDF()" style="flex:1;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.82em;font-weight:700;cursor:pointer;">📄 상세 PDF</button>
                       </div>`
-                    : `<button onclick="document.getElementById('psych-modal').remove();showInstallPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📥 결과지 저장하려면 → 앱 설치하기</button>`}
+                    : `<button onclick="document.getElementById('psych-modal').remove();installFromPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📲 앱 설치하기 → 결과 저장</button>`}
                 <div style="text-align:center;margin-top:10px;">
                     <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
                 </div>
@@ -3723,10 +3746,12 @@
         var _qb = document.getElementById('psych-quick-btn');
         var _fb = document.getElementById('psych-full-btn');
         if(_qb) _qb.addEventListener('click', function(){
+            pMode = 'quick';
             document.getElementById('psych-modal').remove();
             psychStartReal('quick');
         });
         if(_fb) _fb.addEventListener('click', function(){
+            pMode = 'full';
             document.getElementById('psych-modal').remove();
             psychStartReal('full');
         });
@@ -4302,6 +4327,7 @@
                 return;
             }
         }
+        pMode = mode || 'full';
         _doPsychStart(mode);
     }
 
@@ -5071,9 +5097,9 @@
                     매일 아침 내 유형에 맞는 확언 한 문장으로<br>
                     <b style="color:#C9A84C;">뇌를 긍정적으로 바꾸는 365일 여정</b>을 시작해보세요.
                 </div>
-                <button onclick="document.getElementById('psych-modal').remove();setTimeout(function(){showInstallPrompt&&showInstallPrompt()||initOnboarding&&initOnboarding();},300);"
+                <button id="psych-result-main-cta"
                     style="width:100%;min-height:58px;background:#C9A84C;color:#1B4332;border:none;border-radius:14px;font-size:1.05em;font-weight:900;cursor:pointer;margin-bottom:10px;">
-                    🌿 무료로 확언 앱 시작하기
+                    🌿 내 유형 맞춤 확언 바로 보기 →
                 </button>
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.5);">
                     무료 · 홈화면 설치 가능 · 매일 알림
@@ -5126,9 +5152,9 @@
                     <div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>
                     <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">매일 무료로 받아보기</div>
                 </div>
-                <button onclick="document.getElementById('psych-modal').remove();setTimeout(function(){if(safeGetItem('onboarding_done','')==='1'){switchView('home');}else{showInstallPrompt?showInstallPrompt():initOnboarding();}},200);"
+                <button id="psych-result-cta-btn"
                     style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">
-                    🌿 앱 시작하기
+                    🌿 내 유형 확언 보러 가기
                 </button>
             </div>
         </div>`;
@@ -5154,6 +5180,38 @@
         };
         const affEl = document.getElementById('psych-affirmation-text');
         if(affEl) affEl.textContent = '"' + (affirmations[animal.animal] || '나는 오늘도 충분히 괜찮은 사람이다') + '"';
+
+        // ★ 유형별 맞춤 확언으로 이동
+        (function(){
+            var _targetDay = getAnimalAffirmationDay(animal.animal);
+            var _themeName = (function(){
+                var MAP = {
+                    213:'용기', 121:'가족과 나', 335:'완성된 나', 274:'관계 맺기',
+                    91:'감정의 주인 되기', 244:'삶의 주도권', 182:'습관과 뇌의 과학',
+                    60:'상처받은 나를 이해하기', 152:'자존감의 회복', 32:'관계를 다시 보다', 1:'새로 시작하는 나'
+                };
+                return MAP[_targetDay] || '오늘의 확언';
+            })();
+            function _goToAnim(){
+                document.getElementById('psych-modal').remove();
+                setTimeout(function(){
+                    if(safeGetItem('onboarding_done','') !== '1'){
+                        showInstallPrompt ? showInstallPrompt() : initOnboarding();
+                    } else {
+                        goToFav(_targetDay);
+                    }
+                }, 200);
+            }
+            // 하단 고정 배너 버튼
+            var ctaBtn = document.getElementById('psych-result-cta-btn');
+            if(ctaBtn){ ctaBtn.textContent = '🌿 ' + _themeName + ' 확언 보러 가기'; ctaBtn.addEventListener('click', _goToAnim); }
+            // 메인 CTA 버튼
+            var mainBtn = document.getElementById('psych-result-main-cta');
+            if(mainBtn){ mainBtn.addEventListener('click', _goToAnim); }
+            // 하단 배너 제목
+            var ctaTitle = document.getElementById('psych-cta-title');
+            if(ctaTitle) ctaTitle.textContent = animal.animal + String.fromCharCode(32) + animal.name + String.fromCharCode(32) + _themeName + String.fromCharCode(32) + '확언';
+        })();
     }
 
     // ★ 전체 결과 다시 보기 (버그 수정: 모달 제거하지 않고 바로 결과 표시)
