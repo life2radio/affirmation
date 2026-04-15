@@ -985,9 +985,14 @@
                         <div>🐢 거북이</div><div>🐝 꿀벌</div><div>🐱 고양이</div><div>🦌 사슴</div>
                     </div>
                 </div>
-                <button onclick="startPsychTest()" style="width:100%;min-height:56px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1.05em;font-weight:700;cursor:pointer;">
-                    🧠 지금 바로 시작하기 →
-                </button>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button onclick="psychStartReal('quick')" style="width:100%;min-height:54px;background:#fff;color:var(--primary-color);border:2px solid var(--primary-color);border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+                        ⚡ 빠른 테스트 <span style="font-size:0.82em;opacity:0.7;">5분 · 20문항</span>
+                    </button>
+                    <button onclick="psychStartReal('full')" style="width:100%;min-height:54px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+                        🔬 정밀 테스트 <span style="font-size:0.82em;opacity:0.75;">12분 · 66문항</span>
+                    </button>
+                </div>
                 <button onclick="sharePsychInvite()" style="width:100%;min-height:48px;background:var(--card-bg);color:var(--primary-color);border:2px solid var(--primary-color);border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-top:10px;">
                     📤 친구에게 심리테스트 추천하기
                 </button>
@@ -3208,7 +3213,8 @@
             switchMemoTab('write');
         } else if(viewName==='psych'){
             document.getElementById('view-psych').classList.add('active');
-            document.getElementById('nav-psych').classList.add('active');
+            const navPsych = document.getElementById('nav-psych');
+            if(navPsych) navPsych.classList.add('active');
         } else if(viewName==='story'){
             setTimeout(initStoryKakaoUI, 100);
             document.getElementById('view-story').classList.add('active');
@@ -3437,9 +3443,36 @@
     ];
 
     const EMOJI_SCALE = ['😫','😟','😐','🙂','😊','😄','🤩'];
+
+    // ★ 빠른 테스트용 단축 문항
+    const BFI_ITEMS_SHORT = [
+        { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
+        { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
+        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
+        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
+        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
+        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
+        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
+        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
+        { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
+        { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
+    ];
+    const RSE_ITEMS_SHORT = [
+        { id:'R1', rev:false, text:'나는 내가 적어도 다른 사람만큼 가치 있는 사람이라고 생각해요' },
+        { id:'R6', rev:false, text:'나는 나 자신에 대해 긍정적인 태도를 가지고 있어요' },
+        { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
+        { id:'R9', rev:true,  text:'나는 때때로 내가 쓸모없는 사람이라는 느낌이 들어요' },
+    ];
+    const VIA_ITEMS_SHORT = VIA_ITEMS.slice(0, 6);
+
     let pA = {}; // psychAnswers
     let pStep = 0;
+    let pMode = 'full'; // 'full' | 'quick'
     const P_TOTAL = INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length;
+    function getPTotal(){ return INFO_ITEMS.length + (pMode==='quick'?BFI_ITEMS_SHORT:BFI_ITEMS).length + (pMode==='quick'?RSE_ITEMS_SHORT:RSE_ITEMS).length + (pMode==='quick'?VIA_ITEMS_SHORT:VIA_ITEMS).length; }
+    function getBFI(){ return pMode==='quick' ? BFI_ITEMS_SHORT : BFI_ITEMS; }
+    function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
+    function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
 
     // ★ 심리테스트 미리보기 카드 렌더링 (완료 여부에 따라 잠금/해제)
     function renderPsychPreview(){
@@ -3650,15 +3683,39 @@
                 📊 <b>정확도 약 90%</b> (BFI-44 기준)<br>
                 🔄 30일 후 재검사로 변화를 숫자로 확인할 수 있어요
             </div>
-            <button onclick="${done ? 'psychStartReal()' : 'psychStartReal()'}"
-                style="width:100%;min-height:60px;background:#1B4332;color:#fff;border:none;border-radius:16px;font-size:1.1em;font-weight:900;cursor:pointer;margin-bottom:10px;">
-                ${done ? '🔄 다시 테스트하기' : '🧠 지금 바로 시작하기 →'}
-            </button>
+            <!-- 모드 선택 -->
+            <div style="background:#F0F7F4;border-radius:16px;padding:18px;margin-bottom:12px;">
+                <div style="font-size:0.88em;font-weight:700;color:#1B4332;text-align:center;margin-bottom:14px;">
+                    검사 방식을 선택해주세요
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button onclick="document.getElementById('psych-modal').remove();_doPsychStart('quick')"
+                        style="width:100%;min-height:68px;background:#fff;color:#1B4332;border:2px solid #1B4332;
+                        border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;
+                        display:flex;align-items:center;padding:0 18px;gap:14px;text-align:left;">
+                        <span style="font-size:1.8em;">⚡</span>
+                        <div>
+                            <div style="font-size:1.05em;font-weight:900;color:#1B4332;">빠른 테스트</div>
+                            <div style="font-size:0.82em;color:#666;margin-top:2px;">약 5분 · 20문항 · 핵심 결과 확인</div>
+                        </div>
+                    </button>
+                    <button onclick="document.getElementById('psych-modal').remove();_doPsychStart('full')"
+                        style="width:100%;min-height:68px;background:#1B4332;color:#fff;border:none;
+                        border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;
+                        display:flex;align-items:center;padding:0 18px;gap:14px;text-align:left;">
+                        <span style="font-size:1.8em;">🔬</span>
+                        <div>
+                            <div style="font-size:1.05em;font-weight:900;">정밀 테스트</div>
+                            <div style="font-size:0.82em;color:rgba(255,255,255,0.75);margin-top:2px;">약 12분 · 66문항 · 정확도 90% 완전 분석</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
             <button onclick="sharePsychInvite()"
                 style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:16px;font-size:0.95em;font-weight:700;cursor:pointer;margin-bottom:12px;">
                 📤 친구에게 심리테스트 추천하기
             </button>
-            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">약 10분 소요 · 무료 · 결과 저장됨</div>
+            <div style="text-align:center;font-size:0.78em;color:var(--text-muted);margin-bottom:30px;">무료 · 결과 저장됨</div>
             </div>
         </div>`;
         document.body.appendChild(modal);
@@ -4191,7 +4248,7 @@
         link.click();
         showToast('📥 결과지가 저장됐어요!');
     }
-    window.psychStartReal = function(){
+    window.psychStartReal = function(mode){
         // 이전 검사 날짜 확인
         const lastDate = safeGetItem('psych_last_date', '');
         if(lastDate){
@@ -4223,7 +4280,7 @@
                                 style="flex:1;min-height:48px;background:#F0F0F0;color:#555;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 나중에 할게요
                             </button>
-                            <button onclick="this.closest('div[style*=fixed]').remove();_doPsychStart();"
+                            <button onclick="this.closest('div[style*=fixed]').remove();_doPsychStart(mode);"
                                 style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
                                 지금 할게요
                             </button>
@@ -4233,30 +4290,32 @@
                 return;
             }
         }
-        _doPsychStart();
+        _doPsychStart(mode);
     }
 
-    function _doPsychStart(){
+    function _doPsychStart(mode){
+        pMode = mode || 'full';
         safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
         pA = {}; pStep = 0;
         showPsychStep(0);
     }
 
     function getPsychQuestion(step){
+        const BFI = getBFI(), RSE = getRSE(), VIA = getVIA();
         if(step < INFO_ITEMS.length) return { type:'info', data: INFO_ITEMS[step] };
         step -= INFO_ITEMS.length;
-        if(step < BFI_ITEMS.length) return { type:'bfi', data: BFI_ITEMS[step] };
-        step -= BFI_ITEMS.length;
-        if(step < RSE_ITEMS.length) return { type:'rse', data: RSE_ITEMS[step] };
-        step -= RSE_ITEMS.length;
-        return { type:'via', data: VIA_ITEMS[step] };
+        if(step < BFI.length) return { type:'bfi', data: BFI[step] };
+        step -= BFI.length;
+        if(step < RSE.length) return { type:'rse', data: RSE[step] };
+        step -= RSE.length;
+        return { type:'via', data: VIA[step] };
     }
 
     function showPsychStep(step){
         const existing = document.getElementById('psych-modal');
         if(existing) existing.remove();
 
-        const progress = Math.round(step / P_TOTAL * 100);
+        const progress = Math.round(step / getPTotal() * 100);
         const qInfo = getPsychQuestion(step);
         const { type, data } = qInfo;
 
@@ -4281,21 +4340,37 @@
         else if(type === 'bfi' || type === 'rse'){
             const key = type+'_'+data.id;
             const sel = pA[key] || null;
+            const LABELS = [
+                {t:'전혀 아니다', e:'😫', bg:'#f1f8e9'},
+                {t:'아니다',      e:'😟', bg:'#dcedc8'},
+                {t:'약간 아니다', e:'😐', bg:'#e8f5e9'},
+                {t:'보통이다',    e:'🙂', bg:'#fff9c4'},
+                {t:'약간 그렇다', e:'😊', bg:'#fff3e0'},
+                {t:'그렇다',      e:'😄', bg:'#ffe0b2'},
+                {t:'매우 그렇다', e:'🤩', bg:'#ffccbc'},
+            ];
             contentHTML = `
-                <div style="background:var(--card-bg);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid var(--border-color);">
-                    <div style="font-size:0.82em;color:var(--text-muted);text-align:center;margin-bottom:10px;">나와 얼마나 일치하나요?</div>
-                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
-                        ${EMOJI_SCALE.map((e,i)=>`
-                        <button onclick="pA['${key}']=${i+1};showPsychStep(${step})"
-                            style="padding:8px 2px;border-radius:10px;border:2px solid ${sel===i+1?'#1B4332':'var(--border-color)'};
-                            background:${sel===i+1?'#1B4332':'var(--card-bg)'};font-size:1.4em;cursor:pointer;
-                            display:flex;flex-direction:column;align-items:center;gap:2px;">
-                            ${e}
-                            <span style="font-size:0.5em;color:${sel===i+1?'#fff':'var(--text-muted)'};">${i+1}</span>
-                        </button>`).join('')}
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:0.95em;color:var(--text-muted);text-align:center;margin-bottom:14px;font-weight:600;">
+                        ✋ 나와 얼마나 일치하는지 눌러주세요
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:0.75em;color:var(--text-muted);margin-top:8px;padding:0 4px;">
-                        <span>전혀 아님</span><span>완전 그럼</span>
+                    <div style="display:flex;flex-direction:column;gap:9px;">
+                    ${LABELS.map((lb,i) => {
+                        const v = i+1;
+                        const picked = sel===v;
+                        return '<button onclick="pA[\''+key+'\']='+(v)+'; setTimeout(function(){psychGoNext('+step+');},200);"'
+                            +' style="width:100%;min-height:62px;border-radius:16px;'
+                            +'border:'+(picked?'3px solid #1B4332':'2px solid #e0e0e0')+';'
+                            +'background:'+(picked?'#1B4332':lb.bg)+';'
+                            +'color:'+(picked?'#fff':'#333')+';'
+                            +'font-weight:'+(picked?'900':'600')+';'
+                            +'cursor:pointer;display:flex;align-items:center;'
+                            +'gap:14px;padding:0 18px;transition:all 0.1s;">'
+                            +'<span style="font-size:1.8em;min-width:36px;text-align:center;">'+(lb.e)+'</span>'
+                            +'<span style="flex:1;font-size:1.05em;text-align:left;">'+(lb.t)+'</span>'
+                            +'<span style="font-size:0.82em;opacity:'+(picked?'0.8':'0.45')+';min-width:24px;text-align:right;">'+(v)+'점</span>'
+                            +'</button>';
+                    }).join('')}
                     </div>
                 </div>`;
         }
@@ -4304,11 +4379,14 @@
             const sel = pA[key];
             contentHTML = `<div style="display:flex;flex-direction:column;gap:12px;">
                 ${data.opts.map((o,i)=>`
-                <button onclick="pA['${key}']=${i};showPsychStep(${step})"
-                    style="padding:18px 16px;border-radius:16px;border:2px solid ${sel===i?'#1B4332':'var(--border-color)'};
-                    background:${sel===i?'#F0F7F4':'var(--card-bg)'};color:${sel===i?'#1B4332':'var(--text-color)'};
-                    font-size:1em;font-weight:${sel===i?'700':'400'};cursor:pointer;text-align:left;line-height:1.5;">
-                    ${sel===i?'✅ ':''}${o}</button>`).join('')}
+                <button onclick="pA['${key}']=${i};setTimeout(function(){psychGoNext(${step});},150);"
+                    style="padding:20px 18px;border-radius:16px;border:${sel===i?'3px solid #1B4332':'2px solid #ddd'};
+                    background:${sel===i?'#1B4332':'var(--card-bg)'};color:${sel===i?'#fff':'var(--text-color)'};
+                    font-size:1.1em;font-weight:${sel===i?'900':'600'};cursor:pointer;text-align:left;line-height:1.6;
+                    display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:1.2em">${sel===i?'✅':'⬜'}</span>
+                    <span>${o}</span>
+                    </button>`).join('')}
             </div>`;
         }
 
@@ -4323,7 +4401,7 @@
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
                             <span>${sectionLabel}</span>
-                            <span>${step+1} / ${P_TOTAL}</span>
+                            <span>${step+1} / ${getPTotal()}</span>
                         </div>
                         <div style="background:rgba(255,255,255,0.2);border-radius:4px;height:5px;">
                             <div style="background:#C9A84C;height:100%;border-radius:4px;width:${progress}%;transition:width 0.3s;"></div>
@@ -4332,7 +4410,12 @@
                 </div>
             </div>
             <div style="flex:1;padding:24px 20px 100px;">
-                <div style="font-size:1.15em;font-weight:700;color:var(--text-color);margin-bottom:20px;line-height:1.6;">
+                <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                    <span style="background:#1B4332;color:#C9A84C;border-radius:20px;padding:4px 14px;font-size:0.85em;font-weight:700;">
+                        ${step+1}번 문항
+                    </span>
+                </div>
+                <div style="font-size:1.25em;font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.7;">
                     ${data.text}
                 </div>
                 ${contentHTML}
@@ -4342,7 +4425,7 @@
                     style="flex:1;min-height:50px;background:var(--card-bg);color:var(--text-color);border:1px solid var(--border-color);border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">← 이전</button>` : ''}
                 <button onclick="psychGoNext(${step})"
                     style="flex:2;min-height:50px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
-                    ${step < P_TOTAL-1 ? '다음 →' : '결과 보기 🎉'}
+                    ${step < getPTotal()-1 ? '다음 →' : '결과 보기 🎉'}
                 </button>
             </div>`;
         document.body.appendChild(modal);
@@ -4356,14 +4439,14 @@
         if((type === 'bfi'||type === 'rse') && !pA[type+'_'+data.id]){ showToast('감정을 선택해주세요!'); return; }
         if(type === 'via' && pA['via_'+data.id] === undefined){ showToast('선택해주세요!'); return; }
 
-        if(step < P_TOTAL - 1){ showPsychStep(step + 1); }
+        if(step < getPTotal() - 1){ showPsychStep(step + 1); }
         else { calcAndShowResult(); }
     }
 
     function calcAndShowResult(){
         // BFI-44 채점
         const bfi = { E:[], O:[], A:[], C:[], N:[] };
-        BFI_ITEMS.forEach(item => {
+        getBFI().forEach(item => {
             let raw = pA['bfi_'+item.id] || 4;
             if(item.rev) raw = 8 - raw;
             bfi[item.axis].push(raw);
@@ -4378,7 +4461,7 @@
 
         // Rosenberg 채점
         let rseTotal = 0;
-        RSE_ITEMS.forEach(item => {
+        getRSE().forEach(item => {
             let raw = pA['rse_'+item.id] || 4;
             if(item.rev) raw = 8 - raw;
             rseTotal += raw;
@@ -4695,8 +4778,18 @@
 
     function showPsychResult(result){
         const modal = document.getElementById('psych-modal');
-        if(!modal) return;
-        const { animal, scores, viaStrengths } = result;
+        // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
+        // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
+        const _quickBadge = pMode==='quick'
+            ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>'
+            : '';
+        const _precisionCTA = pMode==='quick'
+            ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;">'
+              + '<div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div>'
+              + '<div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(66문항)로 연애·일·소비 스타일까지<br>완전 분석해보세요!</div>'
+              + '<button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button>'
+              + '</div>'
+            : '';
         const s = scores;
 
         const overall = getOverallDesc(s, animal);
@@ -4716,6 +4809,7 @@
             <!-- 결과 헤더 -->
             <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:40px 20px 30px;text-align:center;">
                 <div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:10px;">나의 확언 동물 유형</div>
+                ${_quickBadge}
                 <div style="font-size:90px;margin-bottom:8px;">${animal.animal}</div>
                 <div style="font-size:1.8em;font-weight:900;color:#fff;margin-bottom:4px;">${animal.name}</div>
                 <div style="font-size:1em;color:#C9A84C;font-weight:700;">"${animal.title}"</div>
@@ -4846,6 +4940,25 @@
                 <div style="font-size:1em;color:#fff;font-weight:700;line-height:1.7;" id="psych-affirmation-text">로딩 중...</div>
             </div>
 
+            <!-- ★ 앱 유입 CTA (심리테스트 링크로 온 신규 사용자 타깃) -->
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px 20px;margin-bottom:16px;text-align:center;">
+                <div style="font-size:1.4em;margin-bottom:8px;">${animal.animal}</div>
+                <div style="font-size:1.05em;font-weight:900;color:#C9A84C;margin-bottom:6px;">
+                    ${animal.name}에게 딱 맞는 확언이 있어요!
+                </div>
+                <div style="font-size:0.88em;color:rgba(255,255,255,0.85);line-height:1.8;margin-bottom:18px;">
+                    매일 아침 내 유형에 맞는 확언 한 문장으로<br>
+                    <b style="color:#C9A84C;">뇌를 긍정적으로 바꾸는 365일 여정</b>을 시작해보세요.
+                </div>
+                <button onclick="document.getElementById('psych-modal').remove();setTimeout(function(){showInstallPrompt&&showInstallPrompt()||initOnboarding&&initOnboarding();},300);"
+                    style="width:100%;min-height:58px;background:#C9A84C;color:#1B4332;border:none;border-radius:14px;font-size:1.05em;font-weight:900;cursor:pointer;margin-bottom:10px;">
+                    🌿 무료로 확언 앱 시작하기
+                </button>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.5);">
+                    무료 · 홈화면 설치 가능 · 매일 알림
+                </div>
+            </div>
+
             <!-- 공유 버튼 -->
             <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
                 <button onclick="sharePsychMyResult()"
@@ -4870,6 +4983,9 @@
                 </div>
             </div>
 
+            <!-- 빠른 테스트 → 정밀 테스트 유도 -->
+            ${_precisionCTA}
+
             <!-- 다시하기 / 확언 -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:30px;">
                 <button onclick="startPsychTest()"
@@ -4882,6 +4998,17 @@
                 </button>
             </div>
 
+            </div>
+            <!-- 하단 고정 앱 유입 배너 -->
+            <div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">
+                <div style="flex:1;">
+                    <div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>
+                    <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">매일 무료로 받아보기</div>
+                </div>
+                <button onclick="document.getElementById('psych-modal').remove();setTimeout(function(){if(safeGetItem('onboarding_done','')==='1'){switchView('home');}else{showInstallPrompt?showInstallPrompt():initOnboarding();}},200);"
+                    style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">
+                    🌿 앱 시작하기
+                </button>
             </div>
         </div>`;
 
