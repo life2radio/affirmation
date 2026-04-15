@@ -987,7 +987,7 @@
                 </div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
                     <button onclick="pMode='quick';psychStartReal('quick')" style="width:100%;min-height:54px;background:#fff;color:var(--primary-color);border:2px solid var(--primary-color);border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
-                        ⚡ 빠른 테스트 <span style="font-size:0.82em;opacity:0.7;">5분 · 20문항</span>
+                        ⚡ 빠른 테스트 <span style="font-size:0.82em;opacity:0.7;">8분 · 40문항</span>
                     </button>
                     <button onclick="pMode='full';psychStartReal('full')" style="width:100%;min-height:54px;background:var(--primary-color);color:#fff;border:none;border-radius:16px;font-size:1em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
                         🔬 정밀 테스트 <span style="font-size:0.82em;opacity:0.75;">12분 · 66문항</span>
@@ -3453,24 +3453,42 @@
 
     // ★ 빠른 테스트용 단축 문항
     const BFI_ITEMS_SHORT = [
+        // ── E 외향성 (4문항: 정2 + 역2) ──
         { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
         { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
-        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
-        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
-        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
-        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
-        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
-        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
+        { id:'E3',  axis:'E', rev:true,  text:'나는 조용하고 내성적인 편이에요' },
+        { id:'E6',  axis:'E', rev:true,  text:'나는 혼자 있는 시간이 더 편하고 활력이 생겨요' },
+        // ── O 개방성 (4문항: 정2 + 역2) ──
         { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
         { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
+        { id:'O5',  axis:'O', rev:true,  text:'나는 틀에 박힌 것이 더 편하고 변화를 선호하지 않아요' },
+        { id:'O7',  axis:'O', rev:true,  text:'나는 예술이나 창의적인 활동에 관심이 별로 없어요' },
+        // ── A 친화성 (4문항: 정2 + 역2) ──
+        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
+        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
+        { id:'A3',  axis:'A', rev:true,  text:'나는 때로 다른 사람과 논쟁하거나 비판적이에요' },
+        { id:'A5',  axis:'A', rev:true,  text:'나는 나 자신의 이익을 먼저 챙기는 편이에요' },
+        // ── C 성실성 (4문항: 정2 + 역2) ──
+        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
+        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
+        { id:'C3',  axis:'C', rev:true,  text:'나는 즉흥적으로 행동하거나 계획 없이 움직이는 편이에요' },
+        { id:'C8',  axis:'C', rev:true,  text:'나는 쉽게 집중이 흐트러지고 마무리가 약한 편이에요' },
+        // ── N 정서안정성 (4문항: 정2 + 역2) ──
+        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
+        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
+        { id:'N6',  axis:'N', rev:true,  text:'나는 스트레스 상황에서도 비교적 침착하게 대처해요' },
+        { id:'N8',  axis:'N', rev:true,  text:'나는 감정이 안정적이고 잘 동요하지 않아요' },
     ];
     const RSE_ITEMS_SHORT = [
+        // ★ 모두 정방향 (높은 점수 = 높은 자존감, 역문항 없음)
         { id:'R1', rev:false, text:'나는 내가 적어도 다른 사람만큼 가치 있는 사람이라고 생각해요' },
+        { id:'R2', rev:false, text:'나는 좋은 자질을 많이 가지고 있다고 생각해요' },
+        { id:'R4', rev:false, text:'나는 대부분의 사람들처럼 일을 잘 할 수 있어요' },
         { id:'R6', rev:false, text:'나는 나 자신에 대해 긍정적인 태도를 가지고 있어요' },
         { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
-        { id:'R9', rev:true,  text:'나는 때때로 내가 쓸모없는 사람이라는 느낌이 들어요' },
+        { id:'Rx', rev:false, text:'나는 나 자신을 충분히 좋아하고 존중해요' },
     ];
-    const VIA_ITEMS_SHORT = VIA_ITEMS.slice(0, 6);
+    const VIA_ITEMS_SHORT = VIA_ITEMS.slice(0, 14);
 
     let pA = {}; // psychAnswers
     let pStep = 0;
@@ -3742,7 +3760,7 @@
                         <span style="font-size:1.7em;">⚡</span>
                         <div>
                             <div style="font-size:1em;font-weight:900;">빠른 테스트</div>
-                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 5분 · 20문항</div>
+                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 8분 · 40문항</div>
                         </div>
                     </button>
                     <button id="psych-full-btn"
