@@ -3479,7 +3479,7 @@
     function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
     function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
 
-    // ★ 동물 유형별 추천 확언 - 오늘까지 지난 날 중 해당 테마에서 찾기
+    // ★ 동물 유형별 추천 확언 - 날짜 제한 없이 테마 첫 확언으로 이동
     function goToAnimalTheme(animalEmoji){
         var themeMap = {
             '🦁':'용기','🐘':'가족과 나','🦋':'완성된 나','🐺':'관계 맺기',
@@ -3489,18 +3489,13 @@
             '🦢':'완성된 나','🐱':'자존감의 회복','🦒':'새로 시작하는 나'
         };
         var targetTheme = themeMap[animalEmoji] || '새로 시작하는 나';
-        // 오늘 기준 day 계산
-        var minDateA = new Date(todayObj.getFullYear(),0,1);
-        var todayDc = Math.floor((todayObj - minDateA)/86400000)+1;
-        // 해당 테마 중 오늘 이전 항목 찾기
-        var matched = affirmationsData.filter(function(d){ return d.theme===targetTheme && d.day<=todayDc; });
-        if(matched.length === 0){
-            // 없으면 그냥 Day 1
-            matched = [affirmationsData[0]];
-        }
-        // 가장 최근 것 선택
-        var pick = matched[matched.length-1];
-        selectedDateObj = new Date(minDateA.getTime()+(pick.day-1)*86400000);
+        // 테마의 첫 번째 항목 찾기 (날짜 제한 없음)
+        var pick = affirmationsData.find(function(d){ return d.theme === targetTheme; });
+        if(!pick) pick = affirmationsData[0];
+        // ★ 날짜 제한 없이 직접 배열 인덱스로 이동
+        var idx = affirmationsData.indexOf(pick);
+        // renderMode: 인덱스 기반으로 확언 표시
+        window._forceAffirmationIdx = idx;
         switchView('home');
         setTimeout(function(){
             var el = document.getElementById('affirmation-view');
@@ -3869,7 +3864,7 @@
         const css = [
             '*{margin:0;padding:0;box-sizing:border-box;}',
             'body{font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:#F5F3EF;color:#333;font-size:14px;line-height:1.7;}',
-            '.page{max-width:720px;margin:0 auto;padding:20px;}',
+            '.page{max-width:100%;margin:0;padding:16px;box-sizing:border-box;}',
             '.header{background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border-radius:20px;padding:40px 32px;text-align:center;margin-bottom:20px;}',
             '.badge{display:inline-block;background:rgba(212,168,67,0.2);border:1px solid rgba(212,168,67,0.5);border-radius:20px;padding:6px 20px;font-size:12px;color:#C9A84C;font-weight:700;margin-bottom:16px;letter-spacing:2px;}',
             '.animal{font-size:80px;margin-bottom:8px;}',
@@ -4342,30 +4337,32 @@
             return;
         }
 
-        // ★ Blob URL 방식 (모바일/PC 모두 작동)
-        fc.toBlob(function(blob){
-            if(!blob){ showToast('이미지 생성 실패. 다시 시도해주세요.'); return; }
-            const fileName = '인생확언_' + r.animal.name + '_결과지.png';
-
-            // iOS Safari: navigator.share 사용
-            if(/iPhone|iPad/i.test(navigator.userAgent) && navigator.share){
-                const file = new File([blob], fileName, {type:'image/png'});
-                navigator.share({files:[file], title:r.animal.name+'형 결과지'})
-                    .catch(function(){ showToast('공유를 취소했어요.'); });
-                return;
-            }
-
-            // Android + PC: Blob URL 다운로드
-            const blobUrl = URL.createObjectURL(blob);
+        // ★ 새 탭에서 이미지 열기 (꾹 눌러 저장 - 가장 호환성 높은 방법)
+        const dataUrl = fc.toDataURL('image/png');
+        const win = window.open('', '_blank');
+        if(win){
+            win.document.write(
+                '<html><head><title>결과지 저장</title>'
+                + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                + '<style>body{margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;}'
+                + 'img{max-width:100%;height:auto;border-radius:12px;}'
+                + 'p{color:#fff;font-size:14px;margin:16px;text-align:center;line-height:1.8;font-family:sans-serif;}'
+                + '</style></head><body>'
+                + '<p>📥 이미지를 꾹 눌러서 저장해주세요<br><small style="opacity:0.6">안드로이드: 이미지 다운로드 / 아이폰: 사진에 추가</small></p>'
+                + '<img src="' + dataUrl + '" alt="결과지">'
+                + '</body></html>'
+            );
+            win.document.close();
+        } else {
+            // 팝업 차단된 경우 현재 탭에서 열기
             const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = fileName;
+            a.href = dataUrl;
+            a.download = '인생확언_' + r.animal.name + '_결과지.png';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 3000);
-            showToast('📥 결과지가 다운로드됐어요!');
-        }, 'image/png');
+        }
+        showToast('📥 새 탭에서 이미지를 꾹 눌러 저장하세요!');
     }
     window.psychStartReal = function(mode){
         window._psychMode = mode || 'full'; // 전역으로 저장
@@ -4622,10 +4619,10 @@
             + '<div style="flex:1;text-align:center;font-size:0.9em;color:rgba(255,255,255,0.8);font-weight:700;">거의 다 됐어요! 🎉</div>'
             + '</div></div>'
             + '<div style="flex:1;padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">'
-            + '<div style="font-size:64px;margin-bottom:16px;">📧</div>'
-            + '<div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:10px;">결과를 이메일로 받아보세요!</div>'
+            + '<div style="font-size:64px;margin-bottom:16px;">📱</div>'
+            + '<div style="font-size:1.3em;font-weight:900;color:var(--primary-color);margin-bottom:10px;">이메일을 등록하면 결과가 저장돼요!</div>'
             + '<div style="font-size:0.9em;color:var(--text-muted);line-height:1.8;margin-bottom:28px;">'
-            + '이메일을 등록하면 결과가 저장되고<br>30일 후 변화를 비교할 수 있어요.<br>'
+            + '이메일을 등록하면 앱에 결과가 저장되고<br>30일 후 변화를 숫자로 비교할 수 있어요.<br>'
             + '<span style="color:#C9A84C;font-weight:700;">이메일 없이도 결과 확인 가능해요!</span>'
             + '</div>'
             + '<div style="width:100%;max-width:360px;">'
@@ -5349,6 +5346,23 @@
     }
 
     // ★ 내 결과 공유 (유형별 상세 소개 포함)
+    // ★ 결과 링크 생성 함수
+    window.getPsychResultUrl = function(){
+        const saved = safeGetItem('psych_result_v2','');
+        if(!saved) return null;
+        try {
+            // 핵심 데이터만 인코딩 (URL 길이 최소화)
+            const r = JSON.parse(saved);
+            const compact = {
+                a: r.typeKey || '',          // 동물 키
+                s: r.scores,                 // 점수
+                v: r.viaStrengths || [],     // VIA 강점
+            };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(compact)));
+            return 'https://life2radio.github.io/affirmation/?r=' + encoded;
+        } catch(e){ return null; }
+    };
+
     window.sharePsychMyResult = function(){
         const saved = safeGetItem('psych_result_v2','');
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
@@ -5776,6 +5790,30 @@ https://life2radio.github.io/affirmation/?psych=1`;
     
     initApp = function initApp(){
         applyStoredSettings();
+
+        // ★ ?r= 결과 공유 링크 처리
+        if(window._sharedResult){
+            const fakeResult = window._sharedResult;
+            window._sharedResult = null;
+            currentMode = safeGetItem('app_mode','A');
+            selectedDateObj = new Date(todayObj);
+            switchMode(currentMode);
+            isBgmOn = safeGetItem('bgm_state','off')==='on';
+            updateBgmUI(); initBanner(); renderPointBar(); switchView('home');
+            setTimeout(function(){
+                const m = document.createElement('div');
+                m.id = 'psych-modal';
+                m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+                document.body.appendChild(m);
+                showPsychResult(fakeResult);
+                const banner = document.createElement('div');
+                banner.id = 'shared-result-banner';
+                banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#C9A84C;color:#1B4332;text-align:center;padding:10px 16px;font-size:0.9em;font-weight:700;z-index:100000;box-sizing:border-box;';
+                // 배너 설정 완료
+                document.body.appendChild(banner);
+            }, 500);
+            return;
+        }
         restoreNotifSchedule();
         initSolidarity();
         loadSheetData();
@@ -6339,6 +6377,18 @@ https://life2radio.github.io/affirmation/?psych=1`;
     function updateCompleteButton(){const btn=document.getElementById('btn-complete');if(!btn)return;const icon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';if(!isToday){btn.style.display='none';}else{btn.style.display='flex';const completed=safeGetJSON('completed_dates',[]);if(completed.includes(getFormatDate(selectedDateObj))){btn.innerHTML=icon+'완료됨';btn.disabled=true;}else{btn.innerHTML=icon+'오늘 완료 체크';btn.disabled=false;}}}
 
     window.renderScreen = function renderScreen(){
+        // ★ 특정 확언 인덱스로 강제 이동 (날짜 제한 없이)
+        if(window._forceAffirmationIdx !== undefined && window._forceAffirmationIdx !== null){
+            const _fi = window._forceAffirmationIdx;
+            window._forceAffirmationIdx = null;
+            const _pick = affirmationsData[_fi];
+            if(_pick){
+                // 날짜 제한 없이 minDateA + _fi 일로 이동
+                const _minA = new Date(todayObj.getFullYear(), 0, 1);
+                selectedDateObj = new Date(_minA.getTime() + _fi * 86400000);
+                // 미래 날짜라도 허용
+            }
+        }
         const sv=document.getElementById('start-view'),av=document.getElementById('affirmation-view');
         isToday=(getFormatDate(selectedDateObj)===getFormatDate(todayObj));
         document.getElementById('readonly-banner').style.display=isToday?'none':'block';
@@ -11093,16 +11143,28 @@ https://life2radio.github.io/affirmation/
         }
 
         // ★ #psych 해시 & 카카오톡 처리 — 가장 먼저 실행
-        const _hasPsychParam = 
-            new URLSearchParams(window.location.search).get('psych')==='1' ||
-            window.location.hash === '#psych';
+        const _urlParams = new URLSearchParams(window.location.search);
+        const _hasPsychParam = _urlParams.get('psych')==='1' || window.location.hash === '#psych';
+        const _rParam = _urlParams.get('r');  // ★ 결과 공유 링크
         const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
         const _isAndroid = /Android/i.test(navigator.userAgent);
+
+        // ★ ?r= 결과 공유 링크 처리 (최우선)
+        if(_rParam && !_isKakao){
+            history.replaceState(null, '', location.pathname);
+            try {
+                const compact = JSON.parse(decodeURIComponent(atob(_rParam)));
+                const animalData = PSYCH_ANIMALS[compact.a];
+                if(animalData && compact.s){
+                    window._sharedResult = { typeKey:compact.a, animal:animalData, scores:compact.s, viaStrengths:compact.v||[] };
+                }
+            } catch(e){ console.log('결과 링크 오류', e); }
+        }
 
         if(_hasPsychParam && _isKakao){
             // #psych 링크 + 카톡 → 심리테스트 전용 크롬 이동 팝업
             history.replaceState(null, '', window.location.pathname);
-            const psychUrl = 'https://life2radio.github.io/affirmation/?psych=1';
+            const psychUrl = window.getPsychResultUrl() || 'https://life2radio.github.io/affirmation/?psych=1';
             const pm = document.createElement('div');
             pm.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:999999;display:flex;align-items:center;justify-content:center;';
             pm.innerHTML = `
