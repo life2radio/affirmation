@@ -304,7 +304,7 @@
     <header>
         <a onclick="switchView('settings')" class="header-icon-btn" style="left:16px;" title="설정">⚙️</a>
         <a onclick="shareApp()" class="header-icon-btn" style="left:62px;" title="앱 공유">🔗</a>
-        <a onclick="switchView('psych')" class="header-icon-btn" style="left:108px;" title="심리테스트">🧠</a>
+        <a onclick="startPsychTest()" class="header-icon-btn" style="left:108px;" title="심리테스트">🧠</a>
         <span id="main-header-title">오늘의 확언</span>
         <a onclick="openSearch()" class="header-icon-btn" style="right:110px;" title="검색">🔍</a>
         <a id="header-bgm-btn" onclick="isBgmOn?(pauseBGM(),updateBgmUI()):openBgmSelector()" class="header-icon-btn" style="right:64px;font-size:1em;" title="배경음악">🎵</a>
@@ -4314,7 +4314,12 @@
 
     function showPsychStep(step){
         const existing = document.getElementById('psych-modal');
-        if(existing) existing.remove();
+        // ★ 같은 step 재렌더 시 스크롤 위치 저장
+        let _savedScroll = 0;
+        if(existing){
+            _savedScroll = existing.scrollTop;
+            existing.remove();
+        }
 
         const progress = Math.round(step / getPTotal() * 100);
         const qInfo = getPsychQuestion(step);
@@ -4447,6 +4452,12 @@
                 </button>
             </div>`;
         document.body.appendChild(modal);
+        // ★ 스크롤 위치 복원
+        if(_savedScroll > 0){
+            requestAnimationFrame(function(){
+                modal.scrollTop = _savedScroll;
+            });
+        }
     }
 
     window.psychGoNext = function(step){
@@ -5291,12 +5302,13 @@ https://life2radio.github.io/affirmation/?psych=1`;
     }
 
     window._saveNicknameModal = function(){
+        // ★ 동의 체크를 가장 먼저 확인
+        const agreed = document.getElementById('nm-privacy-agree');
+        if(agreed && !agreed.checked){ showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return; }
         const nick  = (document.getElementById('nm-nick')?.value || '').trim();
         const email = (document.getElementById('nm-email')?.value || '').trim();
         if(!nick){ showToast('이름을 입력해주세요!'); return; }
         if(!email){ showToast('이메일을 입력해주세요!'); return; }
-        const agreed = document.getElementById('nm-privacy-agree');
-        if(agreed && !agreed.checked){ showToast('개인정보 수집 동의를 체크해주세요!'); return; }
         safeSetItem('my_nickname', nick);
         safeSetItem('my_email', email);
         const ni = document.getElementById('nickname-input');
@@ -5392,6 +5404,16 @@ https://life2radio.github.io/affirmation/?psych=1`;
         }
         safeSetItem('my_email', val);
         syncNicknameEmail();
+
+        // ★ 관리자 모드 체크 (이메일 저장 시)
+        const curNick = safeGetItem('my_nickname','');
+        if(val === 'life2radio@gmail.com' && curNick === '인생2막관리자'){
+            setPoints(9999);
+            renderPointBar();
+            showToast('👑 관리자 모드 활성화!');
+            return;
+        }
+
         showToast('📧 이메일이 저장됐어요!');
         window._sendUserUpdate();
         window._sendUserRegister('이메일설정');
