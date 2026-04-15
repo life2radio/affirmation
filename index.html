@@ -2862,7 +2862,8 @@
         }
         // ★ bypassCap=true면 미래 날짜도 허용
         if(!bypassCap && selectedDateObj>todayObj) selectedDateObj=new Date(todayObj);
-        if(bypassCap) window._bypassDateCap = true;
+        // ★ bypassCap은 switchView 전에 반드시 설정 (renderScreen이 내부에서 실행됨)
+        window._bypassDateCap = !!bypassCap;
         switchView('home');
     }
 
@@ -4341,16 +4342,12 @@
             return;
         }
 
-        // ★ toDataURL 동기 다운로드 (클릭 제스처 컨텍스트 유지 - Android 필수)
-        var _imgData = fc.toDataURL('image/png');
-        var _a = document.createElement('a');
-        _a.href = _imgData;
-        _a.download = '인생확언_' + r.animal.name + '_결과지.png';
-        _a.style.display = 'none';
-        document.body.appendChild(_a);
-        _a.click();
-        document.body.removeChild(_a);
-        showToast('📥 다운로드됐어요! 화면 상단 알림이나 갤러리를 확인해주세요.');
+        // ★ 확언카드 저장과 동일한 방식
+        const link = document.createElement('a');
+        link.download = '인생확언_' + r.animal.name + '_결과지.png';
+        link.href = fc.toDataURL('image/png');
+        link.click();
+        showToast('📥 결과지가 저장됐어요!');
        }
     window.psychStartReal = function(mode){
         window._psychMode = mode || 'full'; // 전역으로 저장
