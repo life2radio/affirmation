@@ -4891,6 +4891,11 @@ https://life2radio.github.io/affirmation/?psych=1`;
             setTimeout(function(){ clearInterval(timer); if(popup && !popup.closed) popup.close(); }, 30000);
         } else {
             // 모바일: 리디렉션 방식 (팝업 차단됨)
+            // ★ 리디렉션 전에 키 미리 저장 (돌아왔을 때 첫방문 팝업/레벨업 방지)
+            const isStandalone2 = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+            safeSetItem(isStandalone2 ? 'pt_first_standalone' : 'pt_first_visit', '1');
+            safeSetItem('install_prompt_v10', '1');
+            safeSetItem('oauth_in_progress', '1');
             // 현재 입력된 이름 임시 저장
             const nickEl = document.getElementById('nm-nick') || document.getElementById('ob-nick-input');
             if(nickEl && nickEl.value) safeSetItem('oauth_pending_nick_tmp', nickEl.value);
@@ -4999,6 +5004,10 @@ https://life2radio.github.io/affirmation/?psych=1`;
 
         window._sendUserUpdate();
         window._sendUserRegister('이름모달등록');
+        // ★ 이름+이메일 등록 완료 → 첫 방문 포인트 지급
+        const _savedNick = safeGetItem('my_nickname','');
+        const _savedEmail = safeGetItem('my_email','');
+        if(_savedNick && _savedEmail) checkFirstVisit();
         initOnboarding();
     }
 
@@ -5144,9 +5153,11 @@ https://life2radio.github.io/affirmation/?psych=1`;
         loadSheetData();
         setTimeout(renderPsychPreview, 500);
 
-        // ★ OAuth 리디렉션 후 복귀 처리
+        // ★ OAuth 리디렉션 후 복귀 처리 (oauth_in_progress 플래그로도 감지)
+        const _oauthInProgress = safeGetItem('oauth_in_progress','') === '1';
+        if(_oauthInProgress){ safeSetItem('oauth_in_progress',''); }
         const _pendingEmail = safeGetItem('oauth_pending_email','');
-        if(_pendingEmail){
+        if(_pendingEmail || _oauthInProgress){
             // 이메일 저장 후 온보딩만 재개 (설치팝업/레벨업 건너뜀)
             safeSetItem('my_email', _pendingEmail);
             const _pendingName = safeGetItem('oauth_pending_name','');
@@ -5167,10 +5178,13 @@ https://life2radio.github.io/affirmation/?psych=1`;
             renderPointBar();
             switchView('home');
             // 이름이 없으면 이름 등록 모달만 표시
-            if(!safeGetItem('my_nickname','')){
-                setTimeout(function(){ window.showNicknameModal && window.showNicknameModal(); }, 500);
+            if(!safeGetItem('my_nickname','') || !safeGetItem('my_email','')){
+                // 이름/이메일 미등록 → 등록 모달만 표시 (레벨업/온보딩 없음)
+                setTimeout(function(){
+                    if(window.showNicknameModal) window.showNicknameModal();
+                }, 300);
             } else {
-                showToast('✅ 구글 이메일이 연결됐어요! ' + _pendingEmail);
+                if(_pendingEmail) showToast('✅ 구글 이메일이 연결됐어요!');
                 initOnboarding();
             }
             return;
@@ -5775,7 +5789,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
         renderHomeYTRecommend();
         renderNicknameGreeting();
         check100DayNotify();
-        checkFirstVisit();
+        // checkFirstVisit은 온보딩 완료 후 실행 (등록 전 레벨업 팝업 방지)
         renderAbsenceBanner(null);
         renderOracleBtn(); // 배너만 표시 (삭감/하락은 initApp에서만)
         // 기분 전 제목에 닉네임 적용
@@ -7850,6 +7864,7 @@ https://life2radio.github.io/affirmation/
                     // 이미 등록 → 온보딩 완료
                     document.getElementById('onboarding-overlay').style.display = 'none';
                     safeSetItem('onboarding_done','1');
+                    checkFirstVisit(); // ★ 첫 방문 포인트
                     return;
                 }
             }
@@ -7884,6 +7899,9 @@ https://life2radio.github.io/affirmation/
         const email = safeGetItem('my_email','');
         if(!nick || !email){
             setTimeout(()=> showNicknameModal(), 300);
+        } else {
+            // ★ 온보딩 완료 + 등록 완료 시점에 첫 방문 포인트 지급
+            checkFirstVisit();
         }
     }
 
