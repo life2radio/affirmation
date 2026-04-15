@@ -4906,16 +4906,10 @@ https://life2radio.github.io/affirmation/?psych=1`;
 
     // ★ 설치없이 이용하기 → 닉네임/이메일 등록 팝업
     window.showNicknameModal = function(){
-        // OAuth 리디렉션으로 받아온 이메일이 있으면 자동 입력
+        // OAuth 리디렉션으로 받아온 이메일 — 자동저장 아닌 필드에만 채우기
         const _pendingEmail = safeGetItem('oauth_pending_email','');
         const _pendingName  = safeGetItem('oauth_pending_name','');
-        if(_pendingEmail){
-            safeSetItem('my_email', _pendingEmail);
-            if(_pendingName && !safeGetItem('my_nickname',''))
-                safeSetItem('my_nickname', _pendingName);
-            safeSetItem('oauth_pending_email','');
-            safeSetItem('oauth_pending_name','');
-        }
+        const _pendingNickTmp = safeGetItem('oauth_pending_nick_tmp','');
         // 카톡 인앱브라우저일 때 → URL 복사 + 크롬으로 이동
         if(/KAKAOTALK/i.test(navigator.userAgent)){
             const url = 'https://life2radio.github.io/affirmation/';
@@ -4938,10 +4932,11 @@ https://life2radio.github.io/affirmation/?psych=1`;
             }, 500);
             return;
         }
-        // 이미 등록한 경우 바로 온보딩
+        // 이미 등록한 경우 — OAuth pending 없으면 바로 온보딩
         const existNick = safeGetItem('my_nickname','');
         const existEmail = safeGetItem('my_email','');
-        if(existNick && existEmail){ initOnboarding(); return; }
+        const _hasPending = safeGetItem('oauth_pending_email','') !== '';
+        if(existNick && existEmail && !_hasPending){ initOnboarding(); return; }
 
         const modal = document.createElement('div');
         modal.id = 'nickname-modal';
@@ -4976,6 +4971,19 @@ https://life2radio.github.io/affirmation/?psych=1`;
         // 기존 값 채우기
         if(existNick) document.getElementById('nm-nick').value = existNick;
         if(existEmail) document.getElementById('nm-email').value = existEmail;
+
+        // ★ OAuth 구글 계정 정보 → 필드에 자동 채우기 (사용자가 확인 후 버튼 클릭)
+        const nmNick = document.getElementById('nm-nick');
+        const nmEmail = document.getElementById('nm-email');
+        if(_pendingEmail && nmEmail && !nmEmail.value) nmEmail.value = _pendingEmail;
+        if(_pendingName && nmNick && !nmNick.value) nmNick.value = _pendingName;
+        if(_pendingNickTmp && nmNick && !nmNick.value) nmNick.value = _pendingNickTmp;
+        if(_pendingEmail || _pendingName || _pendingNickTmp){
+            safeSetItem('oauth_pending_email','');
+            safeSetItem('oauth_pending_name','');
+            safeSetItem('oauth_pending_nick_tmp','');
+            setTimeout(function(){ showToast('✅ 구글 계정 정보가 입력됐어요! 이름 확인 후 저장해주세요 😊'); }, 300);
+        }
     }
 
     window._saveNicknameModal = function(){
@@ -5158,17 +5166,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
         if(_oauthInProgress){ safeSetItem('oauth_in_progress',''); }
         const _pendingEmail = safeGetItem('oauth_pending_email','');
         if(_pendingEmail || _oauthInProgress){
-            // 이메일 저장 후 온보딩만 재개 (설치팝업/레벨업 건너뜀)
-            safeSetItem('my_email', _pendingEmail);
-            const _pendingName = safeGetItem('oauth_pending_name','');
-            if(_pendingName && !safeGetItem('my_nickname',''))
-                safeSetItem('my_nickname', _pendingName);
-            const _nickTmp = safeGetItem('oauth_pending_nick_tmp','');
-            if(_nickTmp && !safeGetItem('my_nickname',''))
-                safeSetItem('my_nickname', _nickTmp);
-            safeSetItem('oauth_pending_email','');
-            safeSetItem('oauth_pending_name','');
-            safeSetItem('oauth_pending_nick_tmp','');
+            // OAuth 복귀: 이메일/이름을 직접 저장하지 않고 모달에서 확인 후 저장
+            // (pending 키는 showNicknameModal에서 필드에 채워주고 사용자가 확인)
             currentMode=safeGetItem('app_mode','A');
             selectedDateObj=new Date(todayObj);
             switchMode(currentMode);
