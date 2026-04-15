@@ -4896,6 +4896,9 @@
 
     function showPsychResult(result){
         const modal = document.getElementById('psych-modal');
+        if(!modal) return;
+        const { animal, scores, viaStrengths } = result;
+        const r = result;
         // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
         // ★ 조건부 HTML 미리 계산 (중첩 template literal 방지)
         const _quickBadge = pMode==='quick'
