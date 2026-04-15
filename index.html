@@ -4278,30 +4278,30 @@
         fc.width = W; fc.height = finalH;
         fc.getContext('2d').drawImage(canvas,0,0);
 
-        const link = document.createElement('a');
-        link.download = `인생확언_${r.animal.name}_결과지.png`;
-        link.href = fc.toDataURL('image/png');
+        // ★ Blob URL 방식 (모바일/PC 모두 작동)
+        fc.toBlob(function(blob){
+            if(!blob){ showToast('이미지 생성 실패. 다시 시도해주세요.'); return; }
+            const fileName = '인생확언_' + r.animal.name + '_결과지.png';
 
-        // ★ 모바일 저장: share API 또는 새 탭 열기
-        if(navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)){
-            fc.toBlob(function(blob){
-                const file = new File([blob], `인생확언_${r.animal.name}_결과지.png`, {type:'image/png'});
-                if(navigator.canShare && navigator.canShare({files:[file]})){
-                    navigator.share({files:[file], title:r.animal.name+'형 결과지'}).catch(()=>{
-                        // share 실패 시 새 탭
-                        window.open(fc.toDataURL('image/png'), '_blank');
-                    });
-                } else {
-                    window.open(fc.toDataURL('image/png'), '_blank');
-                }
-            }, 'image/png');
-        } else {
-            // PC: 일반 다운로드
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        showToast('📥 이미지를 저장하거나 공유해보세요!');
+            // iOS Safari: navigator.share 사용
+            if(/iPhone|iPad/i.test(navigator.userAgent) && navigator.share){
+                const file = new File([blob], fileName, {type:'image/png'});
+                navigator.share({files:[file], title:r.animal.name+'형 결과지'})
+                    .catch(function(){ showToast('공유를 취소했어요.'); });
+                return;
+            }
+
+            // Android + PC: Blob URL 다운로드
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function(){ URL.revokeObjectURL(blobUrl); }, 3000);
+            showToast('📥 결과지가 다운로드됐어요!');
+        }, 'image/png');
     }
     window.psychStartReal = function(mode){
         window._psychMode = mode || 'full'; // 전역으로 저장
@@ -5163,6 +5163,10 @@
                     🌿 확언 하러 가기
                 </button>
             </div>
+            <button onclick="document.getElementById('psych-modal').remove();setTimeout(function(){switchView('memo');switchMemoTab('letter');},300);"
+                style="width:100%;min-height:50px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.92em;font-weight:700;cursor:pointer;margin-top:10px;margin-bottom:20px;">
+                ✉️ 미래의 나에게 편지 쓰기
+            </button>
 
             </div>
             <!-- 하단 고정 앱 유입 배너 -->
@@ -5203,33 +5207,49 @@
         // ★ 유형별 맞춤 확언으로 이동
         (function(){
             var _targetDay = getAnimalAffirmationDay(animal.animal);
-            var _themeName = (function(){
-                var MAP = {
-                    213:'용기', 121:'가족과 나', 335:'완성된 나', 274:'관계 맺기',
-                    91:'감정의 주인 되기', 244:'삶의 주도권', 182:'습관과 뇌의 과학',
-                    60:'상처받은 나를 이해하기', 152:'자존감의 회복', 32:'관계를 다시 보다', 1:'새로 시작하는 나'
-                };
-                return MAP[_targetDay] || '오늘의 확언';
-            })();
-            function _goToAnim(){
+            var _themeMap = {
+                213:'용기', 121:'가족과 나', 335:'완성된 나', 274:'관계 맺기',
+                91:'감정의 주인 되기', 244:'삶의 주도권', 182:'습관과 뇌의 과학',
+                60:'상처받은 나를 이해하기', 152:'자존감의 회복', 32:'관계를 다시 보다', 1:'새로 시작하는 나'
+            };
+            var _themeName = _themeMap[_targetDay] || '오늘의 확언';
+
+            // ① 메인 CTA 버튼 → 유형 맞춤 확언 특정 day로 이동
+            var mainBtn = document.getElementById('psych-result-main-cta');
+            if(mainBtn){ mainBtn.addEventListener('click', function(){
                 document.getElementById('psych-modal').remove();
                 setTimeout(function(){
                     if(safeGetItem('onboarding_done','') !== '1'){
                         showInstallPrompt ? showInstallPrompt() : initOnboarding();
                     } else {
                         goToFav(_targetDay);
+                        setTimeout(function(){
+                            var el = document.getElementById('affirmation-view');
+                            if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+                        }, 500);
                     }
                 }, 200);
-            }
-            // 하단 고정 배너 버튼
+            }); }
+
+            // ② 하단 고정 배너 버튼 → 앱 메인 화면으로 바로 이동
             var ctaBtn = document.getElementById('psych-result-cta-btn');
-            if(ctaBtn){ ctaBtn.textContent = '🌿 ' + _themeName + ' 확언 보러 가기'; ctaBtn.addEventListener('click', _goToAnim); }
-            // 메인 CTA 버튼
-            var mainBtn = document.getElementById('psych-result-main-cta');
-            if(mainBtn){ mainBtn.addEventListener('click', _goToAnim); }
-            // 하단 배너 제목
+            if(ctaBtn){
+                ctaBtn.textContent = '🏠 앱 메인으로 바로 가기';
+                ctaBtn.addEventListener('click', function(){
+                    document.getElementById('psych-modal').remove();
+                    setTimeout(function(){
+                        if(safeGetItem('onboarding_done','') !== '1'){
+                            showInstallPrompt ? showInstallPrompt() : initOnboarding();
+                        } else {
+                            switchView('home');
+                        }
+                    }, 200);
+                });
+            }
+
+            // ③ 하단 배너 제목 업데이트
             var ctaTitle = document.getElementById('psych-cta-title');
-            if(ctaTitle) ctaTitle.textContent = animal.animal + String.fromCharCode(32) + animal.name + String.fromCharCode(32) + _themeName + String.fromCharCode(32) + '확언';
+            if(ctaTitle) ctaTitle.textContent = animal.animal + ' ' + animal.name + ' · ' + _themeName + ' 확언';
         })();
     }
 
