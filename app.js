@@ -2609,10 +2609,26 @@
         scores.RSE = Math.round((rseTotal - _rseLen) / (_rseLen * 6) * 100);
         const viaStrengths = VIA_ITEMS.map(item => item.str[pA['via_'+item.id] || 0]);
 
-        // 7. 결과 저장
+        // 7. 전체 Facet 점수 저장 (심층 분석용)
+        const f_anxiety    = calcFacet('anxiety');
+        const f_volatility = calcFacet('volatility');
+        const allFacets = {
+            sociability:     Math.round((f_sociability-1)/6*100),
+            assertiveness:   Math.round((f_assertiveness-1)/6*100),
+            intellect:       Math.round((f_intellect-1)/6*100),
+            aesthetics:      Math.round((f_aesthetics-1)/6*100),
+            compassion:      Math.round((f_compassion-1)/6*100),
+            cooperation:     Math.round((f_cooperation-1)/6*100),
+            order:           Math.round((f_order-1)/6*100),
+            industriousness: Math.round((f_industriousness-1)/6*100),
+            anxiety:         Math.round((f_anxiety-1)/6*100),
+            volatility:      Math.round((f_volatility-1)/6*100),
+        };
+
+        // 8. 결과 저장
         const result = {
             typeKey, animal: animalData, scores, rawScores, viaStrengths,
-            variant: variantProfile, facetData,
+            variant: variantProfile, facetData, allFacets,
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr()
         };
@@ -2627,178 +2643,407 @@
         const modal = document.getElementById('psych-modal');
         if(!modal) return;
 
-        const { animal, scores, viaStrengths, variant, facetData } = result;
-        const variantLabel = variant ? variant.label : `${animal.name}`;
-        const variantNarrative = variant ? variant.narrative : '분석 중...';
-        const variantStrengths = variant ? variant.strengths : [];
-        const variantCautions = variant ? variant.cautions : [];
-        const variantCelebrities = variant ? variant.celebrities : [];
+        // ── [1] 데이터 추출 ──
+        const { animal, scores, viaStrengths, variant, allFacets } = result;
+        const fs = allFacets || {};
 
-        const _quickBadge = pMode==='quick' ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>' : '';
-        const _precisionCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(66문항)로 연애·일·소비 스타일까지<br>완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
+        const vLabel     = variant ? variant.label     : animal.name;
+        const vNarrative = variant ? variant.narrative : (animal.desc || '');
+        const vStrengths = (variant && variant.strengths)   ? variant.strengths   : (animal.strengths   || []);
+        const vCautions  = (variant && variant.cautions)    ? variant.cautions    : (animal.cautions    || []);
+        const vCelebs    = (variant && variant.celebrities) ? variant.celebrities : (animal.celebrities || []);
 
-        const love = getLoveStyle(scores);
-        const work = getWorkStyle(scores);
+        // ── [2] 기존 스타일 함수 ──
+        const love   = getLoveStyle(scores);
+        const work   = getWorkStyle(scores);
         const friend = getFriendStyle(scores);
-        const hard = getHardStyle(scores);
-        const money = getMoneyStyle(scores);
-        const rse = getRseStyle(scores.RSE);
-        const via = getViaStyle(viaStrengths);
+        const hard   = getHardStyle(scores);
+        const money  = getMoneyStyle(scores);
+        const rse    = getRseStyle(scores.RSE);
+        const via    = getViaStyle(viaStrengths);
 
-        const compatibleKey = Object.keys(PSYCH_ANIMALS).find(k => k !== result.typeKey && k.includes(result.typeKey[0] === '☀️' ? '🌙' : '☀️'));
-        const compatible = PSYCH_ANIMALS[compatibleKey] || PSYCH_ANIMALS['🌙🌱🤝💭'];
+        // ── [3] 빠른테스트 배지/CTA ──
+        const _qBadge  = pMode==='quick' ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>' : '';
+        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(66문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
 
-        modal.innerHTML = `
-        <div style="background:var(--bg-color);min-height:100vh;padding-bottom:100px;">
-            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:40px 20px 30px;text-align:center;">
-                <div style="font-size:0.8em;color:rgba(255,255,255,0.7);margin-bottom:10px;">나의 확언 동물 유형</div>
-                ${_quickBadge}
-                <div style="font-size:90px;margin-bottom:8px;">${animal.animal}</div>
-                <div style="font-size:1.8em;font-weight:900;color:#fff;margin-bottom:4px;">${animal.name}</div>
-                <div style="font-size:0.95em;color:#C9A84C;font-weight:700;margin-bottom:4px;">"${variantLabel}"</div>
-                <div style="font-size:0.9em;color:rgba(255,255,255,0.8);">${animal.title}</div>
-            </div>
+        // ── [4] Facet 텍스트 테이블 ──
+        const _FT = {
+            sociability:     ['혼자만의 시간이 에너지의 원천이에요','소수의 깊은 관계를 선호해요','상황에 따라 사교성이 달라져요','사람들과 어울리는 것을 즐겨요','모임이 삶의 활력소예요'],
+            assertiveness:   ['배려와 지지로 영향력을 줘요','뒤에서 조용히 힘을 보태요','필요할 때 앞에 나서요','결정적 순간엔 자연스럽게 리더가 돼요','타고난 주도력으로 길을 열어요'],
+            intellect:       ['경험과 실용적 지식을 중시해요','관심 분야에 집중적으로 파고들어요','필요할 때 깊이 탐구해요','다양한 이론과 아이디어를 탐색해요','철학과 이론의 세계에 빠져들어요'],
+            aesthetics:      ['기능과 실용을 우선시해요','가끔 아름다움에 감동받아요','감수성과 실용성의 균형이 잡혀 있어요','섬세하게 아름다움을 감상해요','예술과 아름다움에 깊이 몰입해요'],
+            compassion:      ['논리와 사실로 상황을 이해해요','감정은 인식하되 거리를 유지해요','공감하면서도 균형을 유지해요','타인의 감정에 민감하게 반응해요','상대방 마음을 먼저 읽어요'],
+            cooperation:     ['나만의 방식과 기준을 지켜요','독립적으로 결정하고 추진해요','상황에 따라 협력 여부를 결정해요','팀워크를 자연스럽게 실천해요','팀을 위해 기꺼이 양보하고 조율해요'],
+            order:           ['즉흥성과 유연함이 최대 강점이에요','큰 방향만 잡고 흘러가요','필요할 때 계획을 세워요','체계적이고 꼼꼼하게 진행해요','완벽한 계획 수립이 안심이 돼요'],
+            industriousness: ['과정 자체를 즐기며 여유롭게 살아요','의미 있을 때 전력을 다해요','목표와 여유의 균형을 맞춰요','시작한 일은 끝까지 해내요','목표 달성이 삶의 원동력이에요'],
+            anxiety_inv:     ['걱정과 불안이 자주 찾아와요','미래와 결과를 자주 걱정해요','가끔 불안하지만 잘 극복해요','크게 걱정하지 않고 흘러가요','긍정적이고 낙천적인 삶을 살아요'],
+            volatility_inv:  ['감정이 강하고 직접적으로 표현돼요','기분 변화가 눈에 띄는 편이에요','감정 기복이 있지만 조절 가능해요','대체로 안정적으로 감정을 조절해요','흔들리지 않는 내면의 평온함이에요'],
+        };
 
-            <div style="padding:20px;">
-            ${_precisionCTA}
+        function _ft(type, score) {
+            var arr = _FT[type] || ['','','','',''];
+            var idx = score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : score >= 20 ? 1 : 0;
+            return arr[idx];
+        }
 
-            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);box-shadow:var(--shadow-sm);">
-                <div style="font-size:1em;font-weight:900;color:#1B4332;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                    <span>🔬</span> 당신의 진짜 이야기
-                </div>
-                <div style="font-size:0.9em;line-height:1.9;color:var(--text-color);margin-bottom:18px;">
-                    ${variantNarrative}
-                </div>
+        function _lvl(score) {
+            return score >= 80 ? '매우 높음' : score >= 60 ? '높은 편' : score >= 40 ? '보통' : score >= 20 ? '낮은 편' : '매우 낮음';
+        }
 
-                ${facetData ? `
-                <div style="background:#F0F7F4;border-radius:12px;padding:14px;margin-bottom:16px;">
-                    <div style="font-size:0.8em;font-weight:700;color:#1B4332;margin-bottom:10px;">🎯 나의 핵심 성향 비율</div>
-                    <div style="display:flex;align-items:center;margin-bottom:8px;">
-                        <span style="width:85px;font-size:0.75em;color:#555;font-weight:700;">${facetData.l1}</span>
-                        <div style="flex:1;background:#D0E8DC;height:8px;border-radius:4px;margin:0 8px;">
-                            <div style="background:#1B4332;height:100%;border-radius:4px;width:${facetData.s1}%;"></div>
-                        </div>
-                        <span style="width:35px;font-size:0.75em;color:#1B4332;font-weight:800;text-align:right;">${facetData.s1}%</span>
-                    </div>
-                    <div style="display:flex;align-items:center;">
-                        <span style="width:85px;font-size:0.75em;color:#555;font-weight:700;">${facetData.l2}</span>
-                        <div style="flex:1;background:#D0E8DC;height:8px;border-radius:4px;margin:0 8px;">
-                            <div style="background:#1B4332;height:100%;border-radius:4px;width:${facetData.s2}%;"></div>
-                        </div>
-                        <span style="width:35px;font-size:0.75em;color:#1B4332;font-weight:800;text-align:right;">${facetData.s2}%</span>
-                    </div>
-                </div>` : ''}
+        function _bar(score, color) {
+            var w = Math.min(100, Math.max(0, score || 0));
+            return '<div style="flex:1;background:#D8EDE4;border-radius:4px;height:8px;margin:0 8px;">' +
+                   '<div style="background:' + color + ';height:100%;border-radius:4px;width:' + w + '%;"></div></div>';
+        }
 
-                <div style="display:flex;gap:8px;margin-bottom:16px;">
-                    <div style="flex:1;background:#E8F5E9;padding:12px;border-radius:10px;">
-                        <div style="font-size:0.75em;font-weight:800;color:#2E7D32;margin-bottom:6px;">🌟 돋보이는 강점</div>
-                        <div style="font-size:0.75em;color:#1B4332;line-height:1.6;">• ${variantStrengths.join('<br>• ')}</div>
-                    </div>
-                    <div style="flex:1;background:#FFF3E0;padding:12px;border-radius:10px;">
-                        <div style="font-size:0.75em;font-weight:800;color:#E65100;margin-bottom:6px;">⚠️ 이 점은 주의해요</div>
-                        <div style="font-size:0.75em;color:#B93C00;line-height:1.6;">• ${variantCautions.join('<br>• ')}</div>
-                    </div>
-                </div>
-                <div style="background:rgba(201,168,76,0.1);border-radius:10px;padding:12px 14px;border:1px solid rgba(201,168,76,0.3);">
-                    <span style="font-size:0.8em;font-weight:800;color:#8B6914;">👥 나와 닮은 리더/유명인:</span>
-                    <span style="font-size:0.85em;color:#1B4332;font-weight:700;margin-left:4px;">${variantCelebrities.join(', ')}</span>
-                </div>
-            </div>
+        function renderFacetRow(label, score, color, ftType) {
+            var s = score || 0;
+            return '<div style="display:flex;align-items:center;margin-bottom:4px;">' +
+                   '<span style="width:72px;font-size:0.75em;color:#444;font-weight:700;">' + label + '</span>' +
+                   _bar(s, color) +
+                   '<span style="width:34px;font-size:0.75em;color:' + color + ';font-weight:800;text-align:right;">' + s + '%</span>' +
+                   '</div>' +
+                   '<div style="font-size:0.72em;color:#888;margin:0 0 13px 80px;line-height:1.4;font-style:italic;">"' + _ft(ftType, s) + '"</div>';
+        }
 
-            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
-                <div style="font-size:0.85em;font-weight:700;color:#1B4332;margin-bottom:14px;">📊 Big 5 성격 5요인 분석</div>
-                ${[
-                    ['외향성', scores.E, '내향적', '외향적'],
-                    ['개방성', scores.O, '안정 추구', '변화 추구'],
-                    ['친화성', scores.A, '독립적', '관계 중심'],
-                    ['성실성', scores.C, '유연함', '계획적'],
-                    ['안정성', 100-scores.N, '예민함', '안정적'],
-                ].map(([label, score, left, right])=>
-                    '<div style="margin-bottom:12px;">' +
-                    '<div style="display:flex;justify-content:space-between;font-size:0.8em;margin-bottom:3px;">' +
-                    '<span style="font-weight:700;color:var(--text-color);">' + label + '</span>' +
-                    '<span style="color:#1B4332;font-weight:700;">' + score + '% · ' + getLevelText(score) + '</span>' +
-                    '</div>' +
-                    '<div style="background:var(--border-color);border-radius:6px;height:8px;">' +
-                    '<div style="background:linear-gradient(90deg,#1B4332,#C9A84C);height:100%;border-radius:6px;width:' + score + '%;"></div>' +
-                    '</div>' +
-                    '<div style="display:flex;justify-content:space-between;font-size:0.7em;color:var(--text-muted);margin-top:2px;">' +
-                    '<span>' + left + '</span><span>' + right + '</span>' +
-                    '</div></div>'
-                ).join('')}
-                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: BFI-44 (John, Donahue & Kentle, 1991)</div>
-            </div>
+        // ── [5] SEC 2: Big5 Facet 블록 ──
+        var _stability = 100 - (scores.N || 0);
+        var _anxInv    = 100 - (fs.anxiety    || 0);
+        var _voltInv   = 100 - (fs.volatility || 0);
 
-            ${[love, work, friend, hard, money].map(cat=>
-                '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-                '<div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">' + cat.title + '</div>' +
-                '<div style="font-size:0.88em;line-height:1.9;color:var(--text-color);margin-bottom:12px;">' + cat.desc + '</div>' +
-                (cat.strength ? '<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;margin-bottom:8px;line-height:1.7;">' + cat.strength + '</div>' : '') +
-                (cat.caution ? '<div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#856404;margin-bottom:8px;line-height:1.7;">' + cat.caution + '</div>' : '') +
-                '<div style="background:#E8F4F0;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;line-height:1.7;">' + cat.tip + '</div>' +
-                (cat.video ? '<a href="' + cat.video.url + '" target="_blank" style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;"><span style="font-size:1.2em;">📺</span><div style="flex:1;"><div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div><div style="font-size:0.82em;font-weight:700;color:#1B4332;">' + cat.video.label + '</div></div><span style="font-size:0.9em;color:#1B4332;">▶</span></a>' : '') +
-                '</div>'
-            ).join('')}
+        var big5Data = [
+            { label:'📊 외향성',  score: scores.E||0, color:'#2196F3',
+              f1l:'사교성',    f1s: fs.sociability||0,     f1t:'sociability',
+              f2l:'주도성',    f2s: fs.assertiveness||0,   f2t:'assertiveness' },
+            { label:'📊 개방성',  score: scores.O||0, color:'#9C27B0',
+              f1l:'지적 호기심', f1s: fs.intellect||0,    f1t:'intellect',
+              f2l:'예술 감수성', f2s: fs.aesthetics||0,   f2t:'aesthetics' },
+            { label:'📊 친화성',  score: scores.A||0, color:'#E91E63',
+              f1l:'공감 능력', f1s: fs.compassion||0,      f1t:'compassion',
+              f2l:'협력성',    f2s: fs.cooperation||0,     f2t:'cooperation' },
+            { label:'📊 성실성',  score: scores.C||0, color:'#FF9800',
+              f1l:'계획성',    f1s: fs.order||0,            f1t:'order',
+              f2l:'성취 지향', f2s: fs.industriousness||0,  f2t:'industriousness' },
+            { label:'📊 안정성',  score: _stability,  color:'#4CAF50',
+              f1l:'불안 관리', f1s: _anxInv,                f1t:'anxiety_inv',
+              f2l:'감정 조절', f2s: _voltInv,               f2t:'volatility_inv' },
+        ];
 
-            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
-                <div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:10px;">${rse.title}</div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                    <div style="flex:1;background:var(--border-color);border-radius:6px;height:10px;">
-                        <div style="background:linear-gradient(90deg,#C9A84C,#1B4332);height:100%;border-radius:6px;width:${rse.score}%;"></div>
-                    </div>
-                    <span style="font-size:1em;font-weight:700;color:#1B4332;">${rse.score}점</span>
-                </div>
-                <div style="font-size:0.88em;line-height:1.9;color:var(--text-color);margin-bottom:10px;">${rse.desc}</div>
-                ${rse.strength ? `<div style="background:#F0F7F4;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;margin-bottom:8px;line-height:1.7;">${rse.strength}</div>` : ''}
-                ${rse.growth ? `<div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#856404;margin-bottom:8px;line-height:1.7;">${rse.growth}</div>` : ''}
-                <div style="background:#E8F4F0;border-radius:10px;padding:12px 14px;font-size:0.82em;color:#1B4332;line-height:1.7;">${rse.tip}</div>
-                ${rse.video ? `<a href="${rse.video.url}" target="_blank" style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;"><span style="font-size:1.2em;">📺</span><div style="flex:1;"><div style="font-size:0.75em;color:#888;">이 영상이 도움될 거예요</div><div style="font-size:0.82em;font-weight:700;color:#1B4332;">${rse.video.label}</div></div><span style="font-size:0.9em;color:#1B4332;">▶</span></a>` : ''}
-                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: Rosenberg Self-Esteem Scale (Rosenberg, 1965) · 60년간 52개국 검증</div>
-            </div>
+        var sec2 = big5Data.map(function(item) {
+            return '<div style="background:#F8FCF9;border-radius:12px;padding:14px 14px 6px;margin-bottom:10px;border:1px solid #D0E8DC;">' +
+                   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+                   '<span style="font-size:0.88em;font-weight:800;color:#1B4332;">' + item.label + '</span>' +
+                   '<span style="font-size:0.78em;background:#1B4332;color:#fff;padding:3px 10px;border-radius:12px;font-weight:700;">' + item.score + '% · ' + _lvl(item.score) + '</span>' +
+                   '</div>' +
+                   '<div style="background:#D0E8DC;border-radius:4px;height:4px;margin-bottom:12px;">' +
+                   '<div style="background:' + item.color + ';height:100%;border-radius:4px;width:' + item.score + '%;"></div></div>' +
+                   renderFacetRow(item.f1l, item.f1s, item.color, item.f1t) +
+                   renderFacetRow(item.f2l, item.f2s, item.color, item.f2t) +
+                   '</div>';
+        }).join('');
 
-            <div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">
-                <div style="font-size:0.95em;font-weight:700;color:#1B4332;margin-bottom:10px;">${via.title}</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                    ${via.strengths.map((s,i)=>'<span style="background:' + (i===0?'#1B4332':'var(--border-color)') + ';color:' + (i===0?'#fff':'var(--text-color)') + ';padding:5px 12px;border-radius:20px;font-size:0.82em;font-weight:700;">' + (i===0?'👑 ':'') + s + '</span>').join('')}
-                </div>
-                <div style="font-size:0.88em;line-height:1.8;color:var(--text-color);">${via.desc}</div>
-                <div style="font-size:0.7em;color:var(--text-muted);margin-top:8px;">출처: VIA Character Strengths (Peterson & Seligman, 2004)</div>
-            </div>
+        // ── [6] SEC 3: 유명인 설명 테이블 ──
+        var _celebDesc = {
+            '오프라 윈프리':     '트라우마를 극복하고 공감의 힘으로 수백만 명의 삶을 변화시킨 미디어의 제왕',
+            '박지성':            '조용하지만 결정적인 활약으로 맨유와 한국 축구의 역사를 바꾼 리더',
+            '달라이 라마':       '깊은 자비와 포용으로 세계 평화를 이끄는 정신적 지도자',
+            '유재석':            '따뜻한 배려와 공감력으로 모든 이를 빛나게 하는 국민 MC',
+            '넬슨 만델라':       '27년의 감옥에서도 신념을 잃지 않고 화해와 평화를 이룬 지도자',
+            '한강':              '인간의 고통을 깊이 공감하며 노벨문학상을 받은 작가',
+            '워런 버핏':         '느리고 꾸준한 복리의 힘으로 세계 최고 투자자가 된 인물',
+            '손흥민':            '묵묵히 노력하며 아시아 최고 선수로 성장한 글로벌 스타',
+            '일론 머스크':       '불가능한 목표를 현실로 만드는 비전의 혁신가',
+            '이건희':            '삼성을 세계 1등 기업으로 이끈 전략적 리더십의 아이콘',
+            '빌 게이츠':         '체계적인 계획과 실행력으로 세상을 바꾼 테크 선구자',
+            '정주영':            '맨손으로 현대를 일군 한국 경제의 신화',
+            '스티브 잡스':       '사용자를 깊이 이해하면서도 자신의 비전에 절대 타협하지 않은 혁신가',
+            '이순신':            '절망적인 상황에서도 신념과 전략으로 나라를 지킨 불굴의 리더',
+            '니체':              '기존의 모든 가치를 의심하며 인류 철학을 혁신한 사상가',
+            '방탄소년단 RM':     '깊은 사유와 예술성으로 K팝의 지평을 넓힌 아티스트',
+            '레오나르도 다빈치': '예술과 과학을 넘나들며 인류 역사상 가장 창의적인 천재',
+            '세종대왕':          '백성을 위한 끝없는 창의와 열정으로 한글을 만든 왕',
+            '마크 저커버그':     '독특한 관점으로 소셜네트워크를 발명한 테크 혁신가',
+            '김영하':            '날카로운 통찰로 한국 현대소설의 새 지평을 연 작가',
+            '모차르트':          '천재적 음악성으로 클래식 음악의 정점을 찍은 불세출의 작곡가',
+            '박완서':            '섬세한 감수성으로 한국 현대사의 아픔을 담아낸 문학의 어머니',
+            '빈센트 반 고흐':    '고독과 열정 속에서 인류에게 영원한 아름다움을 남긴 화가',
+            '헤르만 헤세':       '내면 세계의 탐구를 통해 인간의 본질을 그린 소설가',
+            '버락 오바마':       '공감과 소통으로 미국 최초 흑인 대통령이 된 연설의 마스터',
+            '신동엽':            '따뜻한 유머와 뛰어난 순발력으로 사랑받는 엔터테이너',
+            '아놀드 슈워제네거': '강인한 의지로 보디빌더에서 배우, 정치인까지 된 도전의 상징',
+            '이종범':            '국내외를 누빈 한국 야구 역사의 레전드',
+            '오드리 헵번':       '우아함과 따뜻한 인간애로 배우를 넘어 박애주의자가 된 아이콘',
+            '아이유':            '섬세한 감수성과 진정성으로 모든 세대를 아우르는 아티스트',
+            '제니퍼 애니스톤':   '친근한 매력과 자연스러운 에너지로 전 세계의 사랑을 받는 배우',
+            '이효리':            '자유롭고 당당한 에너지로 한국 대중문화를 이끄는 아이콘',
+            '조르주 오웰':       '인류의 고통을 이해하면서도 전체주의에 맞서 신념을 지킨 저항자',
+        };
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-                <div style="background:var(--card-bg);border-radius:14px;padding:16px;border:1px solid var(--border-color);">
-                    <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:4px;">🔤 MBTI 연관 유형</div>
-                    <div style="font-size:0.9em;font-weight:700;color:var(--text-color);">${animal.mbti}</div>
-                    <div style="font-size:0.7em;color:var(--text-muted);margin-top:4px;">참고: McCrae & Costa (1989)</div>
-                </div>
-                <div style="background:var(--card-bg);border-radius:14px;padding:16px;border:1px solid var(--border-color);">
-                    <div style="font-size:0.78em;color:var(--text-muted);margin-bottom:4px;">💑 궁합 유형</div>
-                    <div style="font-size:0.9em;font-weight:700;color:var(--text-color);">${compatible.animal} ${compatible.name}</div>
-                    <div style="font-size:0.75em;color:var(--text-muted);margin-top:2px;">${compatible.title}</div>
-                </div>
-            </div>
+        var sec3 = vCelebs.slice(0,3).map(function(name) {
+            var desc = _celebDesc[name] || '당신과 비슷한 성격 유형으로 분석된 인물이에요';
+            return '<div style="display:flex;gap:12px;padding:14px;background:#F0F7F4;border-radius:12px;margin-bottom:8px;">' +
+                   '<div style="font-size:26px;min-width:32px;text-align:center;">👤</div>' +
+                   '<div><div style="font-size:0.9em;font-weight:800;color:#1B4332;margin-bottom:4px;">' + name + '</div>' +
+                   '<div style="font-size:0.8em;color:#555;line-height:1.6;">' + desc + '</div></div></div>';
+        }).join('');
 
-            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
-                <button onclick="sharePsychMyResult()" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:0.95em;font-weight:700;cursor:pointer;">
-                    ${animal.animal} 내 결과 공유하기 📤
-                </button>
-                <button onclick="sharePsychInvite()" style="width:100%;min-height:48px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:14px;font-size:0.9em;font-weight:700;cursor:pointer;">
-                    💌 친구에게 테스트 추천하기
-                </button>
-            </div>
-            </div>
+        // ── [7] SEC 4: 강점/주의점 ──
+        var sec4strengths = vStrengths.map(function(s, i) {
+            return '<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">' +
+                   '<span style="background:#1B4332;color:#fff;border-radius:50%;width:22px;height:22px;min-width:22px;display:flex;align-items:center;justify-content:center;font-size:0.7em;font-weight:800;">' + (i+1) + '</span>' +
+                   '<div style="font-size:0.85em;color:#1B4332;line-height:1.7;">' + s + '</div></div>';
+        }).join('');
 
-            <div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">
-                <div style="flex:1;">
-                    <div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>
-                    <div style="font-size:0.75em;color:rgba(255,255,255,0.6);">매일 무료로 받아보기</div>
-                </div>
-                <button id="psych-result-cta-btn" style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">
-                    🌿 앱 메인으로 바로가기
-                </button>
-            </div>
-        </div>`;
+        var sec4cautions = vCautions.map(function(c, i) {
+            return '<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">' +
+                   '<span style="background:#E65100;color:#fff;border-radius:50%;width:22px;height:22px;min-width:22px;display:flex;align-items:center;justify-content:center;font-size:0.7em;font-weight:800;">' + (i+1) + '</span>' +
+                   '<div style="font-size:0.85em;color:#B93C00;line-height:1.7;">' + c + '</div></div>';
+        }).join('');
 
+        // ── [8] 스타일 카드 렌더러 ──
+        function styleCard(cat) {
+            return '<div style="background:#F8FCF9;border-radius:12px;padding:16px;margin-bottom:10px;border:1px solid #D0E8DC;">' +
+                   '<div style="font-size:0.9em;font-weight:800;color:#1B4332;margin-bottom:8px;">' + cat.title + '</div>' +
+                   '<div style="font-size:0.83em;line-height:1.85;color:var(--text-color);margin-bottom:10px;">' + cat.desc + '</div>' +
+                   (cat.strength ? '<div style="background:#E8F5E9;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#1B4332;margin-bottom:8px;line-height:1.6;">💡 ' + cat.strength + '</div>' : '') +
+                   (cat.caution  ? '<div style="background:#FFF8E7;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#856404;margin-bottom:8px;line-height:1.6;">⚠️ ' + cat.caution  + '</div>' : '') +
+                   '<div style="background:#E0F2F1;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#00695C;line-height:1.6;">🎯 ' + cat.tip + '</div>' +
+                   '</div>';
+        }
+
+        // ── [9] SEC 7: 자존감 ──
+        var rseScore  = scores.RSE || 0;
+        var rseLevel  = rseScore >= 80 ? '매우 높음' : rseScore >= 60 ? '높은 편' : rseScore >= 40 ? '보통' : rseScore >= 20 ? '낮은 편' : '성장 필요';
+        var rseColor  = rseScore >= 60 ? '#1B4332' : rseScore >= 40 ? '#E65100' : '#C62828';
+        var rseAffirmMap = {
+            '매우 높음': '나는 나 자신을 깊이 사랑하고 온전히 신뢰한다',
+            '높은 편':   '나는 매일 조금씩 더 나를 사랑하고 있다',
+            '보통':      '나는 충분히 가치 있는 사람이다',
+            '낮은 편':   '오늘도 나는 최선을 다했다. 그것으로 충분하다',
+            '성장 필요': '나는 변화할 수 있고 반드시 성장할 수 있다',
+        };
+        var rseAffirm = rseAffirmMap[rseLevel] || '나는 충분히 가치 있는 사람이다';
+
+        // ── [10] SEC 8: VIA 강점 활용법 ──
+        var _viaUsage = {
+            '호기심':    { tip:'매일 하나씩 새로운 것을 배워보세요',             shine:'새로운 분야를 탐험할 때' },
+            '신중성':    { tip:'중요한 결정 전 하루를 두고 충분히 생각하세요',    shine:'복잡한 문제를 해결할 때' },
+            '용기':      { tip:'작은 두려움에 도전하는 것부터 시작하세요',        shine:'어려운 결정을 내려야 할 때' },
+            '공감':      { tip:'오늘 주변 한 사람에게 진심으로 귀 기울여 보세요', shine:'누군가 힘들어할 때' },
+            '창의성':    { tip:'매일 10분, 새로운 아이디어를 자유롭게 적어보세요', shine:'새로운 문제에 접근할 때' },
+            '감사':      { tip:'매일 감사한 것 3가지를 기록해보세요',            shine:'힘든 상황에서도 좋은 면을 찾을 때' },
+            '희망':      { tip:'이루고 싶은 미래를 구체적으로 그려보세요',        shine:'포기하고 싶을 때' },
+            '자기통제':  { tip:'작은 습관 하나를 꾸준히 지켜보세요',             shine:'유혹이 강할 때' },
+            '지혜':      { tip:'경험에서 배운 것을 다른 사람과 나눠보세요',       shine:'중요한 조언을 해야 할 때' },
+            '사랑':      { tip:'소중한 사람에게 오늘 사랑을 표현해보세요',        shine:'관계가 위기일 때' },
+            '리더십':    { tip:'소규모 모임에서 먼저 방향을 제시해보세요',        shine:'팀이 방향을 잃었을 때' },
+            '팀워크':    { tip:'오늘 동료의 일을 하나 도와주세요',               shine:'함께 목표를 이루어야 할 때' },
+        };
+        var topVia     = (viaStrengths && viaStrengths[0]) || '';
+        var viaUsageTip = _viaUsage[topVia] || { tip:'매일 이 강점을 의식적으로 사용해보세요', shine:'나다운 순간' };
+
+        // ── [11] SEC 9: 동물별 맞춤 확언 ──
+        var _animalAffirm = {
+            '🦁': ['나는 강함과 따뜻함을 동시에 가진 사람이다','내 영향력으로 주변을 더 나은 곳으로 만든다','나는 비전을 향해 사람들을 이끄는 힘이 있다'],
+            '🐘': ['나는 모든 관계를 소중히 품고 기억한다','나의 포용력은 세상을 따뜻하게 한다','나는 함께할 때 더 강해진다'],
+            '🦅': ['나는 높은 곳에서 큰 그림을 본다','목표를 향한 나의 추진력은 강하고 명확하다','나는 불가능을 가능으로 만드는 사람이다'],
+            '🐒': ['나는 창의적이고 새로운 가능성을 계속 찾는다','나의 호기심이 세상을 더 풍부하게 만든다','나는 변화 속에서 기회를 발견한다'],
+            '🦝': ['나는 어디서든 사람들과 자연스럽게 연결된다','나의 영리함과 따뜻함이 세상을 밝힌다','나는 실행력으로 꿈을 현실로 만든다'],
+            '🦦': ['나는 따뜻하고 유연하게 세상을 받아들인다','내 곁의 사람들은 나로 인해 편안해진다','나는 즐거움 속에서 성장한다'],
+            '🦫': ['나는 준비된 자가 기회를 잡는다는 것을 안다','나의 성실함이 최고의 경쟁력이다','나는 하나씩 꾸준히 쌓아가는 힘이 있다'],
+            '🦊': ['나는 날카로운 통찰로 핵심을 꿰뚫는다','내 아이디어는 세상을 새롭게 본다','나는 남다른 관점으로 가치를 만든다'],
+            '🐺': ['나는 신념을 지키면서 유연하게 나아간다','결정적 순간에 나는 빛을 발한다','나는 깊이 생각하고 강하게 행동한다'],
+            '🐋': ['나는 깊은 공감으로 세상을 품는다','내 마음의 깊이는 무한한 가능성이다','나는 천천히 그러나 확실하게 변화를 만든다'],
+            '🐆': ['나는 준비가 됐을 때 아무도 막을 수 없다','나만의 속도와 방식으로 목표에 도달한다','나는 조용하지만 강한 사람이다'],
+            '🦢': ['나는 깊은 감수성으로 세상을 아름답게 본다','내 내면의 우아함이 세상에 빛을 더한다','나는 나만의 예술로 세상과 연결된다'],
+            '🐢': ['나는 천천히, 그러나 절대 포기하지 않는다','꾸준함이 내 가장 강한 무기다','나는 끝까지 해내는 사람이다'],
+            '🐱': ['나는 나답게 살기로 한다','깊은 곳에서 우러나오는 나의 따뜻함을 믿는다','나는 자유롭게, 그리고 진실되게 살아간다'],
+            '🐯': ['나는 두려운 채로 시작하고 결국 해낸다','나의 강인함은 내가 생각하는 것보다 크다','나는 새로운 길을 여는 사람이다'],
+            '🦌': ['나는 내면의 풍요로움으로 세상을 본다','나만의 아름다운 세계가 있다','나는 섬세함으로 세상에 가치를 더한다'],
+        };
+        var myAffirms = _animalAffirm[animal.animal] || ['나는 오늘도 성장하고 있다','나는 충분히 가치 있는 사람이다','나는 나만의 방식으로 빛난다'];
+
+        var sec9 = myAffirms.map(function(a) {
+            return '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:12px;padding:14px 16px;margin-bottom:8px;">' +
+                   '<div style="font-size:0.75em;color:#C9A84C;font-weight:700;margin-bottom:5px;">🌿 오늘의 확언</div>' +
+                   '<div style="font-size:0.88em;color:#fff;line-height:1.75;font-weight:500;">"' + a + '"</div></div>';
+        }).join('');
+
+        // ── [12] 궁합 동물 ──
+        var compatibleKey = Object.keys(PSYCH_ANIMALS).find(function(k) {
+            return k !== result.typeKey && k.indexOf(result.typeKey[0] === '\u2600\uFE0F' ? '\uD83C\uDF19' : '\u2600\uFE0F') >= 0;
+        });
+        var compatible = PSYCH_ANIMALS[compatibleKey] || PSYCH_ANIMALS['\uD83C\uDF19\uD83C\uDF31\uD83E\uDD1D\uD83D\uDCAD'];
+
+        // ── [13] 이메일 등록 여부 ──
+        var _hasEmail = safeGetItem('my_email','') !== '';
+        var _ctaEmail = _hasEmail
+            ? '<div style="background:rgba(201,168,76,0.2);border-radius:10px;padding:12px;font-size:0.85em;color:#C9A84C;font-weight:700;text-align:center;">✅ 이미 등록됨 — 30일 뒤 성장 비교를 받을 수 있어요!</div>'
+            : '<button onclick="document.getElementById(\'psych-modal\').remove();setTimeout(function(){showPsychRegisterPopup&&showPsychRegisterPopup();},200);" style="width:100%;min-height:48px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;">📧 이메일 등록하고 30일 후 비교받기</button>';
+
+        // ── [14] 전체 모달 렌더링 ──
+        modal.innerHTML =
+        '<div style="background:var(--bg-color);min-height:100vh;padding-bottom:120px;">' +
+
+        // HEADER
+        '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:44px 20px 32px;text-align:center;">' +
+        '<div style="font-size:0.78em;color:rgba(255,255,255,0.65);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">나의 확언 동물 유형</div>' +
+        _qBadge +
+        '<div style="font-size:86px;margin-bottom:8px;line-height:1.1;">' + animal.animal + '</div>' +
+        '<div style="font-size:1.55em;font-weight:900;color:#fff;margin-bottom:4px;">' + animal.name + '</div>' +
+        '<div style="font-size:0.9em;color:#C9A84C;font-weight:700;margin-bottom:6px;">"' + vLabel + '"</div>' +
+        '<div style="font-size:0.83em;color:rgba(255,255,255,0.72);">' + animal.title + '</div>' +
+        '<div style="margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
+        '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + animal.mbti + '</span>' +
+        '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + '</span>' +
+        '</div></div>' +
+
+        '<div style="padding:16px 16px 0;">' +
+        _precCTA +
+
+        // SEC 1: 당신의 진짜 이야기
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">🔬 당신의 진짜 이야기</div>' +
+        '<div style="font-size:0.87em;line-height:1.95;color:var(--text-color);">' + vNarrative + '</div>' +
+        '</div>' +
+
+        // SEC 2: Big5 Facet 심층 분석
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">📊 Big 5 성격 심층 분석</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">각 성격 요인을 구성하는 두 가지 세부 성향까지 분석했어요</div>' +
+        sec2 +
+        '<div style="font-size:0.7em;color:var(--text-muted);margin-top:4px;">출처: BFI-44 (John, Donahue & Kentle, 1991) · 세계 표준 학술 검사</div>' +
+        '</div>' +
+
+        // SEC 3: 닮은 유명인
+        (vCelebs.length > 0 ?
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">🎬 당신과 닮은 유명인</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">같은 성격 유형으로 분석된 실제 인물들이에요</div>' +
+        sec3 +
+        '</div>' : '') +
+
+        // SEC 4: 강점 & 성장 포인트
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">💪 핵심 강점 & 성장 포인트</div>' +
+        '<div style="background:#E8F5E9;border-radius:12px;padding:14px;margin-bottom:12px;">' +
+        '<div style="font-size:0.8em;font-weight:800;color:#2E7D32;margin-bottom:10px;">🌟 돋보이는 강점</div>' +
+        sec4strengths +
+        '</div>' +
+        '<div style="background:#FFF3E0;border-radius:12px;padding:14px;">' +
+        '<div style="font-size:0.8em;font-weight:800;color:#E65100;margin-bottom:10px;">⚠️ 이 점은 주의해요</div>' +
+        sec4cautions +
+        '</div></div>' +
+
+        // SEC 5: 연애 & 관계 스타일
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">💑 연애 & 관계 스타일</div>' +
+        styleCard(love) +
+        styleCard(friend) +
+        '</div>' +
+
+        // SEC 6: 일 & 성취 스타일
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">💼 일 & 성취 스타일</div>' +
+        styleCard(work) +
+        styleCard(hard) +
+        styleCard(money) +
+        '</div>' +
+
+        // SEC 7: 자존감 심층 분석
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">🪞 자존감 심층 분석</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+        '<div style="flex:1;background:var(--border-color);border-radius:6px;height:12px;">' +
+        '<div style="background:' + rseColor + ';height:100%;border-radius:6px;width:' + rseScore + '%;"></div></div>' +
+        '<span style="font-size:1.1em;font-weight:800;color:' + rseColor + ';">' + rseScore + '점</span>' +
+        '<span style="font-size:0.78em;background:' + rseColor + ';color:#fff;padding:3px 10px;border-radius:12px;font-weight:700;">' + rseLevel + '</span>' +
+        '</div>' +
+        '<div style="font-size:0.84em;line-height:1.9;color:var(--text-color);margin-bottom:12px;">' + rse.desc + '</div>' +
+        (rse.strength ? '<div style="background:#E8F5E9;border-radius:10px;padding:12px 14px;font-size:0.8em;color:#1B4332;margin-bottom:8px;line-height:1.65;">💡 ' + rse.strength + '</div>' : '') +
+        (rse.growth   ? '<div style="background:#FFF8E7;border-radius:10px;padding:12px 14px;font-size:0.8em;color:#856404;margin-bottom:8px;line-height:1.65;">🌱 ' + rse.growth + '</div>' : '') +
+        '<div style="background:#E0F2F1;border-radius:10px;padding:12px 14px;font-size:0.8em;color:#00695C;margin-bottom:12px;line-height:1.65;">🎯 ' + rse.tip + '</div>' +
+        '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:12px;padding:14px;">' +
+        '<div style="font-size:0.73em;color:#C9A84C;font-weight:700;margin-bottom:6px;">🌿 자존감 강화 추천 확언</div>' +
+        '<div style="font-size:0.88em;color:#fff;font-weight:600;line-height:1.75;">"' + rseAffirm + '"</div>' +
+        '</div>' +
+        '<div style="font-size:0.7em;color:var(--text-muted);margin-top:10px;">출처: Rosenberg Self-Esteem Scale (1965) · 60년간 52개국 검증</div>' +
+        '</div>' +
+
+        // SEC 8: VIA 핵심 강점 활용법
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">👑 VIA 핵심 강점 활용법</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
+        (via.strengths||[]).map(function(s,i) {
+            return '<span style="background:' + (i===0?'#1B4332':'var(--border-color)') + ';color:' + (i===0?'#fff':'var(--text-color)') + ';padding:5px 12px;border-radius:20px;font-size:0.82em;font-weight:700;">' + (i===0?'👑 ':'') + s + '</span>';
+        }).join('') +
+        '</div>' +
+        '<div style="font-size:0.84em;line-height:1.85;color:var(--text-color);margin-bottom:14px;">' + via.desc + '</div>' +
+        (topVia ?
+        '<div style="background:#F0F7F4;border-radius:12px;padding:14px;margin-bottom:8px;">' +
+        '<div style="font-size:0.8em;font-weight:800;color:#1B4332;margin-bottom:10px;">👑 \'' + topVia + '\' 강점 — 이렇게 써보세요</div>' +
+        '<div style="display:flex;gap:10px;margin-bottom:8px;">' +
+        '<span style="font-size:1.1em;">📅</span>' +
+        '<div style="font-size:0.82em;color:#1B4332;line-height:1.7;">' + viaUsageTip.tip + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;">' +
+        '<span style="font-size:1.1em;">✨</span>' +
+        '<div style="font-size:0.82em;color:#555;line-height:1.7;"><b>' + viaUsageTip.shine + '</b> 가장 빛나요</div>' +
+        '</div></div>' : '') +
+        '<div style="font-size:0.7em;color:var(--text-muted);">출처: VIA Character Strengths (Peterson & Seligman, 2004)</div>' +
+        '</div>' +
+
+        // SEC 9: 나에게 맞는 확언 3개
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">🌿 나에게 맞는 확언 3가지</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">' + animal.animal + ' ' + animal.name + '에게 특별히 선별된 확언이에요</div>' +
+        sec9 +
+        '<button onclick="document.getElementById(\'psych-modal\').remove();switchView(\'home\');" ' +
+        'style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;margin-top:10px;">' +
+        '🌿 지금 바로 확언 시작하기 →</button>' +
+        '</div>' +
+
+        // SEC 10: 공유 & 30일 성장 추적
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유하기</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        '<button onclick="sharePsychMyResult()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">' +
+        animal.animal + ' 내 결과 공유하기 📤</button>' +
+        '<button onclick="sharePsychInvite()" style="width:100%;min-height:44px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
+        '💌 친구에게 테스트 추천하기</button>' +
+        '</div></div>' +
+
+        // 30일 성장 추적 CTA
+        '<div style="background:linear-gradient(135deg,#0D2818,#1B4332);border-radius:16px;padding:24px 20px;margin-bottom:14px;text-align:center;">' +
+        '<div style="font-size:1.05em;font-weight:900;color:#C9A84C;margin-bottom:8px;">📈 30일 성장 추적</div>' +
+        '<div style="font-size:0.83em;color:rgba(255,255,255,0.8);line-height:1.85;margin-bottom:16px;">' +
+        '지금 등록하면 30일 뒤 재검사로<br>' +
+        '나의 <b style="color:#C9A84C;">성장 변화를 수치로</b> 확인할 수 있어요<br>' +
+        '<span style="font-size:0.85em;opacity:0.65;">각 차원별 변화 그래프 · 성장 보고서 발급</span>' +
+        '</div>' +
+        '<div style="background:rgba(201,168,76,0.12);border-radius:10px;padding:12px;margin-bottom:16px;">' +
+        '<div style="display:flex;justify-content:space-around;">' +
+        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">5</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">성격 요인</div></div>' +
+        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">10</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">세부 성향</div></div>' +
+        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">30일</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">후 비교</div></div>' +
+        '</div></div>' +
+        _ctaEmail +
+        '</div>' +
+
+        '</div>' + // padding div 끝
+
+        // STICKY 하단 CTA
+        '<div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">' +
+        '<div style="flex:1;">' +
+        '<div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.55);">매일 무료로 · 지금 바로 시작</div>' +
+        '</div>' +
+        '<button id="psych-result-cta-btn" style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">🌿 확언 시작하기</button>' +
+        '</div>' +
+
+        '</div>'; // 전체 div 끝
+
+        // ── [15] 이벤트 바인딩 ──
         setTimeout(function(){
             var ctaBtn = document.getElementById('psych-result-cta-btn');
             if(ctaBtn){
@@ -2806,7 +3051,7 @@
                     document.getElementById('psych-modal').remove();
                     setTimeout(function(){
                         if(safeGetItem('onboarding_done','') !== '1'){
-                            showInstallPrompt ? showInstallPrompt() : initOnboarding();
+                            typeof showInstallPrompt === 'function' ? showInstallPrompt() : initOnboarding();
                         } else {
                             switchView('home');
                         }
