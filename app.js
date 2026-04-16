@@ -1266,7 +1266,24 @@
     }
 
     // ★ 결과지 이미지 저장 (앱 설치 시에만)
+    // ★ 게이팅이 적용된 다운로드 함수
     window.downloadPsychPDF = function(){
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        const nick = safeGetItem('my_nickname','');
+        const email = safeGetItem('my_email','');
+
+        // ★ 게이팅 체크: 닉네임/이메일이 없거나 앱 설치 상태가 아니면 모달 표시
+        if(!nick || !email || !isStandalone){
+            document.getElementById('psych-gating-modal').style.display = 'flex';
+            return;
+        }
+
+        // 이미 조건 충족 시 기존 로직 실행 (결과지 생성)
+        generatePsychPDF(); 
+    }
+
+    // ★ 실제 PDF 생성 로직 (기존 downloadPsychPDF의 내용)
+    function generatePsychPDF(){
         const saved = safeGetItem('psych_result_v2','');
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
         const r = JSON.parse(saved);
@@ -1537,6 +1554,45 @@
             showToast('팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요!');
         }
     }
+
+    // ★ 심리테스트 게이팅 처리
+    window.processPsychGating = function(){
+        const nick = document.getElementById('gt-nick').value.trim();
+        const email = document.getElementById('gt-email').value.trim();
+        
+        if(!nick || !email){ 
+            showToast('이름과 이메일을 모두 입력해주세요! 😊'); 
+            return; 
+        }
+        
+        // 1. 정보 저장
+        safeSetItem('my_nickname', nick);
+        safeSetItem('my_email', email);
+        
+        // 2. 현재 결과를 '보류 중'으로 설정
+        safeSetItem('pending_psych_save', '1');
+        
+        // 3. 모달 닫기
+        document.getElementById('psych-gating-modal').style.display = 'none';
+        
+        // 4. 앱 설치 유도 (PWA 프로프롬프트 실행)
+        if(window.pwaInstallPrompt){
+            installFromPrompt();
+        } else {
+            showToast('우측 상단 메뉴(⋮)에서 [홈 화면에 추가]를 눌러주세요!');
+        }
+    }
+
+    // ★ 앱 설치 후 최종 저장 처리
+    window.finalizePendingSave = function(){
+        safeSetItem('pending_psych_save', '0'); // 플래그 초기화
+        document.getElementById('psych-save-confirm-modal').style.display = 'none';
+        
+        // 결과지 생성 함수 호출
+        generatePsychPDF(); 
+        showToast('🎉 결과 저장이 완료되었습니다!');
+    }
+
     window.downloadPsychResult = function(){
         const saved = safeGetItem('psych_result_v2','');
         if(!saved){ showToast('먼저 테스트를 완료해주세요!'); return; }
@@ -3369,6 +3425,16 @@ https://life2radio.github.io/affirmation/?psych=1`;
         // ★ 기존 등록 완료 사용자: 첫 방문 포인트 미지급 시 지급
         if(safeGetItem('onboarding_done','') === '1'){
             setTimeout(function(){ checkFirstVisit(); }, 1500);
+        }
+
+        // ★ 앱 설치 후 실행 시 '보류 중인 심리테스트 결과'가 있으면 팝업 표시
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        const pendingSave = safeGetItem('pending_psych_save', '');
+
+        if(isStandalone && pendingSave === '1'){
+            setTimeout(() => {
+                document.getElementById('psych-save-confirm-modal').style.display = 'flex';
+            }, 1000);
         }
     }
 
