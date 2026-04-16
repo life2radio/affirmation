@@ -2652,7 +2652,7 @@
         // 8. 결과 저장
         const result = {
             typeKey, animal: animalData, scores, rawScores, viaStrengths,
-            variant: variantProfile, facetData, allFacets,
+            variant: variantProfile, variantKey, facetData, allFacets,
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr()
         };
@@ -2671,11 +2671,29 @@
         const { animal, scores, viaStrengths, variant, allFacets } = result;
         const fs = allFacets || {};
 
+        // allFacets 없는 경우(구버전 저장 결과) 축 점수로 폴백
+        function _fs(key, axisScore) {
+            var s = fs[key];
+            // 0이면 allFacets가 없는 것으로 판단 → 축 점수 사용
+            return (s !== undefined && s !== null && s > 0) ? s : Math.round(axisScore || 50);
+        }
+
         const vLabel     = variant ? variant.label     : animal.name;
         const vNarrative = variant ? variant.narrative : (animal.desc || '');
         const vStrengths = (variant && variant.strengths)   ? variant.strengths   : (animal.strengths   || []);
         const vCautions  = (variant && variant.cautions)    ? variant.cautions    : (animal.cautions    || []);
-        const vCelebs    = (variant && variant.celebrities) ? variant.celebrities : (animal.celebrities || []);
+        // 유명인 데이터: 항상 ANIMAL_FACET_MAP에서 재조회 (저장 결과 호환)
+        var _vKey = result.variantKey || 'A';
+        var vCelebs = [];
+        if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+            ANIMAL_FACET_MAP[animal.animal] &&
+            ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) {
+            vCelebs = ANIMAL_FACET_MAP[animal.animal].variants[_vKey].celebs || [];
+        }
+        // 폴백: ANIMAL_FACET_MAP 없으면 저장된 variant.celebrities 사용
+        if (vCelebs.length === 0) {
+            vCelebs = (variant && variant.celebrities) ? variant.celebrities : (animal.celebrities || []);
+        }
 
         // ── [2] 기존 스타일 함수 ──
         const love   = getLoveStyle(scores);
@@ -2737,20 +2755,20 @@
 
         var big5Data = [
             { label:'📊 외향성',  score: scores.E||0, color:'#2196F3',
-              f1l:'사교성',    f1s: fs.sociability||0,     f1t:'sociability',
-              f2l:'주도성',    f2s: fs.assertiveness||0,   f2t:'assertiveness' },
+              f1l:'사교성',    f1s: _fs('sociability',   scores.E),  f1t:'sociability',
+              f2l:'주도성',    f2s: _fs('assertiveness', scores.E),  f2t:'assertiveness' },
             { label:'📊 개방성',  score: scores.O||0, color:'#9C27B0',
-              f1l:'지적 호기심', f1s: fs.intellect||0,    f1t:'intellect',
-              f2l:'예술 감수성', f2s: fs.aesthetics||0,   f2t:'aesthetics' },
+              f1l:'지적 호기심', f1s: _fs('intellect',  scores.O),  f1t:'intellect',
+              f2l:'예술 감수성', f2s: _fs('aesthetics', scores.O),  f2t:'aesthetics' },
             { label:'📊 친화성',  score: scores.A||0, color:'#E91E63',
-              f1l:'공감 능력', f1s: fs.compassion||0,      f1t:'compassion',
-              f2l:'협력성',    f2s: fs.cooperation||0,     f2t:'cooperation' },
+              f1l:'공감 능력', f1s: _fs('compassion',   scores.A),  f1t:'compassion',
+              f2l:'협력성',    f2s: _fs('cooperation',  scores.A),  f2t:'cooperation' },
             { label:'📊 성실성',  score: scores.C||0, color:'#FF9800',
-              f1l:'계획성',    f1s: fs.order||0,            f1t:'order',
-              f2l:'성취 지향', f2s: fs.industriousness||0,  f2t:'industriousness' },
+              f1l:'계획성',    f1s: _fs('order',           scores.C),  f1t:'order',
+              f2l:'성취 지향', f2s: _fs('industriousness', scores.C),  f2t:'industriousness' },
             { label:'📊 안정성',  score: _stability,  color:'#4CAF50',
-              f1l:'불안 관리', f1s: _anxInv,                f1t:'anxiety_inv',
-              f2l:'감정 조절', f2s: _voltInv,               f2t:'volatility_inv' },
+              f1l:'불안 관리', f1s: _fs('anxiety_inv',    _stability), f1t:'anxiety_inv',
+              f2l:'감정 조절', f2s: _fs('volatility_inv', _stability), f2t:'volatility_inv' },
         ];
 
         var sec2 = big5Data.map(function(item) {
