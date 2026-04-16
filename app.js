@@ -2511,7 +2511,31 @@
         calcAndShowResult();
     }
 
-    function calcAndShowResult(){
+    // ════════════════════════════════════════════════════
+    // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
+    // ════════════════════════════════════════════════════
+    window.getVariantDescription = function(animalEmoji, variantKey) {
+        if (typeof ANIMAL_FACET_MAP === 'undefined' || !ANIMAL_FACET_MAP[animalEmoji]) return null;
+        var facetEntry = ANIMAL_FACET_MAP[animalEmoji];
+        var variants   = facetEntry.variants || {};
+        var variant    = variants[variantKey] || variants['A'] || {};
+
+        // PSYCH_ANIMALS에서 narrative/strengths/cautions 가져오기
+        var animalData = null;
+        Object.keys(PSYCH_ANIMALS).forEach(function(k) {
+            if (PSYCH_ANIMALS[k].animal === animalEmoji) animalData = PSYCH_ANIMALS[k];
+        });
+
+        return {
+            label:       variant.label || facetEntry.name,
+            narrative:   animalData ? (animalData.desc      || '') : '',
+            strengths:   animalData ? (animalData.strengths || []) : [],
+            cautions:    animalData ? (animalData.cautions  || []) : [],
+            celebrities: variant.celebs || []
+        };
+    };
+
+        function calcAndShowResult(){
         if(!safeGetItem('my_email','')) window._psychNoEmailResult = true;
         safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
         
@@ -2779,12 +2803,22 @@
             '조르주 오웰':       '인류의 고통을 이해하면서도 전체주의에 맞서 신념을 지킨 저항자',
         };
 
-        var sec3 = vCelebs.slice(0,3).map(function(name) {
-            var desc = _celebDesc[name] || '당신과 비슷한 성격 유형으로 분석된 인물이에요';
-            return '<div style="display:flex;gap:12px;padding:14px;background:#F0F7F4;border-radius:12px;margin-bottom:8px;">' +
-                   '<div style="font-size:26px;min-width:32px;text-align:center;">👤</div>' +
-                   '<div><div style="font-size:0.9em;font-weight:800;color:#1B4332;margin-bottom:4px;">' + name + '</div>' +
-                   '<div style="font-size:0.8em;color:#555;line-height:1.6;">' + desc + '</div></div></div>';
+        var sec3 = vCelebs.slice(0,3).map(function(celeb) {
+            var celebName, celebDesc;
+            if (typeof celeb === 'object' && celeb !== null && celeb.name) {
+                // 새 형식: {name, desc}
+                celebName = celeb.name;
+                celebDesc = celeb.desc || '당신과 비슷한 성격 유형으로 분석된 인물이에요';
+            } else {
+                // 구 형식: 문자열
+                celebName = celeb;
+                celebDesc = _celebDesc[celeb] || '당신과 비슷한 성격 유형으로 분석된 인물이에요';
+            }
+            return '<div style="background:#fff;border-radius:10px;padding:14px;' +
+                   'border-left:4px solid #C9A84C;box-shadow:0 2px 6px rgba(0,0,0,0.05);margin-bottom:10px;">' +
+                   '<div style="font-size:0.92em;font-weight:800;color:#1B4332;margin-bottom:6px;">👤 ' + celebName + '</div>' +
+                   '<div style="font-size:0.8em;color:var(--text-color);line-height:1.7;word-break:keep-all;">' + celebDesc + '</div>' +
+                   '</div>';
         }).join('');
 
         // ── [7] SEC 4: 강점/주의점 ──
@@ -2919,9 +2953,10 @@
         (vCelebs.length > 0 ?
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">🎬 당신과 닮은 유명인</div>' +
-        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">같은 성격 유형으로 분석된 실제 인물들이에요</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:10px;">같은 성격 유형으로 분석된 실제 인물들이에요</div>' +
+        '<div style="background:rgba(201,168,76,0.08);border-radius:12px;padding:14px;border:1px solid rgba(201,168,76,0.2);">' +
         sec3 +
-        '</div>' : '') +
+        '</div></div>' : '') +
 
         // SEC 4: 강점 & 성장 포인트
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
