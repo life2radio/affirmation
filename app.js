@@ -1720,12 +1720,12 @@
 
             // 헤더
             +'<div class="header">'
-            +'<div class="badge">인생2막라디오 확언앱 · 성격 분석 결과지</div>'
+            +'<div class="badge">인생2막라디오 확언앱 · 64유형 성격 분석 결과지</div>'
             +'<div class="animal">'+r.animal.animal+'</div>'
             +'<div class="type-name">'+r.animal.name+'</div>'
             +'<div class="type-title">'+r.animal.title+'</div>'
             +'<div class="mbti">MBTI 유사 유형: '+(r.animal.mbti||'-')+'</div>'
-            +'<div class="intro">'+(r.animal.desc||r.animal.tagline)+'</div>'
+            +'<div class="intro">'+(r.variant&&r.variant.narrative?r.variant.narrative:(r.animal.desc||r.animal.tagline||''))+'</div>'
             +'<div class="date">검사일: '+today+' · '+nick+'님</div>'
             +'</div>'
 
@@ -1746,6 +1746,8 @@
             + barsHTML
             +'<p class="cite">📚 신뢰도 α=.79~.88 · 세계 52개국 이상 검증</p>'
             +'</div>'
+
+            +'<div class="card">'            +'<div class="card-title">🔬 세부 성향 10가지 분석</div>'            +(function(){                var _af=r.allFacets||{};                var _s=r.scores||{};                function _f(k,ax){ var v=_af[k]; return (v&&v!==50)?v:Math.round(ax||50); }                var _axes=[                    {label:'외향성',items:[['사교성',_f('sociability',_s.E)],['주도성',_f('assertiveness',_s.E)]],color:'#3B82F6'},                    {label:'개방성',items:[['지적호기심',_f('intellect',_s.O)],['예술감수성',_f('aesthetics',_s.O)]],color:'#8B5CF6'},                    {label:'친화성',items:[['공감능력',_f('compassion',_s.A)],['협력성',_f('cooperation',_s.A)]],color:'#EC4899'},                    {label:'성실성',items:[['계획성',_f('order',_s.C)],['성취지향',_f('industriousness',_s.C)]],color:'#F59E0B'},                    {label:'안정성',items:[['불안관리',100-_f('anxiety',_s.N)],['감정조절',100-_f('volatility',_s.N)]],color:'#10B981'}                ];                return _axes.map(function(ax){                    return '<div style="margin-bottom:14px;">'                        +'<div style="font-size:11px;font-weight:800;color:'+ax.color+';margin-bottom:6px;">'+ax.label+'</div>'                        +ax.items.map(function(it){                            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'                                +'<div style="width:72px;font-size:12px;color:#333;">'+it[0]+'</div>'                                +'<div style="flex:1;background:#EFEFEF;border-radius:4px;height:11px;">'                                +'<div style="width:'+it[1]+'%;background:'+ax.color+';height:11px;border-radius:4px;"></div></div>'                                +'<div style="width:34px;font-size:12px;font-weight:700;color:'+ax.color+';text-align:right;">'+it[1]+'%</div>'                                +'</div>';                        }).join('')+'</div>';                }).join('');            })()            +'</div>'
 
             // 자존감
             +'<div class="card">'
@@ -3280,10 +3282,11 @@
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유 & 저장</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;">' +
         (isStandalone ?
-        '<button onclick="window.downloadPsychImage(window._lastPsychResult)" style="width:100%;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:1.2em;">📸</span> 결과 이미지로 저장하기</button>'
-        : '') +
-        '<button onclick="downloadPsychPDF()" style="width:100%;min-height:44px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.87em;font-weight:900;cursor:pointer;">' +
-        '📲 결과지 저장 (앱 설치 시)</button>' +
+        '<div style="display:flex;gap:8px;">' +
+        '<button onclick="window.downloadPsychImage(window._lastPsychResult)" style="flex:1;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><span>📸</span>이미지 저장</button>' +
+        '<button onclick="downloadPsychPDF()" style="flex:1;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.88em;font-weight:900;cursor:pointer;">📄 결과지 저장</button>' +
+        '</div>'
+        : '<button onclick="downloadPsychPDF()" style="width:100%;min-height:44px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.87em;font-weight:900;cursor:pointer;">📲 결과지 저장 (앱 설치 시)</button>') +
         '<button onclick="sharePsychMyResult()" style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
         animal.animal + ' 내 결과 공유하기 📤</button>' +
         '<button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">' +
