@@ -2534,64 +2534,95 @@
     };
 
     // ════════════════════════════════════════════════════
-    // 64유형 맞춤 내러티브 생성기 (facet 점수 기반)
+    // ════════════════════════════════════════════════════
+    // 64유형 맞춤 내러티브 (이야기 형식 — 그래프와 역할 분리)
+    // 그래프: 수치 표시 / 이야기: 삶의 방식·강점·성향 묘사
     // ════════════════════════════════════════════════════
     function buildPersonalNarrative(variantLabel, fs, scores, variantKey) {
-        var soc  = fs.sociability    || scores.E || 50;
-        var ast  = fs.assertiveness  || scores.E || 50;
-        var int_ = fs.intellect      || scores.O || 50;
-        var aes  = fs.aesthetics     || scores.O || 50;
-        var com  = fs.compassion     || scores.A || 50;
-        var coo  = fs.cooperation    || scores.A || 50;
-        var ord  = fs.order          || scores.C || 50;
-        var ind  = fs.industriousness|| scores.C || 50;
-        var anx  = fs.anxiety        || scores.N || 50;
-        var stab = 100 - anx;
-        var vol  = fs.volatility     || scores.N || 50;
-        var calm = 100 - vol;
+        // 축 점수 (항상 정확) — 내러티브의 실제 기반
+        var E = scores.E || 50, O = scores.O || 50;
+        var A = scores.A || 50, C = scores.C || 50;
+        var stab = 100 - (scores.N || 50);
+
+        // facet 점수 유효성 체크 (전부 50이면 재검사 전 기본값)
+        var facetVals = [fs.sociability, fs.assertiveness, fs.compassion,
+                         fs.cooperation, fs.order, fs.industriousness];
+        var facetValid = facetVals.some(function(v){ return v && v !== 50; });
+
+        // 실제 사용할 점수 결정
+        var soc = facetValid ? (fs.sociability||E) : E;
+        var ast = facetValid ? (fs.assertiveness||E) : E;
+        var com = facetValid ? (fs.compassion||A) : A;
+        var coo = facetValid ? (fs.cooperation||A) : A;
+        var ord = facetValid ? (fs.order||C) : C;
+        var ind = facetValid ? (fs.industriousness||C) : C;
+        var int_ = facetValid ? (fs.intellect||O) : O;
 
         function lv(s){ return s >= 65 ? 'H' : s < 38 ? 'L' : 'M'; }
 
-        var desc = {
-            soc:  {H:'사람들과 함께할 때 에너지가 넘치고',        M:'상황에 따라 사교성이 달라지고',         L:'혼자만의 시간에서 힘을 얻고'},
-            ast:  {H:'강하게 앞에 나서며',                        M:'필요할 때 앞에 나서는',                 L:'조용히 뒤에서 영향력을 발휘하며'},
-            com:  {H:'타인의 마음을 깊이 이해하면서도',            M:'공감하면서도 균형을 유지하고',           L:'논리와 사실로 상황을 이해하고'},
-            coo:  {H:'팀과의 조화를 소중히 여기며',               M:'상황에 따라 협력 여부를 결정하고',       L:'나만의 방식과 기준을 지키며'},
-            ord:  {H:'체계적인 계획으로',                          M:'필요할 때 계획을 세우고',                L:'즉흥성과 유연함이 강점이에요'},
-            ind:  {H:'목표를 향해 끈질기게 나아가고',              M:'목표와 여유의 균형을 맞추고',            L:'과정 자체를 즐기며 살아가요'},
-            stab: {H:'큰 걱정 없이 흘러가며',                     M:'대체로 안정적으로 감정을 다루고',        L:'감정을 섬세하게 깊이 느끼고'},
-            calm: {H:'흔들리지 않는 평온함을 유지해요.',           M:'대체로 안정적으로 감정을 조절해요.',     L:'풍부한 감수성 속에서도 앞으로 나아가요.'}
+        // ── 이야기 블록 (수치 없는 행동·성향 묘사) ──
+        var introByE = {
+            H: '방 안에 들어서면 분위기가 달라지는 사람입니다. 에너지를 나눌수록 더 커지고, 사람들을 자연스럽게 끌어당기는 힘이 있어요.',
+            M: '내향도 외향도 아닌, 상황을 읽고 그에 맞게 자신을 조율하는 사람입니다. 필요할 때 무대에 서고, 필요할 때 조용히 관찰해요.',
+            L: '말보다 생각이 먼저인 사람입니다. 혼자만의 시간에서 에너지를 충전하고, 소수의 깊은 관계를 넓은 인맥보다 훨씬 소중히 여겨요.'
+        };
+        var bodyByAC = {
+            HH: '타인의 감정을 섬세하게 읽으면서도, 목표를 향해 체계적으로 전진합니다. 따뜻하지만 결코 흐지부지되지 않아요.',
+            HM: '공감이 강점이에요. 주변 사람들이 힘들 때 가장 먼저 알아채고, 자신의 방식으로 조용히 곁에 있어줍니다.',
+            HL: '사람을 깊이 이해하지만 타협은 잘 하지 않아요. 신념이 강하고, 자신이 옳다고 생각하는 방향으로 끝까지 밀어붙이는 편입니다.',
+            MH: '뚜렷한 목표의식과 실행력이 있어요. 감정보다는 효율과 결과를 우선시하지만, 주변 사람들을 배려하는 마음도 잊지 않아요.',
+            MM: '균형 잡힌 사람입니다. 혼자서도, 함께서도 잘 해내고요. 과하지도 부족하지도 않은 적당한 조화를 본능적으로 찾아요.',
+            ML: '원칙과 자신만의 방식이 있는 사람이에요. 남들이 어떻게 하든 자기 기준대로 움직이고, 그 일관성이 신뢰를 만들어요.',
+            LH: '논리적이고 체계적이에요. 감정보다 데이터와 근거를 믿고, 계획된 방식으로 목표를 달성하는 데 탁월합니다.',
+            LM: '냉철한 판단력이 있어요. 감정에 휩쓸리지 않고 현실을 있는 그대로 보는 눈이 있어, 위기에 특히 강합니다.',
+            LL: '자유로운 영혼이에요. 틀에 얽매이지 않고, 자신만의 리듬으로 세상을 살아갑니다. 뜻밖의 창의성이 강점이에요.'
+        };
+        var stabilityLine = {
+            H: '감정적으로 매우 안정적이에요. 큰 사건 앞에서도 흔들리지 않는 평온함이, 주변 사람들에게 든든한 버팀목이 되어줍니다.',
+            M: '감정 기복이 크지 않아요. 어지간한 일엔 동요하지 않고, 꾸준히 자신의 페이스를 유지합니다.',
+            L: '감수성이 풍부한 사람입니다. 세상을 누구보다 깊이 느끼고, 그 풍부한 내면이 창의성과 공감력의 원천이 되어요.'
+        };
+        var openLine = {
+            H: '새로운 아이디어와 가능성에 열려 있어요. 호기심이 삶의 원동력이고, 다양한 분야를 넘나드는 사고가 특기입니다.',
+            M: '익숙한 것과 새로운 것을 적절히 섞어 갑니다. 급격한 변화보다는 검증된 방식 위에서 창의성을 발휘해요.',
+            L: '검증된 것을 믿습니다. 유행보다 본질, 새로움보다 깊이를 추구하고, 그 일관성이 전문성의 뿌리가 돼요.'
         };
 
-        var lines = [];
-        lines.push('당신은 <b>' + variantLabel + '</b>입니다.');
-        lines.push('&nbsp;');
-        lines.push(desc.soc[lv(soc)] + '<span style="color:#1B4332;font-weight:700;">(사교성 ' + soc + '%)</span>,');
-        lines.push(desc.ast[lv(ast)] + '<span style="color:#1B4332;font-weight:700;">(주도성 ' + ast + '%).</span>');
-        lines.push('&nbsp;');
-        lines.push(desc.com[lv(com)] + '<span style="color:#1B4332;font-weight:700;">(공감 ' + com + '%)</span>,');
-        lines.push(desc.coo[lv(coo)] + '<span style="color:#1B4332;font-weight:700;">(협력 ' + coo + '%).</span>');
-        lines.push('&nbsp;');
-        lines.push(desc.ord[lv(ord)] + '<span style="color:#1B4332;font-weight:700;">(계획성 ' + ord + '%)</span>,');
-        lines.push(desc.ind[lv(ind)] + '<span style="color:#1B4332;font-weight:700;">(성취지향 ' + ind + '%).</span>');
-        lines.push('&nbsp;');
-        lines.push(desc.stab[lv(stab)] + '<span style="color:#1B4332;font-weight:700;">(안정성 ' + stab + '%)</span>,');
-        lines.push(desc.calm[lv(calm)]);
-        lines.push('&nbsp;');
-
-        // 자동 정체성 태그
+        // 핵심 정체성 태그 (점수 기반)
         var tags = [];
-        if(com > 60 && coo < 55) tags.push("'공감하는 신념의 리더'");
-        if(ind > 65 && ord < 45) tags.push("'유연한 목표 추구자'");
-        if(int_ > 65 && soc < 45) tags.push("'고독한 탐구자'");
-        if(soc > 65 && com > 65)  tags.push("'따뜻한 연결자'");
-        if(ast > 65 && ord > 65)  tags.push("'강인한 실행가'");
-        if(stab > 70)             tags.push("'흔들리지 않는 기둥'");
-        if(stab < 35)             tags.push("'섬세한 감성의 소유자'");
-        if(tags.length === 0) tags.push("'" + variantLabel + "'");
-        lines.push('당신은 <b>' + tags.slice(0,2).join('</b>, <b>') + '</b>입니다.');
+        if(com > 60 && coo < 55) tags.push('공감하는 신념의 리더');
+        if(ind > 65 && ord < 45) tags.push('유연한 목표 추구자');
+        if(int_ > 65 && soc < 45) tags.push('고독한 탐구자');
+        if(soc > 65 && com > 65)  tags.push('따뜻한 연결자');
+        if(ast > 65 && ord > 65)  tags.push('강인한 실행가');
+        if(stab > 70)             tags.push('흔들리지 않는 기둥');
+        if(stab < 35)             tags.push('섬세한 감성의 소유자');
+        if(O > 70 && soc < 45)   tags.push('조용한 통찰가');
+        if(tags.length === 0)     tags.push(variantLabel);
 
-        return lines.join('<br>');
+        var acKey = lv(A) + lv(C);
+        var intro  = introByE[lv(E)] || introByE['M'];
+        var body   = bodyByAC[acKey] || bodyByAC['MM'];
+        var stabLine = stabilityLine[lv(stab)] || stabilityLine['M'];
+        var openDesc  = openLine[lv(O)] || openLine['M'];
+
+        var tagHTML = tags.slice(0,2).map(function(t){
+            return '<b style="color:#1B4332;">' + t + '</b>';
+        }).join(', ');
+
+        return [
+            '당신은 <b>' + variantLabel + '</b>입니다.',
+            '&nbsp;',
+            intro,
+            '&nbsp;',
+            body,
+            '&nbsp;',
+            openDesc,
+            '&nbsp;',
+            stabLine,
+            '&nbsp;',
+            '한 마디로 당신은 ' + tagHTML + '입니다.'
+        ].join('<br>');
     }
 
         // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
@@ -2780,10 +2811,11 @@
             ? _recalcFacets          // pAnswers로 정확히 재계산
             : (allFacets || {});     // 폴백: 저장된 allFacets
 
-        // facet 점수 조회 (재계산 우선, 없으면 축 점수)
+        // facet 점수 조회 — 50이면 axis score로 대체 (50=미계산 기본값)
         function _fs(key, axisScore) {
             var s = fs[key];
-            if (s !== undefined && s !== null && s > 0) return s;
+            if (s !== undefined && s !== null && s !== 50) return s;
+            // s가 50이거나 없으면 → axis score 사용
             return Math.round(axisScore || 50);
         }
 
@@ -3246,8 +3278,10 @@
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유 & 저장</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;">' +
-        '<button onclick="downloadPsychPDF()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;">' +
-        '📲 결과지 저장하기 (앱 설치 시 무료)</button>' +
+        '<button id="btn-save-image" style="width:100%;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+        '<span style="font-size:1.2em;">📸</span>결과 이미지로 저장하기</button>' +
+        '<button onclick="downloadPsychPDF()" style="width:100%;min-height:44px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.87em;font-weight:900;cursor:pointer;">' +
+        '📲 결과지 저장 (앱 설치 시)</button>' +
         '<button onclick="sharePsychMyResult()" style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
         animal.animal + ' 내 결과 공유하기 📤</button>' +
         '<button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">' +
@@ -3318,6 +3352,14 @@
                 precBtn.addEventListener('click', function(){
                     document.getElementById('psych-modal').remove();
                     pMode='full'; psychStartReal('full');
+                });
+            }
+
+            // 이미지 저장 버튼 연결
+            var imgBtn = document.getElementById('btn-save-image');
+            if(imgBtn){
+                imgBtn.addEventListener('click', function(){
+                    window.downloadPsychImage(result);
                 });
             }
 
