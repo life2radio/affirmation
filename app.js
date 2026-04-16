@@ -1138,7 +1138,7 @@
                 <button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:var(--text-muted);border:1px solid var(--border-color);border-radius:12px;font-size:0.85em;cursor:pointer;margin-bottom:8px;">💌 친구에게 테스트 추천하기</button>
                 ${isStandalone
                     ? `<button onclick="downloadPsychPDF()" style="width:100%;min-height:40px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;margin-top:8px;">📄 결과지 PDF 저장</button>`
-                    : `<button onclick="document.getElementById('psych-modal').remove();installFromPrompt();" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">📲 앱 설치하기 → 결과 저장</button>`}
+                    : `<button onclick="downloadPsychPDF()" style="width:100%;min-height:40px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;margin-top:8px;">📲 앱 설치하기 → 결과 저장</button>`}
                 <div style="text-align:center;margin-top:10px;">
                     <button onclick="psychStartReal()" style="background:none;border:none;font-size:0.8em;color:var(--text-muted);cursor:pointer;text-decoration:underline;">🔄 다시 테스트하기</button>
                 </div>
@@ -1569,17 +1569,23 @@
         safeSetItem('my_nickname', nick);
         safeSetItem('my_email', email);
         
-        // 2. 현재 결과를 '보류 중'으로 설정
-        safeSetItem('pending_psych_save', '1');
-        
-        // 3. 모달 닫기
+        // 2. 모달 닫기
         document.getElementById('psych-gating-modal').style.display = 'none';
+
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
         
-        // 4. 앱 설치 유도 (PWA 프로프롬프트 실행)
-        if(window.pwaInstallPrompt){
-            installFromPrompt();
+        if(isStandalone){
+            // 이미 앱을 설치한 유저라면 팝업 유도 없이 즉시 결과지 생성!
+            generatePsychPDF(); 
+            showToast('🎉 정보가 등록되고 결과지가 저장됐어요!');
         } else {
-            showToast('우측 상단 메뉴(⋮)에서 [홈 화면에 추가]를 눌러주세요!');
+            // 앱 미설치 유저라면 보류 상태로 만들고 설치 유도
+            safeSetItem('pending_psych_save', '1');
+            if(window.pwaInstallPrompt){
+                installFromPrompt();
+            } else {
+                showToast('우측 상단 메뉴(⋮)에서 [홈 화면에 추가]를 눌러주세요!');
+            }
         }
     }
 
@@ -6018,7 +6024,7 @@ https://life2radio.github.io/affirmation/
                         <input type="checkbox" id="ob-privacy-agree" style="width:18px;height:18px;min-width:18px;margin-top:2px;cursor:pointer;accent-color:#1B4332;">
                         <span style="font-size:11px;color:#aaa;line-height:1.6;text-align:left;">이름·이메일을 서비스 개선 목적으로 수집하는 것에 동의합니다.</span>
                     </label>
-                    <div style="font-size:11px;color:#aaa;margin-top:6px;text-align:center;">이름 필수 · 이메일 필수</div>`;
+                    <div style="font-size:11px;color:#999;margin-top:8px;text-align:center;">☑ 이름과 이메일로 가입하겠습니다 (선택)</div>`;
                 const formContainer = document.getElementById('ob-form-container');
                 if(formContainer){
                     formContainer.innerHTML = '';
@@ -6049,42 +6055,37 @@ https://life2radio.github.io/affirmation/
 
     window.nextOnboarding = function(){
         if(obStep < ONBOARDING_STEPS.length - 1){
-            // 4단계(닉네임) 이미 등록됐으면 스킵
+            // 다음 단계로
             const nextStep = obStep + 1;
-            if(ONBOARDING_STEPS[nextStep].isNickname){
-                const nick = safeGetItem('my_nickname','');
-                const email = safeGetItem('my_email','');
-                if(nick && email){
-                    // 이미 등록 → 온보딩 완료
-                    document.getElementById('onboarding-overlay').style.display = 'none';
-                    safeSetItem('onboarding_done','1');
-                    checkFirstVisit(); // ★ 첫 방문 포인트
-                    return;
-                }
-            }
             showOnboardingStep(nextStep);
         } else {
+            // 마지막 단계 (닉네임 입력 페이지)
+            const obAgree = document.getElementById('ob-privacy-agree');
             const nickInput  = document.getElementById('ob-nick-input');
             const emailInput = document.getElementById('ob-email-input');
-            const obAgree = document.getElementById('ob-privacy-agree');
-            if(!obAgree || !obAgree.checked){
-                showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️'); return;
+            
+            // ★ 체크박스 체크 여부로 등록 결정
+            if(obAgree && obAgree.checked){
+                // 가입하겠다고 선택한 경우 → 필수 입력 검증
+                if(!nickInput || !nickInput.value.trim()){
+                    showToast('이름을 입력해주세요!'); return;
+                }
+                if(!emailInput || !emailInput.value.trim()){
+                    showToast('이메일을 입력해주세요!'); return;
+                }
+                // 정보 저장
+                safeSetItem('my_nickname', nickInput.value.trim());
+                safeSetItem('my_email', emailInput.value.trim());
+                const ni = document.getElementById('nickname-input');
+                if(ni) ni.value = nickInput.value.trim();
+                const ei = document.getElementById('user-email-input');
+                if(ei) ei.value = emailInput.value.trim();
+                const se = document.getElementById('story-email');
+                if(se) se.value = emailInput.value.trim();
+                window._sendUserUpdate();
             }
-            if(!nickInput || !nickInput.value.trim()){
-                showToast('이름을 입력해주세요!'); return;
-            }
-            if(!emailInput || !emailInput.value.trim()){
-                showToast('이메일을 입력해주세요!'); return;
-            }
-            safeSetItem('my_nickname', nickInput.value.trim());
-            safeSetItem('my_email', emailInput.value.trim());
-            const ni = document.getElementById('nickname-input');
-            if(ni) ni.value = nickInput.value.trim();
-            const ei = document.getElementById('user-email-input');
-            if(ei) ei.value = emailInput.value.trim();
-            const se = document.getElementById('story-email');
-            if(se) se.value = emailInput.value.trim();
-            window._sendUserUpdate();
+            
+            // 등록 여부와 관계없이 온보딩 완료
             skipOnboarding();
         }
     }
@@ -6092,15 +6093,10 @@ https://life2radio.github.io/affirmation/
     window.skipOnboarding = function(){
         document.getElementById('onboarding-overlay').style.display = 'none';
         safeSetItem('onboarding_done','1');
-        // 이름+이메일 미등록 시 등록 팝업 표시
-        const nick = safeGetItem('my_nickname','');
-        const email = safeGetItem('my_email','');
-        if(!nick || !email){
-            setTimeout(()=> showNicknameModal(), 300);
-        } else {
-            // ★ 온보딩 완료 + 등록 완료 시점에 첫 방문 포인트 지급
-            checkFirstVisit();
-        }
+        
+        // ★ 강제 팝업(showNicknameModal) 띄우는 로직 완전히 삭제!
+        // 유저는 아무런 방해나 강요 없이 곧바로 앱의 핵심 가치(오늘의 확언)를 체험하게 됩니다.
+        checkFirstVisit(); 
     }
 
     /* ===== 명예의 전당 ===== */
@@ -7126,10 +7122,307 @@ https://life2radio.github.io/affirmation/
         // 레벨업 체크
         if(lvAfter > lvBefore){
             setTimeout(()=> showLevelUp(lvAfter), 800);
+            
+            // ★ 새싹 달성(레벨 1)했는데 아직 등록 안 했으면 등록 모달 표시
+            if(lvAfter === 1){ // 새싹 레벨
+                const nick = safeGetItem('my_nickname','');
+                const email = safeGetItem('my_email','');
+                if(!nick || !email){
+                    setTimeout(()=> showSproutRegistrationModal(), 2000);
+                }
+            }
         }
 
         // 점수 삭감 타이머 갱신
         safeSetItem('last_activity_date', getTodayStr());
+    }
+
+    // ★ 새싹 달성 등록 유도 모달
+    function showSproutRegistrationModal(){
+        const modal = document.createElement('div');
+        modal.id = 'sprout-registration-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 24px;
+                padding: 32px 24px;
+                width: 90%;
+                max-width: 380px;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            ">
+                <div style="font-size: 56px; margin-bottom: 16px;">🌱</div>
+                
+                <div style="
+                    font-size: 1.3em;
+                    font-weight: 900;
+                    color: #1B4332;
+                    margin-bottom: 12px;
+                ">새싹이 되셨어요!</div>
+                
+                <div style="
+                    font-size: 0.95em;
+                    color: #666;
+                    line-height: 1.8;
+                    margin-bottom: 28px;
+                ">
+                    축하합니다! 🎉<br><br>
+                    이제 커뮤니티 참여와<br>
+                    매일 아침 확언 알림을<br>
+                    받을 수 있어요!
+                </div>
+                
+                <div style="
+                    background: #f5f5f5;
+                    border-radius: 15px;
+                    padding: 16px;
+                    margin-bottom: 22px;
+                    text-align: left;
+                ">
+                    <div style="
+                        font-size: 0.85em;
+                        font-weight: 700;
+                        color: #1B4332;
+                        margin-bottom: 8px;
+                    ">이름 또는 닉네임</div>
+                    <input 
+                        type="text" 
+                        id="sprout-nick-input"
+                        placeholder="예: 전주 60대"
+                        style="
+                            width: 100%;
+                            padding: 11px;
+                            border: 1.5px solid #ddd;
+                            border-radius: 8px;
+                            font-size: 0.95em;
+                            margin-bottom: 12px;
+                            box-sizing: border-box;
+                            outline: none;
+                        "
+                    >
+                    
+                    <div style="
+                        font-size: 0.85em;
+                        font-weight: 700;
+                        color: #1B4332;
+                        margin-bottom: 8px;
+                    ">이메일</div>
+                    <input 
+                        type="email" 
+                        id="sprout-email-input"
+                        placeholder="abc@gmail.com"
+                        style="
+                            width: 100%;
+                            padding: 11px;
+                            border: 1.5px solid #ddd;
+                            border-radius: 8px;
+                            font-size: 0.95em;
+                            box-sizing: border-box;
+                            outline: none;
+                        "
+                    >
+                </div>
+                
+                <button 
+                    onclick="processSproutRegistration()"
+                    style="
+                        width: 100%;
+                        min-height: 56px;
+                        background: #1B4332;
+                        color: white;
+                        border: none;
+                        border-radius: 14px;
+                        font-size: 1.05em;
+                        font-weight: 900;
+                        cursor: pointer;
+                        margin-bottom: 10px;
+                        box-shadow: 0 8px 20px rgba(27,67,50,0.3);
+                    "
+                >
+                    지금 등록하기 🌿
+                </button>
+                
+                <button 
+                    onclick="document.getElementById('sprout-registration-modal').remove()"
+                    style="
+                        width: 100%;
+                        min-height: 44px;
+                        background: none;
+                        border: none;
+                        color: #999;
+                        font-size: 0.9em;
+                        cursor: pointer;
+                        text-decoration: underline;
+                    "
+                >
+                    나중에 하겠습니다
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    // ★ 새싹 등록 처리
+    window.processSproutRegistration = function(){
+        const nickInput = document.getElementById('sprout-nick-input');
+        const emailInput = document.getElementById('sprout-email-input');
+        
+        if(!nickInput || !nickInput.value.trim()){
+            showToast('이름을 입력해주세요!');
+            return;
+        }
+        if(!emailInput || !emailInput.value.trim()){
+            showToast('이메일을 입력해주세요!');
+            return;
+        }
+        
+        // 정보 저장
+        safeSetItem('my_nickname', nickInput.value.trim());
+        safeSetItem('my_email', emailInput.value.trim());
+        
+        // UI 업데이트
+        const ni = document.getElementById('nickname-input');
+        if(ni) ni.value = nickInput.value.trim();
+        const ei = document.getElementById('user-email-input');
+        if(ei) ei.value = emailInput.value.trim();
+        const se = document.getElementById('story-email');
+        if(se) se.value = emailInput.value.trim();
+        
+        // 모달 닫기
+        const modal = document.getElementById('sprout-registration-modal');
+        if(modal) modal.remove();
+        
+        showToast('🎉 가입 완료되었습니다!');
+    }
+
+    // ★ 그룹채팅 접근 권한 체크 (새싹 등급 이상 필수)
+    window.checkLevelAndOpenGroupChat = function(){
+        const pts = getPoints();
+        const lvl = getLevel(pts);
+        
+        // 새싹 등급(lvl >= 1) 체크
+        if(lvl < 1){
+            // 새싹 미달 → 게이팅 모달
+            showGroupChatGatedModal();
+            return;
+        }
+        
+        // 새싹 등급 이상 → 그룹채팅 오픈
+        addPoint(2,'앱소개공유','share_app');
+        window.open('https://open.kakao.com/o/gr3RC2pi','_blank');
+    }
+
+    // ★ 그룹 채팅 게이팅 모달
+    function showGroupChatGatedModal(){
+        const modal = document.createElement('div');
+        modal.id = 'group-chat-gated-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        `;
+        
+        modal.innerHTML = `
+            <div style="
+                background: white;
+                border-radius: 24px;
+                padding: 32px 24px;
+                width: 90%;
+                max-width: 380px;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            ">
+                <div style="font-size: 52px; margin-bottom: 16px;">🔒</div>
+                
+                <div style="
+                    font-size: 1.25em;
+                    font-weight: 900;
+                    color: #1B4332;
+                    margin-bottom: 12px;
+                ">커뮤니티는 새싹부터!</div>
+                
+                <div style="
+                    font-size: 0.95em;
+                    color: #666;
+                    line-height: 1.8;
+                    margin-bottom: 24px;
+                ">
+                    새싹 등급이 되면<br>
+                    <strong style="color: #1B4332;">그룹 채팅 커뮤니티에</strong><br>
+                    참여할 수 있어요!<br><br>
+                    <span style="font-size: 0.9em;">확언을 읽고 포인트를<br>모으면 금방이에요 🌱</span>
+                </div>
+                
+                <div style="
+                    background: #FFF8E7;
+                    border-left: 4px solid #C9A84C;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin-bottom: 22px;
+                    font-size: 0.85em;
+                    color: #555;
+                    text-align: left;
+                ">
+                    💡 <strong>팁:</strong> 매일 확언을 읽고, 기분을 선택하면<br>
+                    금방 새싹이 될 수 있어요!
+                </div>
+                
+                <button 
+                    onclick="document.getElementById('group-chat-gated-modal').remove(); switchView('home')"
+                    style="
+                        width: 100%;
+                        min-height: 54px;
+                        background: #1B4332;
+                        color: white;
+                        border: none;
+                        border-radius: 14px;
+                        font-size: 1em;
+                        font-weight: 900;
+                        cursor: pointer;
+                        margin-bottom: 10px;
+                    "
+                >
+                    확언 읽으러 가기 🌿
+                </button>
+                
+                <button 
+                    onclick="document.getElementById('group-chat-gated-modal').remove()"
+                    style="
+                        width: 100%;
+                        min-height: 44px;
+                        background: none;
+                        border: none;
+                        color: #999;
+                        font-size: 0.9em;
+                        cursor: pointer;
+                        text-decoration: underline;
+                    "
+                >
+                    닫기
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
     }
 
     // 포인트 떠오르는 애니메이션
