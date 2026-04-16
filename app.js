@@ -965,6 +965,7 @@
     function getVIA(){ return pMode==='quick' ? VIA_ITEMS_SHORT : VIA_ITEMS; }
 
     // ★ 동물 유형별 추천 확언 - 직접 day 번호로 이동
+    // ★ 동물 유형별 추천 확언 - 직접 day 번호로 이동 및 자동 스크롤
     function goToAnimalTheme(animalEmoji){
         // 동물 → 시작 day 번호 직접 매핑
         var dayMap = {
@@ -974,12 +975,36 @@
             '🐝':32, '🦢':335,'🐱':152,'🦒':1
         };
         var targetDay = dayMap[animalEmoji] || 1;
+        
         // ★ bypassCap=true로 미래 날짜도 허용
+        window._bypassDateCap = true; 
         goToFav(targetDay, true);
+        
+        // 정확한 위치로 부드럽게 스크롤 및 강조 애니메이션
         setTimeout(function(){
-            var el = document.getElementById('affirmation-view');
-            if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-        }, 500);
+            var wrapBox = document.getElementById('affirmation-box-wrap');
+            if(wrapBox){
+                // 확언 박스가 화면 정중앙에 오도록 스크롤 (block: 'center')
+                wrapBox.scrollIntoView({behavior:'smooth', block:'center'});
+                
+                // 맞춤 확언임을 알리는 시각적 강조 효과 (금빛 테두리 애니메이션)
+                var innerBox = wrapBox.querySelector('.affirmation-box');
+                if(innerBox){
+                    var oldShadow = innerBox.style.boxShadow;
+                    var oldTransition = innerBox.style.transition;
+                    innerBox.style.transition = 'box-shadow 0.5s ease-in-out';
+                    innerBox.style.boxShadow = '0 0 0 4px #C9A84C, 0 10px 30px rgba(201,168,76,0.5)';
+                    
+                    // 1.8초 후 원래대로 복귀
+                    setTimeout(function(){
+                        innerBox.style.boxShadow = oldShadow;
+                        setTimeout(function(){ innerBox.style.transition = oldTransition; }, 500);
+                    }, 1800);
+                }
+                
+                showToast(`✨ ${animalEmoji} 유형에게 가장 어울리는 맞춤 확언이에요!`);
+            }
+        }, 400); // 화면 전환(switchView)이 끝날 시간을 고려해 0.4초 대기
     }
 
         // ★ 동물 유형별 추천 확언 day 매핑
@@ -3922,7 +3947,6 @@ https://life2radio.github.io/affirmation/?psych=1`;
             let minA=new Date(todayObj.getFullYear(),0,1);
             if(selectedDateObj<minA)selectedDateObj=new Date(minA);
             if(selectedDateObj>todayObj && !window._bypassDateCap) selectedDateObj=new Date(todayObj);
-            window._bypassDateCap = false;
             dayCount=Math.floor((selectedDateObj-minA)/86400000)+1;
             document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
             document.getElementById('day-label').innerText=`365일 중 ${dayCount}일째`;
@@ -3935,7 +3959,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
             sv.style.display='none';av.style.display='block';
             let pts=ss.split('-'),minB=new Date(pts[0],pts[1]-1,pts[2]);
             if(selectedDateObj<minB)selectedDateObj=new Date(minB);
-            if(selectedDateObj>todayObj)selectedDateObj=new Date(todayObj);
+            // ✅ 모드 B에서도 bypass 플래그를 허용하도록 수정!
+            if(selectedDateObj>todayObj && !window._bypassDateCap) selectedDateObj=new Date(todayObj); 
             dayCount=Math.floor((selectedDateObj-minB)/86400000)+1;
             if(dayCount<1)dayCount=1;
             document.getElementById('date-label').innerText=`${selectedDateObj.getFullYear()}년 ${selectedDateObj.getMonth()+1}월 ${selectedDateObj.getDate()}일`;
@@ -3944,6 +3969,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
             prev.disabled=(getFormatDate(selectedDateObj)===getFormatDate(minB));
             next.disabled=isToday;
         }
+        window._bypassDateCap = false; // 공통으로 마지막에 플래그 초기화
         const di=(dayCount-1)%affirmationsData.length,data=affirmationsData[di];
         const mb=safeGetItem(`mood_before_${getFormatDate(selectedDateObj)}`,null);
         let overlay='',cc='';
