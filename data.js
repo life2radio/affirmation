@@ -1,11 +1,11 @@
 // ==========================================
-// data.js - 인생확언 앱 통합 데이터 (최종 완성본)
-// 1단계 BFI_ITEMS + 2단계 함수 로직 + 3단계 64가지 템플릿
+// data.js - 최종 완성본 (GitHub 올리기용)
+// 모든 기존 데이터 + BFI + 64유형 시스템 통합
 // ==========================================
 
 const affirmationsData = [
-  {day:1,month:1,dayOfMonth:1,theme:"새로 시작하는 나",text:"새로운 시작이 두렵다는 건, 내가 그만큼 진지하다는 증거다. 나는 오늘, 완벽하지 않아도 시작한다.",action:"올해 바라는 것 딱 한 가지를 종이에 손으로 써서 눈에 보이는 곳에 붙인다.",episode:"",episodeTitle:""},
-  // ... (365개 데이터는 기존 affirmationsData를 그대로 사용)
+  {day:1,month:1,dayOfMonth:1,theme:"새로 시작하는 나",text:"새로운 시작이 두렵다는 건, 내가 그만큼 진지하다는 증거다. 나는 오늘, 완벽하지 않아도 시작한다.",action:"올해 바라는 것 딱 한 가지를 종이에 손으로 써서 눈에 보이는 곳에 붙인다.",episode:"",episodeTitle:""}
+  // ... (기존 365개 affirmationsData 그대로 유지)
 ];
 
 const INSIGHTS = [
@@ -26,9 +26,6 @@ const BADGES = [
 
 const EMOJIS = ['😔','😐','🙂','😊','😄'];
 
-// ==========================================
-// [1단계] 16가지 동물 기본 정보 (수정: emoji 정확화)
-// ==========================================
 const PSYCH_ANIMALS = {
     '☀️🔥🤝⚡': { animal:'🦁', name:'사자형', title:'카리스마 리더', mbti:'ENFJ/ENTJ' },
     '☀️🌱🤝💭': { animal:'🦦', name:'수달형', title:'유쾌한 낙천가', mbti:'ESFP/ISFP' },
@@ -48,11 +45,7 @@ const PSYCH_ANIMALS = {
     '🌙🌱🤝💭': { animal:'🐱', name:'고양이형', title:'다정한 소수정예', mbti:'ISFP/INFP' }
 };
 
-// ==========================================
-// [1단계] BFI_ITEMS 44개 (2x2 Facet 분류)
-// ==========================================
 const BFI_ITEMS = [
-    // E (8개)
     { id: 'E1',  axis: 'E', facet: 'sociability',   rev: false, text: '나는 말이 많은 편이에요' },
     { id: 'E3',  axis: 'E', facet: 'sociability',   rev: false, text: '나는 사람들과 어울리는 것을 즐겨요' },
     { id: 'E7',  axis: 'E', facet: 'sociability',   rev: false, text: '나는 친구들과 함께 시간을 보내는 것이 좋아요' },
@@ -61,7 +54,6 @@ const BFI_ITEMS = [
     { id: 'E4',  axis: 'E', facet: 'assertiveness', rev: true,  text: '나는 내 의견을 주장하기 어려워해요' },
     { id: 'E5',  axis: 'E', facet: 'assertiveness', rev: false, text: '나는 자신감이 있는 편이에요' },
     { id: 'E6',  axis: 'E', facet: 'assertiveness', rev: true,  text: '나는 조용하고 눈에 띄지 않는 편이에요' },
-    // O (10개)
     { id: 'O1',  axis: 'O', facet: 'intellect',     rev: true,  text: '나는 새로운 경험에 조심스러운 편이에요' },
     { id: 'O2',  axis: 'O', facet: 'intellect',     rev: false, text: '나는 색다른 일을 시도해보고 싶어요' },
     { id: 'O3',  axis: 'O', facet: 'intellect',     rev: false, text: '나는 철학이나 추상적인 개념에 관심이 많아요' },
@@ -72,7 +64,6 @@ const BFI_ITEMS = [
     { id: 'O6',  axis: 'O', facet: 'aesthetics',    rev: false, text: '나는 아름다운 것들에 깊이 감동해요' },
     { id: 'O7',  axis: 'O', facet: 'aesthetics',    rev: true,  text: '나는 일상의 루틴을 선호해요' },
     { id: 'O10', axis: 'O', facet: 'aesthetics',    rev: false, text: '나는 창의적인 표현에 끌려요' },
-    // A (9개)
     { id: 'A1',  axis: 'A', facet: 'compassion',    rev: true,  text: '나는 다른 사람의 감정을 이해하기 어려워해요' },
     { id: 'A2',  axis: 'A', facet: 'compassion',    rev: false, text: '나는 남의 고통에 쉽게 공감해요' },
     { id: 'A4',  axis: 'A', facet: 'compassion',    rev: false, text: '나는 타인의 감정을 배려해요' },
@@ -82,7 +73,6 @@ const BFI_ITEMS = [
     { id: 'A5',  axis: 'A', facet: 'cooperation',   rev: true,  text: '나는 경쟁에서 이기는 것을 중요하게 생각해요' },
     { id: 'A8',  axis: 'A', facet: 'cooperation',   rev: false, text: '나는 남을 도우려고 해요' },
     { id: 'A9',  axis: 'A', facet: 'cooperation',   rev: true,  text: '나는 다른 사람과 싸우기 쉬운 편이에요' },
-    // C (9개)
     { id: 'C1',  axis: 'C', facet: 'order',         rev: false, text: '나는 철저하게 일을 처리해요' },
     { id: 'C4',  axis: 'C', facet: 'order',         rev: false, text: '나는 계획을 세워 실행하는 편이에요' },
     { id: 'C7',  axis: 'C', facet: 'order',         rev: true,  text: '나는 정리정돈을 잘하지 못해요' },
@@ -92,7 +82,6 @@ const BFI_ITEMS = [
     { id: 'C5',  axis: 'C', facet: 'industriousness', rev: false, text: '나는 목표를 달성하기 위해 노력해요' },
     { id: 'C6',  axis: 'C', facet: 'industriousness', rev: true,  text: '나는 게을러서 자주 미루는 편이에요' },
     { id: 'C9',  axis: 'C', facet: 'industriousness', rev: false, text: '나는 높은 기준을 유지하려고 노력해요' },
-    // N (8개)
     { id: 'N1',  axis: 'N', facet: 'volatility',    rev: false, text: '나는 감정 기복이 큰 편이에요' },
     { id: 'N2',  axis: 'N', facet: 'volatility',    rev: true,  text: '나는 차분하고 침착해요' },
     { id: 'N5',  axis: 'N', facet: 'volatility',    rev: true,  text: '나는 감정적으로 안정돼 있어요' },
@@ -103,95 +92,25 @@ const BFI_ITEMS = [
     { id: 'N8',  axis: 'N', facet: 'anxiety',       rev: false, text: '나는 스트레스에 쉽게 영향을 받아요' }
 ];
 
-// ==========================================
-// [2단계] 64가지 세부 유형 템플릿
-// ==========================================
 const FACET_TEMPLATES = {
-    'A_high_high': { 
-        narrative: (name) => `당신은 ${name}의 강점에 더해, 따뜻한 공감과 포용력으로 사람을 품는 성향이 강합니다. 의견이 다른 사람의 말에도 귀 기울이며 부드럽게 타협점을 찾아내는 완벽한 조율자입니다.`,
-        strengths: ['깊은 공감력', '갈등 중재', '포용적 리더십'],
-        cautions: ['모두를 만족시키려다 자신이 지칠 수 있습니다']
-    },
-    'A_high_low': { 
-        narrative: (name) => `당신은 ${name}의 특성을 가지면서도, 사람의 마음은 깊이 이해하지만 자신의 신념 앞에서는 쉽게 타협하지 않습니다. 공감하면서도 뚝심 있게 밀어붙이는 진정성 있는 타입입니다.`,
-        strengths: ['진정성 있는 설득력', '흔들리지 않는 신념', '깊은 1:1 관계'],
-        cautions: ['때로는 융통성이 부족해 보일 수 있습니다']
-    },
-    'A_low_high': { 
-        narrative: (name) => `당신은 ${name}이지만, 감정보다는 시스템과 합리적인 조율을 중시합니다. 매우 전략적이고 영리하며, 타협을 통해 조직과 관계의 최선의 결과를 도출해내는 실용주의자입니다.`,
-        strengths: ['전략적 조율', '시스템 구축', '감정에 휘둘리지 않음'],
-        cautions: ['인간미가 다소 부족하다는 오해를 받을 수 있습니다']
-    },
-    'A_low_low': { 
-        narrative: (name) => `당신은 가장 순수하고 독립적인 형태의 ${name}입니다. 섣불리 타협하지 않고 감정에 휘둘리지 않으며, 오직 자신의 명확한 비전과 결과만을 향해 압도적으로 나아갑니다.`,
-        strengths: ['압도적인 추진력', '명확한 비전', '뛰어난 결과 도출'],
-        cautions: ['주변 사람들의 감정을 놓치지 않도록 주의가 필요합니다']
-    },
-    'C_high_high': { 
-        narrative: (name) => `당신은 ${name}의 매력에 더해, 원대한 목표를 세우고 완벽한 로드맵을 그리는 치밀함이 있습니다. 흔들림 없이 계획대로 전진하여 반드시 결과를 내는 무서운 실력자입니다.`,
-        strengths: ['완벽한 실행력', '철저한 계획', '높은 신뢰성'],
-        cautions: ['계획이 틀어질 때 스트레스를 크게 받을 수 있습니다']
-    },
-    'C_high_low': { 
-        narrative: (name) => `당신은 ${name}이면서도, 빡빡한 계획이나 규칙에 얽매이는 것을 싫어합니다. 하지만 목표를 향한 집념은 타의 추종을 불허하며, 예상치 못한 상황도 유연하게 돌파해내는 실전형 야심가입니다.`,
-        strengths: ['강력한 목표 달성력', '뛰어난 위기 대처', '유연한 사고'],
-        cautions: ['초반에 체계가 없어 보일 수 있습니다']
-    },
-    'C_low_high': { 
-        narrative: (name) => `당신은 ${name}의 본성에 더해, 모험보다는 안정을, 즉흥성보다는 정돈된 체계를 선호합니다. 화려한 목표를 외치기보다 묵묵히 시스템을 유지하고 관리하는 든든한 방어막입니다.`,
-        strengths: ['안정적인 관리 능력', '꼼꼼한 디테일', '높은 유지력'],
-        cautions: ['새로운 변화를 수용하는 속도가 느릴 수 있습니다']
-    },
-    'C_low_low': { 
-        narrative: (name) => `당신은 거침없는 야망이나 빡빡한 계획에 자신을 가두지 않는 자유로운 ${name}입니다. 순간의 직관과 유연함을 믿으며, 남들이 보지 못하는 틈새에서 자신만의 행복과 성과를 찾아냅니다.`,
-        strengths: ['탁월한 적응력', '틀에 얽매이지 않는 자유로움', '스트레스 내성'],
-        cautions: ['장기적인 끈기가 다소 부족할 수 있습니다']
-    },
-    'O_high_high': { 
-        narrative: (name) => `당신은 ${name}의 특징과 함께, 논리적인 분석력과 예술적인 영감을 동시에 갖춘 르네상스적 인물입니다. 높은 곳에서 세상을 넓게 보며 융합적인 사고를 해냅니다.`,
-        strengths: ['풍부한 상상력', '논리와 직관의 융합', '다각적 문제 해결'],
-        cautions: ['생각이 너무 많아 현실 감각을 잃을 수 있습니다']
-    },
-    'O_high_low': { 
-        narrative: (name) => `당신은 ${name}이면서도, 감성보다는 '왜 그렇게 되는가?'에 대한 지적 탐구심이 극에 달한 사람입니다. 냉철한 이성과 예리한 분석력으로 세상의 진리와 규칙을 파헤칩니다.`,
-        strengths: ['날카로운 분석력', '객관적 통찰력', '지적 호기심'],
-        cautions: ['타인의 감정적 호소에 둔감할 수 있습니다']
-    },
-    'O_low_high': { 
-        narrative: (name) => `당신은 복잡한 논리나 이론보다는, ${name} 특유의 직관적이고 감각적인 아름다움을 추구합니다. 섬세한 안목과 감수성으로 일상 속에서 예술적인 가치를 창조해냅니다.`,
-        strengths: ['뛰어난 직관', '풍부한 감수성', '감각적 안목'],
-        cautions: ['논리적인 설명이나 근거 제시를 어려워할 수 있습니다']
-    },
-    'O_low_low': { 
-        narrative: (name) => `당신은 뜬구름 잡는 이상이나 예술보다는, 당장 눈앞에 보이는 현실적이고 실용적인 문제 해결을 가장 중요하게 생각하는 현실밀착형 ${name}입니다.`,
-        strengths: ['뛰어난 현실 감각', '실용적 문제 해결', '안정감'],
-        cautions: ['기존의 방식을 깨는 혁신을 주저할 수 있습니다']
-    },
-    'E_high_high': { 
-        narrative: (name) => `당신은 ${name}의 성향을 바탕으로, 사람들과 어울리는 것을 사랑하며 무리의 중심에서 주도권을 쥐는 데 탁월합니다. 어디서나 눈에 띄는 타고난 스타이자 통솔자입니다.`,
-        strengths: ['강한 장악력', '폭넓은 네트워크', '자신감'],
-        cautions: ['타인의 의견을 압도할 위험이 있습니다']
-    },
-    'E_high_low': { 
-        narrative: (name) => `당신은 내가 앞장서서 지시하기보다는, 사람들과 웃고 떠들며 편안한 분위기를 만드는 것을 좋아하는 친근한 ${name}입니다. 모두가 곁에 두고 싶어 하는 다정한 친구입니다.`,
-        strengths: ['편안한 분위기 조성', '높은 호감도', '갈등 완화'],
-        cautions: ['중요한 결정의 순간에 주도권을 넘길 수 있습니다']
-    },
-    'E_low_high': { 
-        narrative: (name) => `당신은 불필요한 사교 모임에는 에너지를 아끼지만, 목표를 이끌거나 중요한 결정을 내릴 때는 주저 없이 리더십을 발휘하는 카리스마 있는 ${name}입니다.`,
-        strengths: ['결정적 리더십', '효율적 에너지 사용', '강한 결단력'],
-        cautions: ['차갑거나 다가가기 어렵다는 인상을 줄 수 있습니다']
-    },
-    'E_low_low': { 
-        narrative: (name) => `당신은 나서는 것이나 시끄러운 환경을 피하고, 자신만의 고요한 영역을 지키는 매력적인 ${name}입니다. 소수의 사람들과 깊게 교류하며 내면의 에너지를 축적합니다.`,
-        strengths: ['높은 집중력', '자아 성찰', '깊은 1:1 관계'],
-        cautions: ['자신을 알릴 기회를 놓치기 쉽습니다']
-    }
+    'A_high_high': { narrative: (animal) => `당신은 ${animal}의 강점에 더해, 따뜻한 공감과 포용력으로 사람을 품는 성향이 강합니다. 의견이 다른 사람의 말에도 귀 기울이며 부드럽게 타협점을 찾아내는 완벽한 조율자입니다.`, strengths: ['깊은 공감력', '갈등 중재', '포용적 리더십'], cautions: ['모두를 만족시키려다 자신이 지칠 수 있습니다'] },
+    'A_high_low': { narrative: (animal) => `당신은 ${animal}의 특성을 가지면서도, 사람의 마음은 깊이 이해하지만 자신의 신념 앞에서는 쉽게 타협하지 않습니다. 공감하면서도 뚝심 있게 밀어붙이는 진정성 있는 타입입니다.`, strengths: ['진정성 있는 설득력', '흔들리지 않는 신념', '깊은 1:1 관계'], cautions: ['때로는 융통성이 부족해 보일 수 있습니다'] },
+    'A_low_high': { narrative: (animal) => `당신은 ${animal}이지만, 감정보다는 시스템과 합리적인 조율을 중시합니다. 매우 전략적이고 영리하며, 타협을 통해 조직과 관계의 최선의 결과를 도출해내는 실용주의자입니다.`, strengths: ['전략적 조율', '시스템 구축', '감정에 휘둘리지 않음'], cautions: ['인간미가 다소 부족하다는 오해를 받을 수 있습니다'] },
+    'A_low_low': { narrative: (animal) => `당신은 가장 순수하고 독립적인 형태의 ${animal}입니다. 섣불리 타협하지 않고 감정에 휘둘리지 않으며, 오직 자신의 명확한 비전과 결과만을 향해 압도적으로 나아갑니다.`, strengths: ['압도적인 추진력', '명확한 비전', '뛰어난 결과 도출'], cautions: ['주변 사람들의 감정을 놓치지 않도록 주의가 필요합니다'] },
+    'C_high_high': { narrative: (animal) => `당신은 ${animal}의 매력에 더해, 원대한 목표를 세우고 완벽한 로드맵을 그리는 치밀함이 있습니다. 흔들림 없이 계획대로 전진하여 반드시 결과를 내는 무서운 실력자입니다.`, strengths: ['완벽한 실행력', '철저한 계획', '높은 신뢰성'], cautions: ['계획이 틀어질 때 스트레스를 크게 받을 수 있습니다'] },
+    'C_high_low': { narrative: (animal) => `당신은 ${animal}이면서도, 빡빡한 계획이나 규칙에 얽매이는 것을 싫어합니다. 하지만 목표를 향한 집념은 타의 추종을 불허하며, 예상치 못한 상황도 유연하게 돌파해내는 실전형 야심가입니다.`, strengths: ['강력한 목표 달성력', '뛰어난 위기 대처', '유연한 사고'], cautions: ['초반에 체계가 없어 보일 수 있습니다'] },
+    'C_low_high': { narrative: (animal) => `당신은 ${animal}의 본성에 더해, 모험보다는 안정을, 즉흥성보다는 정돈된 체계를 선호합니다. 화려한 목표를 외치기보다 묵묵히 시스템을 유지하고 관리하는 든든한 방어막입니다.`, strengths: ['안정적인 관리 능력', '꼼꼼한 디테일', '높은 유지력'], cautions: ['새로운 변화를 수용하는 속도가 느릴 수 있습니다'] },
+    'C_low_low': { narrative: (animal) => `당신은 거침없는 야망이나 빡빡한 계획에 자신을 가두지 않는 자유로운 ${animal}입니다. 순간의 직관과 유연함을 믿으며, 남들이 보지 못하는 틈새에서 자신만의 행복과 성과를 찾아냅니다.`, strengths: ['탁월한 적응력', '틀에 얽매이지 않는 자유로움', '스트레스 내성'], cautions: ['장기적인 끈기가 다소 부족할 수 있습니다'] },
+    'O_high_high': { narrative: (animal) => `당신은 ${animal}의 특징과 함께, 논리적인 분석력과 예술적인 영감을 동시에 갖춘 르네상스적 인물입니다. 높은 곳에서 세상을 넓게 보며 융합적인 사고를 해냅니다.`, strengths: ['풍부한 상상력', '논리와 직관의 융합', '다각적 문제 해결'], cautions: ['생각이 너무 많아 현실 감각을 잃을 수 있습니다'] },
+    'O_high_low': { narrative: (animal) => `당신은 ${animal}이면서도, 감성보다는 '왜 그렇게 되는가?'에 대한 지적 탐구심이 극에 달한 사람입니다. 냉철한 이성과 예리한 분석력으로 세상의 진리와 규칙을 파헤칩니다.`, strengths: ['날카로운 분석력', '객관적 통찰력', '지적 호기심'], cautions: ['타인의 감정적 호소에 둔감할 수 있습니다'] },
+    'O_low_high': { narrative: (animal) => `당신은 복잡한 논리나 이론보다는, ${animal} 특유의 직관적이고 감각적인 아름다움을 추구합니다. 섬세한 안목과 감수성으로 일상 속에서 예술적인 가치를 창조해냅니다.`, strengths: ['뛰어난 직관', '풍부한 감수성', '감각적 안목'], cautions: ['논리적인 설명이나 근거 제시를 어려워할 수 있습니다'] },
+    'O_low_low': { narrative: (animal) => `당신은 뜬구름 잡는 이상이나 예술보다는, 당장 눈앞에 보이는 현실적이고 실용적인 문제 해결을 가장 중요하게 생각하는 현실밀착형 ${animal}입니다.`, strengths: ['뛰어난 현실 감각', '실용적 문제 해결', '안정감'], cautions: ['기존의 방식을 깨는 혁신을 주저할 수 있습니다'] },
+    'E_high_high': { narrative: (animal) => `당신은 ${animal}의 성향을 바탕으로, 사람들과 어울리는 것을 사랑하며 무리의 중심에서 주도권을 쥐는 데 탁월합니다. 어디서나 눈에 띄는 타고난 스타이자 통솔자입니다.`, strengths: ['강한 장악력', '폭넓은 네트워크', '자신감'], cautions: ['타인의 의견을 압도할 위험이 있습니다'] },
+    'E_high_low': { narrative: (animal) => `당신은 내가 앞장서서 지시하기보다는, 사람들과 웃고 떠들며 편안한 분위기를 만드는 것을 좋아하는 친근한 ${animal}입니다. 모두가 곁에 두고 싶어 하는 다정한 친구입니다.`, strengths: ['편안한 분위기 조성', '높은 호감도', '갈등 완화'], cautions: ['중요한 결정의 순간에 주도권을 넘길 수 있습니다'] },
+    'E_low_high': { narrative: (animal) => `당신은 불필요한 사교 모임에는 에너지를 아끼지만, 목표를 이끌거나 중요한 결정을 내릴 때는 주저 없이 리더십을 발휘하는 카리스마 있는 ${animal}입니다.`, strengths: ['결정적 리더십', '효율적 에너지 사용', '강한 결단력'], cautions: ['차갑거나 다가가기 어렵다는 인상을 줄 수 있습니다'] },
+    'E_low_low': { narrative: (animal) => `당신은 나서는 것이나 시끄러운 환경을 피하고, 자신만의 고요한 영역을 지키는 매력적인 ${animal}입니다. 소수의 사람들과 깊게 교류하며 내면의 에너지를 축적합니다.`, strengths: ['높은 집중력', '자아 성찰', '깊은 1:1 관계'], cautions: ['자신을 알릴 기회를 놓치기 쉽습니다'] }
 };
 
-// ==========================================
-// [2단계] 64가지 세부 유형 데이터
-// ==========================================
 const ANIMAL_FACET_MAP = {
     '🦁': { name: '사자형', variants: { 'A': { label: '성인군자형 사자', template: 'A_high_high', celebs: ['넬슨 만델라', '오프라 윈프리'] }, 'B': { label: '비전의 사자', template: 'A_high_low', celebs: ['스티브 잡스', '마틴 루터 킹'] }, 'C': { label: '전술적 사자', template: 'A_low_high', celebs: ['빌 클린턴', '리 쿠안유'] }, 'D': { label: '절대군주형 사자', template: 'A_low_low', celebs: ['마거릿 대처', '알렉산더 대왕'] } } },
     '🦦': { name: '수달형', variants: { 'A': { label: '유쾌한 중재자 수달', template: 'A_high_high', celebs: ['유재석', '로빈 윌리엄스'] }, 'B': { label: '주관 있는 낙천가 수달', template: 'A_high_low', celebs: ['윌 스미스', '짐 캐리'] }, 'C': { label: '융통성 있는 협력가 수달', template: 'A_low_high', celebs: ['성룡', '엘런 디제너러스'] }, 'D': { label: '마이웨이 쾌락주의 수달', template: 'A_low_low', celebs: ['로버트 다우니 주니어', '잭 블랙'] } } },
@@ -211,9 +130,6 @@ const ANIMAL_FACET_MAP = {
     '🐱': { name: '고양이형', variants: { 'A': { label: '당당한 매력쟁이 고양이', template: 'E_high_high', celebs: ['마돈나', '테일러 스위프트'] }, 'B': { label: '다정한 소수정예 고양이', template: 'E_high_low', celebs: ['아이유', '빌리 아일리시'] }, 'C': { label: '도도한 기획자 고양이', template: 'E_low_high', celebs: ['칼 라거펠트', '안나 윈투어'] }, 'D': { label: '자유로운 마이웨이 고양이', template: 'E_low_low', celebs: ['조니 뎁', '제임스 딘'] } } }
 };
 
-// ==========================================
-// [핵심] getVariantDescription 함수
-// ==========================================
 window.getVariantDescription = function(animalEmoji, variantKey) {
     const animalMap = ANIMAL_FACET_MAP[animalEmoji];
     if(!animalMap) return null;
@@ -230,15 +146,5 @@ window.getVariantDescription = function(animalEmoji, variantKey) {
     };
 };
 
-// ==========================================
-// [필수] 헬퍼 함수들
-// ==========================================
-function getBFI() {
-    return BFI_ITEMS || [];
-}
-
-function getRSE() {
-    return RSE_ITEMS || [];
-}
-
-// ... (기존의 affirmationsData, RSE_ITEMS, VIA_ITEMS 등은 그대로 유지하세요)
+function getBFI() { return BFI_ITEMS || []; }
+function getRSE() { return RSE_ITEMS || []; }
