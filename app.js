@@ -1894,7 +1894,10 @@
             if(window.pwaInstallPrompt){
                 installFromPrompt();
             } else {
-                showToast('우측 상단 메뉴(⋮)에서 [홈 화면에 추가]를 눌러주세요!');
+                // pwaInstallPrompt 없으면 설치 안내 페이지로 이동
+                setTimeout(function(){
+                    showInstallPrompt && showInstallPrompt();
+                }, 400);
             }
         }
     }
@@ -2972,6 +2975,17 @@
         modal.innerHTML =
         '<div style="background:var(--bg-color);min-height:100vh;padding-bottom:120px;">' +
 
+        // ── 글자 크기 조절 바 ──
+        '<div style="position:sticky;top:0;z-index:100;background:rgba(27,67,50,0.95);padding:7px 16px;display:flex;align-items:center;justify-content:flex-end;gap:8px;border-bottom:1px solid rgba(201,168,76,0.2);">' +
+        '<span style="font-size:0.73em;color:rgba(255,255,255,0.55);margin-right:4px;">글자 크기</span>' +
+        '<button onclick="window._psychFontDown()" style="width:32px;height:32px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;font-size:1em;cursor:pointer;">A-</button>' +
+        '<span id="psych-font-label" style="font-size:0.72em;color:rgba(255,255,255,0.6);min-width:30px;text-align:center;">기본</span>' +
+        '<button onclick="window._psychFontUp()" style="width:32px;height:32px;background:rgba(255,255,255,0.1);border:none;border-radius:6px;color:#fff;font-size:1.1em;cursor:pointer;">A+</button>' +
+        '</div>' +
+
+        // 콘텐츠 래퍼
+        '<div id="psych-result-content" style="font-size:1em;">' +
+
         // HEADER
         '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);padding:44px 20px 32px;text-align:center;">' +
         '<div style="font-size:0.78em;color:rgba(255,255,255,0.65);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;">나의 확언 동물 유형</div>' +
@@ -3129,13 +3143,15 @@
         '</div>' +
         '</div>' +
 
-        // SEC 10: 공유 & 30일 성장 추적
+        // SEC 10: 공유 & 다운로드 & 30일 성장 추적
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유하기</div>' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유 & 저장</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;">' +
-        '<button onclick="sharePsychMyResult()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">' +
+        '<button onclick="downloadPsychPDF()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;">' +
+        '📲 결과지 저장하기 (앱 설치 시 무료)</button>' +
+        '<button onclick="sharePsychMyResult()" style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
         animal.animal + ' 내 결과 공유하기 📤</button>' +
-        '<button onclick="sharePsychInvite()" style="width:100%;min-height:44px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
+        '<button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">' +
         '💌 친구에게 테스트 추천하기</button>' +
         '</div></div>' +
 
@@ -3167,9 +3183,23 @@
         '<button id="psych-result-cta-btn" style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">🌿 확언 시작하기</button>' +
         '</div>' +
 
+        '</div>' + // psych-result-content 닫기
         '</div>'; // 전체 div 끝
 
         // ── [15] 이벤트 바인딩 ──
+        // 글자 크기 조절
+        var _pFontSizes  = [0.88, 1.0, 1.12, 1.25, 1.4];
+        var _pFontIdx    = 1;
+        var _pFontLabels = ['매우 작게', '기본', '크게', '더 크게', '매우 크게'];
+        window._psychFontUp   = function(){ if(_pFontIdx < 4){ _pFontIdx++; _pApplyFont(); } };
+        window._psychFontDown = function(){ if(_pFontIdx > 0){ _pFontIdx--; _pApplyFont(); } };
+        function _pApplyFont(){
+            var wrap  = document.getElementById('psych-result-content');
+            var label = document.getElementById('psych-font-label');
+            if(wrap)  wrap.style.fontSize   = _pFontSizes[_pFontIdx] + 'em';
+            if(label) label.textContent     = _pFontLabels[_pFontIdx];
+        }
+
         setTimeout(function(){
             var ctaBtn = document.getElementById('psych-result-cta-btn');
             if(ctaBtn){
