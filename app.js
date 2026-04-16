@@ -2533,6 +2533,67 @@
         }, 200);
     };
 
+    // ════════════════════════════════════════════════════
+    // 64유형 맞춤 내러티브 생성기 (facet 점수 기반)
+    // ════════════════════════════════════════════════════
+    function buildPersonalNarrative(variantLabel, fs, scores, variantKey) {
+        var soc  = fs.sociability    || scores.E || 50;
+        var ast  = fs.assertiveness  || scores.E || 50;
+        var int_ = fs.intellect      || scores.O || 50;
+        var aes  = fs.aesthetics     || scores.O || 50;
+        var com  = fs.compassion     || scores.A || 50;
+        var coo  = fs.cooperation    || scores.A || 50;
+        var ord  = fs.order          || scores.C || 50;
+        var ind  = fs.industriousness|| scores.C || 50;
+        var anx  = fs.anxiety        || scores.N || 50;
+        var stab = 100 - anx;
+        var vol  = fs.volatility     || scores.N || 50;
+        var calm = 100 - vol;
+
+        function lv(s){ return s >= 65 ? 'H' : s < 38 ? 'L' : 'M'; }
+
+        var desc = {
+            soc:  {H:'사람들과 함께할 때 에너지가 넘치고',        M:'상황에 따라 사교성이 달라지고',         L:'혼자만의 시간에서 힘을 얻고'},
+            ast:  {H:'강하게 앞에 나서며',                        M:'필요할 때 앞에 나서는',                 L:'조용히 뒤에서 영향력을 발휘하며'},
+            com:  {H:'타인의 마음을 깊이 이해하면서도',            M:'공감하면서도 균형을 유지하고',           L:'논리와 사실로 상황을 이해하고'},
+            coo:  {H:'팀과의 조화를 소중히 여기며',               M:'상황에 따라 협력 여부를 결정하고',       L:'나만의 방식과 기준을 지키며'},
+            ord:  {H:'체계적인 계획으로',                          M:'필요할 때 계획을 세우고',                L:'즉흥성과 유연함이 강점이에요'},
+            ind:  {H:'목표를 향해 끈질기게 나아가고',              M:'목표와 여유의 균형을 맞추고',            L:'과정 자체를 즐기며 살아가요'},
+            stab: {H:'큰 걱정 없이 흘러가며',                     M:'대체로 안정적으로 감정을 다루고',        L:'감정을 섬세하게 깊이 느끼고'},
+            calm: {H:'흔들리지 않는 평온함을 유지해요.',           M:'대체로 안정적으로 감정을 조절해요.',     L:'풍부한 감수성 속에서도 앞으로 나아가요.'}
+        };
+
+        var lines = [];
+        lines.push('당신은 <b>' + variantLabel + '</b>입니다.');
+        lines.push('&nbsp;');
+        lines.push(desc.soc[lv(soc)] + '<span style="color:#1B4332;font-weight:700;">(사교성 ' + soc + '%)</span>,');
+        lines.push(desc.ast[lv(ast)] + '<span style="color:#1B4332;font-weight:700;">(주도성 ' + ast + '%).</span>');
+        lines.push('&nbsp;');
+        lines.push(desc.com[lv(com)] + '<span style="color:#1B4332;font-weight:700;">(공감 ' + com + '%)</span>,');
+        lines.push(desc.coo[lv(coo)] + '<span style="color:#1B4332;font-weight:700;">(협력 ' + coo + '%).</span>');
+        lines.push('&nbsp;');
+        lines.push(desc.ord[lv(ord)] + '<span style="color:#1B4332;font-weight:700;">(계획성 ' + ord + '%)</span>,');
+        lines.push(desc.ind[lv(ind)] + '<span style="color:#1B4332;font-weight:700;">(성취지향 ' + ind + '%).</span>');
+        lines.push('&nbsp;');
+        lines.push(desc.stab[lv(stab)] + '<span style="color:#1B4332;font-weight:700;">(안정성 ' + stab + '%)</span>,');
+        lines.push(desc.calm[lv(calm)]);
+        lines.push('&nbsp;');
+
+        // 자동 정체성 태그
+        var tags = [];
+        if(com > 60 && coo < 55) tags.push("'공감하는 신념의 리더'");
+        if(ind > 65 && ord < 45) tags.push("'유연한 목표 추구자'");
+        if(int_ > 65 && soc < 45) tags.push("'고독한 탐구자'");
+        if(soc > 65 && com > 65)  tags.push("'따뜻한 연결자'");
+        if(ast > 65 && ord > 65)  tags.push("'강인한 실행가'");
+        if(stab > 70)             tags.push("'흔들리지 않는 기둥'");
+        if(stab < 35)             tags.push("'섬세한 감성의 소유자'");
+        if(tags.length === 0) tags.push("'" + variantLabel + "'");
+        lines.push('당신은 <b>' + tags.slice(0,2).join('</b>, <b>') + '</b>입니다.');
+
+        return lines.join('<br>');
+    }
+
         // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
     // ════════════════════════════════════════════════════
     window.getVariantDescription = function(animalEmoji, variantKey) {
@@ -2670,10 +2731,11 @@
             volatility:      Math.round((f_volatility-1)/6*100),
         };
 
-        // 8. 결과 저장
+        // 8. 결과 저장 (pA 개별 답변도 저장 → 언제든 facet 재계산 가능)
         const result = {
             typeKey, animal: animalData, scores, rawScores, viaStrengths,
             variant: variantProfile, variantKey, facetData, allFacets,
+            pAnswers: Object.assign({}, pA),
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr()
         };
@@ -2690,13 +2752,39 @@
 
         // ── [1] 데이터 추출 ──
         const { animal, scores, viaStrengths, variant, allFacets } = result;
-        const fs = allFacets || {};
+        // pAnswers 있으면 facet 재계산 (정확한 점수)
+        var _recalcFacets = {};
+        if (result.pAnswers && typeof BFI_ITEMS !== 'undefined') {
+            var _pA = result.pAnswers;
+            var _calcF = function(facetName) {
+                var items = BFI_ITEMS.filter(function(it){ return it.facet === facetName; });
+                var sum = 0, cnt = 0;
+                items.forEach(function(it){
+                    var val = _pA['bfi_' + it.id];
+                    if (val !== undefined) {
+                        sum += it.rev ? (8 - val) : val;
+                        cnt++;
+                    }
+                });
+                return cnt === 0 ? null : Math.round((sum/cnt - 1) / 6 * 100);
+            };
+            ['sociability','assertiveness','intellect','aesthetics',
+             'compassion','cooperation','order','industriousness',
+             'anxiety','volatility'].forEach(function(f){
+                var v = _calcF(f);
+                if (v !== null) _recalcFacets[f] = v;
+            });
+        }
 
-        // allFacets 없는 경우(구버전 저장 결과) 축 점수로 폴백
+        const fs = Object.keys(_recalcFacets).length > 0
+            ? _recalcFacets          // pAnswers로 정확히 재계산
+            : (allFacets || {});     // 폴백: 저장된 allFacets
+
+        // facet 점수 조회 (재계산 우선, 없으면 축 점수)
         function _fs(key, axisScore) {
             var s = fs[key];
-            // 0이면 allFacets가 없는 것으로 판단 → 축 점수 사용
-            return (s !== undefined && s !== null && s > 0) ? s : Math.round(axisScore || 50);
+            if (s !== undefined && s !== null && s > 0) return s;
+            return Math.round(axisScore || 50);
         }
 
         const vLabel     = variant ? variant.label     : animal.name;
@@ -2715,7 +2803,7 @@
         if (vCautions.length === 0) {
             vCautions = (variant && variant.cautions) ? variant.cautions : (animal.cautions || []);
         }
-        // 유명인 데이터: 항상 ANIMAL_FACET_MAP에서 재조회 (저장 결과 호환)
+        // 유명인 데이터: ANIMAL_FACET_MAP + EXTRA_CELEBS 합산 (4~5명)
         var _vKey = result.variantKey || 'A';
         var vCelebs = [];
         if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
@@ -2723,7 +2811,12 @@
             ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) {
             vCelebs = ANIMAL_FACET_MAP[animal.animal].variants[_vKey].celebs || [];
         }
-        // 폴백: ANIMAL_FACET_MAP 없으면 저장된 variant.celebrities 사용
+        // EXTRA_CELEBS 추가 (4~5명으로 확장)
+        var _extraKey = animal.animal + _vKey;
+        if (typeof EXTRA_CELEBS !== 'undefined' && EXTRA_CELEBS[_extraKey]) {
+            vCelebs = vCelebs.concat(EXTRA_CELEBS[_extraKey]);
+        }
+        // 폴백
         if (vCelebs.length === 0) {
             vCelebs = (variant && variant.celebrities) ? variant.celebrities : (animal.celebrities || []);
         }
@@ -2992,7 +3085,11 @@
         _qBadge +
         '<div style="font-size:86px;margin-bottom:8px;line-height:1.1;">' + animal.animal + '</div>' +
         '<div style="font-size:1.55em;font-weight:900;color:#fff;margin-bottom:4px;">' + animal.name + '</div>' +
-        '<div style="font-size:0.9em;color:#C9A84C;font-weight:700;margin-bottom:6px;">"' + vLabel + '"</div>' +
+        '<div style="margin-bottom:10px;display:inline-block;">' +
+        '<div style="background:rgba(201,168,76,0.18);border:1.5px solid rgba(201,168,76,0.5);border-radius:16px;padding:6px 18px;display:inline-block;">' +
+        '<div style="font-size:1em;font-weight:900;color:#C9A84C;">' + animal.animal + ' ' + animal.name + '-' + _vKey + '</div>' +
+        '<div style="font-size:0.82em;color:rgba(255,255,255,0.85);font-weight:700;margin-top:2px;">' + vLabel + '</div>' +
+        '</div></div>' +
         '<div style="font-size:0.83em;color:rgba(255,255,255,0.72);">' + animal.title + '</div>' +
         '<div style="margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
         '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + animal.mbti + '</span>' +
@@ -3002,10 +3099,12 @@
         '<div style="padding:16px 16px 0;">' +
         _precCTA +
 
-        // SEC 1: 당신의 진짜 이야기
+        // SEC 1: 당신의 진짜 이야기 (facet 점수 기반 맞춤 내러티브)
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">🔬 당신의 진짜 이야기</div>' +
-        '<div style="font-size:0.87em;line-height:1.95;color:var(--text-color);">' + vNarrative + '</div>' +
+        '<div style="font-size:0.87em;line-height:2.0;color:var(--text-color);">' +
+        buildPersonalNarrative(vLabel, fs, scores, _vKey) +
+        '</div>' +
         '</div>' +
 
         // SEC 2: Big5 Facet 심층 분석
