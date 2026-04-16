@@ -2514,6 +2514,9 @@
                 addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
             }
         }
+        // 기존 이메일 모달 제거 후 결과 표시
+        var _em = document.getElementById('psych-modal');
+        if(_em) _em.remove();
         calcAndShowResult();
     }
 
@@ -2909,8 +2912,13 @@
     function showPsychResult(result){
         window._lastPsychResult = result; // 이미지 저장용 전역 보관
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-        const modal = document.getElementById('psych-modal');
-        if(!modal) return;
+        var modal = document.getElementById('psych-modal');
+        if(!modal){
+            modal = document.createElement('div');
+            modal.id = 'psych-modal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+            document.body.appendChild(modal);
+        }
 
         // ── [1] 데이터 추출 ──
         const { animal, scores, viaStrengths, variant, allFacets } = result;
@@ -3216,10 +3224,13 @@
         }).join('');
 
         // ── [12] 궁합 동물 ──
+        // 궁합 동물: E축(외향/내향) 반대 유형 찾기
+        var _myE = (result.scores && result.scores.E >= 50) ? '\u2600\uFE0F' : '\uD83C\uDF19'; // ☀️ or 🌙
+        var _oppE = _myE === '\u2600\uFE0F' ? '\uD83C\uDF19' : '\u2600\uFE0F';
         var compatibleKey = Object.keys(PSYCH_ANIMALS).find(function(k) {
-            return k !== result.typeKey && k.indexOf(result.typeKey[0] === '\u2600\uFE0F' ? '\uD83C\uDF19' : '\u2600\uFE0F') >= 0;
-        });
-        var compatible = PSYCH_ANIMALS[compatibleKey] || PSYCH_ANIMALS['\uD83C\uDF19\uD83C\uDF31\uD83E\uDD1D\uD83D\uDCAD'];
+            return k !== result.typeKey && k.slice(0,2) === _oppE;
+        }) || Object.keys(PSYCH_ANIMALS).find(function(k){ return k !== result.typeKey; });
+        var compatible = (compatibleKey && PSYCH_ANIMALS[compatibleKey]) || { animal:'🦁', name:'사자형' };
 
         // ── [13] 이메일 등록 여부 ──
         var _hasEmail = safeGetItem('my_email','') !== '';
@@ -3228,6 +3239,7 @@
             : '<button onclick="document.getElementById(\'psych-modal\').remove();setTimeout(function(){showPsychRegisterPopup&&showPsychRegisterPopup();},200);" style="width:100%;min-height:48px;background:#C9A84C;color:#1B4332;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;">📧 이메일 등록하고 30일 후 비교받기</button>';
 
         // ── [14] 전체 모달 렌더링 ──
+        try {
         modal.innerHTML =
         '<div style="background:var(--bg-color);min-height:100vh;padding-bottom:120px;">' +
 
@@ -3266,7 +3278,7 @@
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">🔬 당신의 진짜 이야기</div>' +
         '<div style="font-size:0.87em;line-height:2.0;color:var(--text-color);">' +
-        buildPersonalNarrative(vLabel, fs, scores, _vKey) +
+        (function(){ try { return buildPersonalNarrative(vLabel, fs, scores, _vKey); } catch(e){ return '<span style="color:#888;font-size:0.85em;">나의 성격을 분석 중이에요...</span>'; } })() +
         '</div>' +
         '</div>' +
 
@@ -3469,6 +3481,12 @@
 
         '</div>' + // psych-result-content 닫기
         '</div>'; // 전체 div 끝
+
+        } catch(e) {
+            console.error('showPsychResult 렌더 에러:', e);
+            showToast('결과 표시 오류: ' + e.message);
+            return;
+        }
 
         // ── [15] 이벤트 바인딩 ──
         // 글자 크기 조절
