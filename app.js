@@ -2680,8 +2680,20 @@
 
         const vLabel     = variant ? variant.label     : animal.name;
         const vNarrative = variant ? variant.narrative : (animal.desc || '');
-        const vStrengths = (variant && variant.strengths)   ? variant.strengths   : (animal.strengths   || []);
-        const vCautions  = (variant && variant.cautions)    ? variant.cautions    : (animal.cautions    || []);
+        // 강점/주의점: 항상 ANIMAL_STRENGTH_MAP에서 재조회 (저장 결과 호환)
+        var vStrengths = [];
+        var vCautions  = [];
+        if (typeof ANIMAL_STRENGTH_MAP !== 'undefined' && ANIMAL_STRENGTH_MAP[animal.animal]) {
+            vStrengths = ANIMAL_STRENGTH_MAP[animal.animal].strengths || [];
+            vCautions  = ANIMAL_STRENGTH_MAP[animal.animal].cautions  || [];
+        }
+        // 폴백: ANIMAL_STRENGTH_MAP 없으면 저장된 데이터 사용
+        if (vStrengths.length === 0) {
+            vStrengths = (variant && variant.strengths) ? variant.strengths : (animal.strengths || []);
+        }
+        if (vCautions.length === 0) {
+            vCautions = (variant && variant.cautions) ? variant.cautions : (animal.cautions || []);
+        }
         // 유명인 데이터: 항상 ANIMAL_FACET_MAP에서 재조회 (저장 결과 호환)
         var _vKey = result.variantKey || 'A';
         var vCelebs = [];
