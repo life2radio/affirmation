@@ -2778,6 +2778,7 @@
     }
 
     function showPsychResult(result){
+        window._lastPsychResult = result; // 이미지 저장용 전역 보관
         const modal = document.getElementById('psych-modal');
         if(!modal) return;
 
@@ -3278,8 +3279,9 @@
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유 & 저장</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;">' +
-        '<button id="btn-save-image" style="width:100%;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
-        '<span style="font-size:1.2em;">📸</span>결과 이미지로 저장하기</button>' +
+        (isStandalone ?
+        '<button onclick="window.downloadPsychImage(window._lastPsychResult)" style="width:100%;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:1.2em;">📸</span> 결과 이미지로 저장하기</button>'
+        : '') +
         '<button onclick="downloadPsychPDF()" style="width:100%;min-height:44px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.87em;font-weight:900;cursor:pointer;">' +
         '📲 결과지 저장 (앱 설치 시)</button>' +
         '<button onclick="sharePsychMyResult()" style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
@@ -3352,14 +3354,6 @@
                 precBtn.addEventListener('click', function(){
                     document.getElementById('psych-modal').remove();
                     pMode='full'; psychStartReal('full');
-                });
-            }
-
-            // 이미지 저장 버튼 연결
-            var imgBtn = document.getElementById('btn-save-image');
-            if(imgBtn){
-                imgBtn.addEventListener('click', function(){
-                    window.downloadPsychImage(result);
                 });
             }
 
