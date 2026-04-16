@@ -1722,7 +1722,8 @@
             +'<div class="header">'
             +'<div class="badge">인생2막라디오 확언앱 · 64유형 성격 분석 결과지</div>'
             +'<div class="animal">'+r.animal.animal+'</div>'
-            +'<div class="type-name">'+r.animal.name+'</div>'
+            +'<div class="type-name">'+r.animal.name+(r.variantKey?'-'+r.variantKey:'')+'</div>'
+            +'<div style="font-size:18px;color:#C9A84C;font-weight:700;margin:4px 0;">'+(r.variant&&r.variant.label?r.variant.label:r.animal.name)+'</div>'
             +'<div class="type-title">'+r.animal.title+'</div>'
             +'<div class="mbti">MBTI 유사 유형: '+(r.animal.mbti||'-')+'</div>'
             +'<div class="intro">'+(r.variant&&r.variant.narrative?r.variant.narrative:(r.animal.desc||r.animal.tagline||''))+'</div>'
@@ -2907,6 +2908,7 @@
 
     function showPsychResult(result){
         window._lastPsychResult = result; // 이미지 저장용 전역 보관
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
         const modal = document.getElementById('psych-modal');
         if(!modal) return;
 
@@ -3407,12 +3409,10 @@
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유 & 저장</div>' +
         '<div style="display:flex;flex-direction:column;gap:8px;">' +
-        (isStandalone ?
-        '<div style="display:flex;gap:8px;">' +
-        '<button onclick="window.downloadPsychImage(window._lastPsychResult)" style="flex:1;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><span>📸</span>이미지 저장</button>' +
-        '<button onclick="downloadPsychPDF()" style="flex:1;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.88em;font-weight:900;cursor:pointer;">📄 결과지 저장</button>' +
-        '</div>'
-        : '<button onclick="downloadPsychPDF()" style="width:100%;min-height:44px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.87em;font-weight:900;cursor:pointer;">📲 결과지 저장 (앱 설치 시)</button>') +
+        '<div style="display:flex;gap:8px;margin-bottom:0;">' +
+        '<button onclick="window.downloadPsychImage(window._lastPsychResult)" style="flex:1;min-height:52px;background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;border-radius:12px;font-size:0.85em;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;"><span>📸</span>이미지 저장</button>' +
+        '<button onclick="downloadPsychPDF()" style="flex:1;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#1B4332;border:none;border-radius:12px;font-size:0.85em;font-weight:900;cursor:pointer;">📄 결과지</button>' +
+        '</div>' +
         '<button onclick="sharePsychMyResult()" style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
         animal.animal + ' 내 결과 공유하기 📤</button>' +
         '<button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">' +
@@ -3420,6 +3420,24 @@
         '<button onclick="showPsychDebug()" style="width:100%;min-height:40px;background:none;border:1px dashed #aaa;border-radius:12px;font-size:0.82em;color:var(--text-muted);cursor:pointer;margin-top:4px;">' +
         '🔬 내 점수 분석 자세히 보기</button>' +
         '</div></div>' +
+
+        // ★ 프리미엄 상세 분석 (결제 예정)
+        '<div style="background:linear-gradient(135deg,#0A0A0A,#1a1a2e);border-radius:16px;padding:22px 20px;margin-bottom:14px;border:1.5px solid rgba(201,168,76,0.5);">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<span style="font-size:1.3em;">👑</span>' +
+        '<div style="font-size:1em;font-weight:900;color:#C9A84C;">프리미엄 심층 분석 리포트</div>' +
+        '<div style="font-size:0.72em;background:#C9A84C;color:#000;padding:2px 8px;border-radius:20px;font-weight:900;margin-left:auto;">₩5,000</div>' +
+        '</div>' +
+        '<div style="font-size:0.8em;color:rgba(255,255,255,0.65);line-height:1.8;margin-bottom:14px;">' +
+        '✅ 64유형 완전 심층 분석 (20페이지)<br>' +
+        '✅ 연애·직장·인간관계 맞춤 전략<br>' +
+        '✅ 나만의 강점 개발 로드맵<br>' +
+        '✅ 유형별 성장 코칭 가이드' +
+        '</div>' +
+        '<button onclick="window._premiumPayAlert()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8B84B);color:#000;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">' +
+        '👑 지금 구매하기 ₩5,000</button>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;">준비중 · 곧 오픈</div>' +
+        '</div>' +
 
         // 30일 성장 추적 CTA
         '<div style="background:linear-gradient(135deg,#0D2818,#1B4332);border-radius:16px;padding:24px 20px;margin-bottom:14px;text-align:center;">' +
