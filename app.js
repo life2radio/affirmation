@@ -2869,9 +2869,14 @@
             return '<div style="background:#F8FCF9;border-radius:12px;padding:16px;margin-bottom:10px;border:1px solid #D0E8DC;">' +
                    '<div style="font-size:0.9em;font-weight:800;color:#1B4332;margin-bottom:8px;">' + cat.title + '</div>' +
                    '<div style="font-size:0.83em;line-height:1.85;color:var(--text-color);margin-bottom:10px;">' + cat.desc + '</div>' +
-                   (cat.strength ? '<div style="background:#E8F5E9;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#1B4332;margin-bottom:8px;line-height:1.6;">💡 ' + cat.strength + '</div>' : '') +
-                   (cat.caution  ? '<div style="background:#FFF8E7;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#856404;margin-bottom:8px;line-height:1.6;">⚠️ ' + cat.caution  + '</div>' : '') +
-                   '<div style="background:#E0F2F1;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#00695C;line-height:1.6;">🎯 ' + cat.tip + '</div>' +
+                   (cat.strength ? '<div style="background:#E8F5E9;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#1B4332;margin-bottom:8px;line-height:1.6;">' + cat.strength + '</div>' : '') +
+                   (cat.caution  ? '<div style="background:#FFF8E7;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#856404;margin-bottom:8px;line-height:1.6;">' + cat.caution  + '</div>' : '') +
+                   '<div style="background:#E0F2F1;border-radius:8px;padding:10px 12px;font-size:0.8em;color:#00695C;line-height:1.6;margin-bottom:' + (cat.video ? '10px' : '0') + ';">🎯 ' + cat.tip + '</div>' +
+                   (cat.video ? '<a href="' + cat.video.url + '" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1.5px solid #1B4332;border-radius:10px;text-decoration:none;">' +
+                   '<span style="font-size:1.2em;">📺</span>' +
+                   '<div style="flex:1;"><div style="font-size:0.72em;color:#888;margin-bottom:2px;">이 영상이 도움될 거예요</div>' +
+                   '<div style="font-size:0.82em;font-weight:700;color:#1B4332;">' + cat.video.label + '</div></div>' +
+                   '<span style="font-size:0.9em;color:#1B4332;">▶</span></a>' : '') +
                    '</div>';
         }
 
