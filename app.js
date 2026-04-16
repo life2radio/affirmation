@@ -86,7 +86,8 @@
     /* === 유틸 (TOP's 스마트 데이터 어댑터) === */
     function safeGetItem(k, d) {
         let val = appState.get('cache', k);
-        if (val !== null) return val;
+        // ★ 수정: undefined와 null을 모두 완벽하게 방어
+        if (val !== undefined && val !== null) return val;
         try { const i = localStorage.getItem(k); if(i !== null) { appState.set('cache', k, i); return i; } return d; } catch(e) { return d; }
     }
     function safeSetItem(k, v) {
@@ -95,7 +96,8 @@
     }
     function safeGetJSON(k, d) {
         let val = appState.get('json', k);
-        if (val !== null) return val;
+        // ★ 수정: undefined와 null을 모두 완벽하게 방어
+        if (val !== undefined && val !== null) return val;
         try { const i = localStorage.getItem(k); if(i) { const p = JSON.parse(i); appState.set('json', k, p); return p; } return d; } catch(e) { return d; }
     }
     function safeSetJSON(k, v) {
@@ -3100,8 +3102,8 @@ https://life2radio.github.io/affirmation/?psych=1`;
                 <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:6px;">잠깐! 이름을 알려주세요</div>
                 <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
                     이름과 이메일을 등록하시면<br>
-                    <b style="color:#1B4332;">나의 소중한 확언 기록이 안전하게 보관</b>되고,<br>
-                    30일 뒤 성장 리포트를 받아볼 수 있어요 😊
+                    <b style="color:#1B4332;">매일의 감정 변화와 성장을 수치로 추적</b>할 수 있고,<br>
+                    30일 뒤 <b style="color:#1B4332;">나의 성장 리포트</b>를 받아볼 수 있어요 📊
                 </div>
                 <input id="nm-nick" type="text" maxlength="15" placeholder="이름 또는 별명 (예: 전주 60대 주부)"
                     style="width:100%;padding:12px 14px;font-size:1em;border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:10px;">
@@ -5993,8 +5995,8 @@ https://life2radio.github.io/affirmation/
         },
         {
             finger:'🏅', badge:'4 / 4',
-            title:'나의 확언 기록을 안전하게 보관해요',
-            desc:'이름과 이메일을 등록하면 기록이 영구 보관되며,\n30일 뒤 나의 성장 변화를 수치로 확인할 수 있어요! ✨',
+            title:'나의 성장을 수치로 확인해요',
+            desc:'매일의 기분과 확언을 기록하면,\n30일 뒤 감정 변화와 나의 성장을 수치로 확인할 수 있어요! 📊',
             highlight: null,
             isNickname: true
         }
