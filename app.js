@@ -3347,7 +3347,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
     }
 
     
-    initApp = function initApp(){
+    window.initApp = function(){
         applyStoredSettings();
 
         // ★ ?r= 결과 공유 링크 처리
@@ -3428,7 +3428,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
         }
 
         // ★ 앱 설치 후 실행 시 '보류 중인 심리테스트 결과'가 있으면 팝업 표시
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        // (isStandalone 변수는 위에서 이미 선언했으므로 지웁니다)
         const pendingSave = safeGetItem('pending_psych_save', '');
 
         if(isStandalone && pendingSave === '1'){
@@ -6901,84 +6901,6 @@ https://life2radio.github.io/affirmation/
         catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
     }
 
-    let sttActive = false;
-    let sttRetryCount = 0;
-
-    function startSTTCore(affirmEl){
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!SR) return;
-        if(sttRecognition){ try{ sttRecognition.stop(); }catch(e){} sttRecognition = null; }
-        sttActive = true; sttRetryCount = 0;
-        let sessionFinal = ''; // 재시작해도 누적 유지
-
-        const sttBox=document.getElementById('stt-box');
-        const sttStatus=document.getElementById('stt-status');
-        const sttResult=document.getElementById('stt-result-text');
-        const sttWave=document.getElementById('stt-wave');
-        if(sttBox) sttBox.style.display='block';
-        if(sttResult) sttResult.textContent='';
-        if(sttStatus) sttStatus.textContent='🎤 확언을 소리내어 읽어주세요...';
-        if(sttWave) sttWave.style.display='flex';
-
-        const target = affirmEl.innerText.replace(/\s+/g,' ').trim();
-
-        function createRec(){
-            const r = new SR(); // sessionFinal은 startSTTCore 스코프에서 공유
-            r.lang='ko-KR';
-            r.continuous=true;
-            r.interimResults=true;
-            r.maxAlternatives=1;
-            r.onstart=function(){ if(sttStatus) sttStatus.textContent='🎤 읽고 계신 내용이 인식되고 있어요...'; };
-            r.onresult=function(e){
-                let interim='';
-                for(let i=e.resultIndex;i<e.results.length;i++){
-                    if(e.results[i].isFinal) sessionFinal+=e.results[i][0].transcript;
-                    else interim+=e.results[i][0].transcript;
-                }
-                const combined=sessionFinal+interim;
-                const progress=Math.min(Math.round(calcSimilarity(combined,target)*100),100);
-                const bar=document.getElementById('stt-progress-bar');
-                const resultEl=document.getElementById('stt-result-text');
-                if(bar) bar.style.width=progress+'%';
-                if(resultEl) resultEl.textContent=progress+'%';
-                if(combined && calcSimilarity(combined,target)>0.75){
-                    sttActive=false; try{r.stop();}catch(e){} sttRecognition=null; sttSuccess();
-                }
-            };
-            r.onend=function(){
-                if(!sttActive) return;
-                if(sttRetryCount<5){
-                    sttRetryCount++;
-                    setTimeout(()=>{
-                        if(!sttActive) return;
-                        try{ sttRecognition=createRec(); sttRecognition.start(); }
-                        catch(err){ stopSTT(); }
-                    }, 300);
-                } else { stopSTT(); showToast('음성을 인식하지 못했어요. 다시 눌러보세요 😊'); }
-            };
-            r.onerror=function(e){
-                if(!sttActive) return;
-                sttActive=false; sttRecognition=null;
-                if(sttBox) sttBox.style.display='none';
-                if(e.error==='not-allowed'){
-                    const g=document.createElement('div');
-                    g.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
-                    g.innerHTML=`<div style="background:#FFFFFF;border-radius:20px;padding:28px 22px;width:88%;max-width:360px;text-align:center;"><div style="font-size:36px;margin-bottom:10px;">🎤</div><div style="font-size:1em;font-weight:700;color:#1B4332;margin-bottom:12px;">마이크 허용이 필요해요</div><div style="background:#F5F5F5;border-radius:12px;padding:14px;margin-bottom:16px;text-align:left;font-size:0.88em;color:#333;line-height:2;">📱 <b>안드로이드</b><br>주소창 🔒 탭 → <b>마이크 허용</b><br><br>🍎 <b>아이폰</b><br>설정 → Safari → <b>마이크 허용</b></div><button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">확인</button></div>`;
-                    document.body.appendChild(g);
-                } else if(e.error==='no-speech'){
-                    return; // no-speech는 무시 (멈춤 허용)
-                } else if(e.error==='network'){
-                    showToast('인터넷 연결을 확인해주세요');
-                } else {
-                    showToast('음성인식 오류: '+e.error);
-                }
-            };
-            return r;
-        }
-
-        try{ sttRecognition=createRec(); sttRecognition.start(); }
-        catch(e){ stopSTT(); showToast('음성인식을 시작할 수 없어요. 크롬 브라우저를 사용해보세요.'); }
-    }
 
     // 수동 완료 버튼
     window.sttManualSuccess = function(){
