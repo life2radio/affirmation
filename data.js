@@ -518,15 +518,15 @@
         { id:'E8',  axis:'E', facet:'sociability', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
 
         // O (개방성): intellect(지적호기심) vs aesthetics(예술감수성)
-        { id:'O1',  axis:'O', facet:'openness', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
-        { id:'O2',  axis:'O', facet:'openness', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
+        { id:'O1',  axis:'O', facet:'intellect', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
+        { id:'O2',  axis:'O', facet:'intellect', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
         { id:'O3',  axis:'O', facet:'intellect', rev:false, text:'나는 영리하고 생각이 깊은 편이에요' },
         { id:'O4',  axis:'O', facet:'aesthetics', rev:false, text:'나는 예술적 상상력이 풍부한 편이에요' },
-        { id:'O5',  axis:'O', facet:'openness', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
+        { id:'O5',  axis:'O', facet:'intellect', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
         { id:'O6',  axis:'O', facet:'aesthetics', rev:false, text:'나는 예술·음악·문학을 감상하는 것을 즐겨요' },
-        { id:'O7',  axis:'O', facet:'openness', rev:true,  text:'나는 다양한 관심사보다 한 가지에 집중하는 편이에요' },
+        { id:'O7',  axis:'O', facet:'aesthetics', rev:true,  text:'나는 다양한 관심사보다 한 가지에 집중하는 편이에요' },
         { id:'O8',  axis:'O', facet:'intellect', rev:false, text:'나는 깊이 생각하고 복잡한 아이디어를 즐겨요' },
-        { id:'O9',  axis:'O', facet:'openness', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
+        { id:'O9',  axis:'O', facet:'intellect', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
         { id:'O10', axis:'O', facet:'aesthetics', rev:false, text:'나는 문화·예술에 대한 관심이 많아요' },
 
         // A (친화성): compassion(공감/따뜻함) vs cooperation(협력)
@@ -543,7 +543,7 @@
         // C (성실성): order(계획성/조직성) vs industriousness(성취지향/근면성)
         { id:'C1',  axis:'C', facet:'order', rev:false, text:'나는 철저하게 일을 처리해요' },
         { id:'C2',  axis:'C', facet:'industriousness', rev:true,  text:'나는 부주의하게 행동할 때가 있어요' },
-        { id:'C3',  axis:'C', facet:'conscientiousness', rev:false, text:'나는 믿을 수 있는 사람이에요' },
+        { id:'C3',  axis:'C', facet:'order', rev:false, text:'나는 믿을 수 있는 사람이에요' },
         { id:'C4',  axis:'C', facet:'order', rev:true,  text:'나는 체계 없이 어수선한 편이에요' },
         { id:'C5',  axis:'C', facet:'industriousness', rev:true,  text:'나는 게으른 편이에요' },
         { id:'C6',  axis:'C', facet:'industriousness', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
@@ -553,12 +553,12 @@
 
         // N (신경증): anxiety(불안감) vs volatility(감정불안정성)
         { id:'N1',  axis:'N', facet:'volatility', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
-        { id:'N2',  axis:'N', facet:'stability', rev:true,  text:'나는 느긋하고 스트레스를 잘 다뤄요' },
+        { id:'N2',  axis:'N', facet:'volatility', rev:true,  text:'나는 느긋하고 스트레스를 잘 다뤄요' },
         { id:'N3',  axis:'N', facet:'anxiety', rev:false, text:'나는 긴장되거나 초조할 때가 있어요' },
         { id:'N4',  axis:'N', facet:'anxiety', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
-        { id:'N5',  axis:'N', facet:'stability', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
+        { id:'N5',  axis:'N', facet:'anxiety', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
         { id:'N6',  axis:'N', facet:'volatility', rev:false, text:'나는 기분 변화가 있는 편이에요' },
-        { id:'N7',  axis:'N', facet:'stability', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
+        { id:'N7',  axis:'N', facet:'volatility', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
         { id:'N8',  axis:'N', facet:'anxiety', rev:false, text:'나는 쉽게 긴장하고 불안해져요' },
     ];
 

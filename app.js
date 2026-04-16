@@ -2512,7 +2512,25 @@
     }
 
     // ════════════════════════════════════════════════════
-    // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
+    // 심리결과 → 미래편지/일기 이동 핸들러
+    window._goToLetter = function() {
+        var m = document.getElementById('psych-modal');
+        if(m) m.remove();
+        setTimeout(function(){
+            switchView('memo');
+            setTimeout(function(){ switchMemoTab('letter'); }, 100);
+        }, 200);
+    };
+    window._goToDiary = function() {
+        var m = document.getElementById('psych-modal');
+        if(m) m.remove();
+        setTimeout(function(){
+            switchView('memo');
+            setTimeout(function(){ switchMemoTab('diary'); }, 100);
+        }, 200);
+    };
+
+        // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
     // ════════════════════════════════════════════════════
     window.getVariantDescription = function(animalEmoji, variantKey) {
         if (typeof ANIMAL_FACET_MAP === 'undefined' || !ANIMAL_FACET_MAP[animalEmoji]) return null;
@@ -3073,6 +3091,44 @@
         '🌿 지금 바로 확언 시작하기 →</button>' +
         '</div>' +
 
+        // SEC 10-A: 미래편지 & 일기쓰기
+        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">✍️ 성장을 가속하는 글쓰기</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">뇌과학이 증명한 두 가지 글쓰기의 힘</div>' +
+
+        // 미래편지
+        '<div style="background:#F0F7F4;border-radius:12px;padding:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:1.3em;">💌</span>' +
+        '<div style="font-size:0.9em;font-weight:800;color:#1B4332;">미래의 나에게 편지 쓰기</div>' +
+        '</div>' +
+        '<div style="font-size:0.8em;color:var(--text-color);line-height:1.8;margin-bottom:10px;">' +
+        'Markus & Nurius(1986)의 <b>가능한 자아 이론</b>에서, 미래 자신에게 편지를 쓰는 행위는 ' +
+        '뇌의 목표 추구 회로(전전두엽)를 강화해요. 현재의 나와 미래의 나를 연결하면 ' +
+        '<b>자기통제력이 높아지고</b>, 목표를 향한 동기가 지속되며, 실제 행동 변화로 이어질 확률이 2배 높아져요.' +
+        '</div>' +
+        '<button onclick="window._goToLetter()" ' +
+        'style="width:100%;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:10px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
+        '💌 지금 미래의 나에게 편지 쓰기 →</button>' +
+        '</div>' +
+
+        // 일기쓰기
+        '<div style="background:#FFF8E7;border-radius:12px;padding:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:1.3em;">📔</span>' +
+        '<div style="font-size:0.9em;font-weight:800;color:#856404;">오늘의 일기 쓰기</div>' +
+        '</div>' +
+        '<div style="font-size:0.8em;color:var(--text-color);line-height:1.8;margin-bottom:10px;">' +
+        'Pennebaker(1997)의 <b>표현적 글쓰기 연구</b>에서, 하루 15~20분 감정 일기를 4일간 쓴 것만으로 ' +
+        '면역세포(T림프구) 활성도가 증가하고, 스트레스 호르몬이 감소했어요. ' +
+        '글로 감정을 처리하면 뇌의 편도체 반응이 낮아지고 <b>심리적 회복력이 높아져요.</b>' +
+        '</div>' +
+        '<button onclick="window._goToDiary()" ' +
+        'style="width:100%;min-height:44px;background:#C9A84C;color:#1B4332;border:none;border-radius:10px;font-size:0.87em;font-weight:700;cursor:pointer;">' +
+        '📔 지금 오늘의 일기 쓰기 →</button>' +
+        '</div>' +
+        '</div>' +
+
         // SEC 10: 공유 & 30일 성장 추적
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📤 결과 공유하기</div>' +
@@ -3134,6 +3190,11 @@
                     document.getElementById('psych-modal').remove();
                     pMode='full'; psychStartReal('full');
                 });
+            }
+
+            // 미등록 사용자 → 결과 확인 후 3초 뒤 등록 팝업 자동 표시
+            if(!safeGetItem('my_nickname','') || !safeGetItem('my_email','')){
+                setTimeout(function(){ showPsychRegisterPopup && showPsychRegisterPopup(); }, 3000);
             }
         }, 100);
     }
@@ -3368,6 +3429,9 @@ https://life2radio.github.io/affirmation/?psych=1`;
                 </label>
                 <button onclick="window._saveNicknameModal()" style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;">
                     등록하고 시작하기 🌿
+                </button>
+                <button onclick="document.getElementById('nickname-modal').remove();" style="width:100%;min-height:40px;background:none;border:none;color:#aaa;font-size:0.88em;cursor:pointer;margin-top:4px;">
+                    나중에 할게요
                 </button>
             </div>`;
         document.body.appendChild(modal);
@@ -3644,12 +3708,12 @@ https://life2radio.github.io/affirmation/?psych=1`;
             initBanner();
             renderPointBar();
             switchView('home');
-            // 이름이 없으면 이름 등록 모달만 표시
+            // 등록 팝업 표시 (필수 아님 - 나중에 할게요로 건너뛸 수 있음)
             if(!safeGetItem('my_nickname','') || !safeGetItem('my_email','')){
-                // 이름/이메일 미등록 → 등록 모달만 표시 (레벨업/온보딩 없음)
                 setTimeout(function(){
                     if(window.showNicknameModal) window.showNicknameModal();
                 }, 300);
+                initOnboarding();
             } else {
                 if(_pendingEmail) showToast('✅ 구글 이메일이 연결됐어요!');
                 initOnboarding();
@@ -7478,10 +7542,14 @@ https://life2radio.github.io/affirmation/
                         color: #1B4332;
                         margin-bottom: 8px;
                     ">이메일</div>
+                    <button id="sprout-google-btn" style="width:100%;padding:11px;font-size:0.9em;border:1.5px solid #4285F4;border-radius:8px;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+                        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+                        G 구글 계정에서 이메일 가져오기
+                    </button>
                     <input 
                         type="email" 
                         id="sprout-email-input"
-                        placeholder="abc@gmail.com"
+                        placeholder="또는 이메일 직접 입력"
                         style="
                             width: 100%;
                             padding: 11px;
@@ -7513,25 +7581,30 @@ https://life2radio.github.io/affirmation/
                     지금 등록하기 🌿
                 </button>
                 
-                <button 
-                    onclick="document.getElementById('sprout-registration-modal').remove()"
-                    style="
-                        width: 100%;
-                        min-height: 44px;
-                        background: none;
-                        border: none;
-                        color: #999;
-                        font-size: 0.9em;
-                        cursor: pointer;
-                        text-decoration: underline;
-                    "
-                >
-                    나중에 하겠습니다
-                </button>
+                <div style="font-size:0.78em;color:#aaa;line-height:1.6;margin-top:4px;">
+                    이름과 이메일 등록 후 새싹 등업이 완료돼요 🌱<br>
+                    등록 정보는 성장 리포트 발송에만 사용돼요
+                </div>
             </div>
         `;
         
         document.body.appendChild(modal);
+
+        // 구글 버튼 이벤트
+        var _sproutGoogleBtn = document.getElementById('sprout-google-btn');
+        if(_sproutGoogleBtn) _sproutGoogleBtn.addEventListener('click', function(){
+            window._googleOneTap();
+            window.addEventListener('message', function _sproutMsg(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _sproutMsg);
+                    var emailEl = document.getElementById('sprout-email-input');
+                    var nickEl  = document.getElementById('sprout-nick-input');
+                    if(emailEl && e.data.email) emailEl.value = e.data.email;
+                    if(nickEl  && !nickEl.value && e.data.name) nickEl.value = e.data.name;
+                    showToast('✅ 구글 계정 정보가 입력됐어요!');
+                }
+            });
+        });
     }
 
     // ★ 새싹 등록 처리
@@ -7873,7 +7946,11 @@ https://life2radio.github.io/affirmation/
                 </div>
                 <input id="preg-name" type="text" placeholder="닉네임 (예: 김영희)"
                     style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:10px;text-align:center;outline:none;">
-                <input id="preg-email" type="email" placeholder="이메일 (선택)"
+                <button id="preg-google-btn" style="width:100%;padding:12px;font-size:0.95em;border:1.5px solid #4285F4;border-radius:12px;background:#fff;color:#444;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+                    G 구글 계정에서 이메일 가져오기
+                </button>
+                <input id="preg-email" type="email" placeholder="또는 이메일 직접 입력"
                     style="width:100%;padding:13px 16px;font-size:1em;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;margin-bottom:16px;text-align:center;outline:none;">
                 <button id="preg-submit"
                     style="width:100%;min-height:52px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:700;cursor:pointer;margin-bottom:10px;">
@@ -7885,6 +7962,21 @@ https://life2radio.github.io/affirmation/
                 </button>
             </div>`;
         document.body.appendChild(pop);
+
+        // 구글 버튼 이벤트
+        document.getElementById('preg-google-btn').addEventListener('click', function(){
+            window._googleOneTap();
+            window.addEventListener('message', function _pregMsg(e){
+                if(e.data && e.data.type === 'oauth_email'){
+                    window.removeEventListener('message', _pregMsg);
+                    var emailEl = document.getElementById('preg-email');
+                    var nameEl  = document.getElementById('preg-name');
+                    if(emailEl && e.data.email) emailEl.value = e.data.email;
+                    if(nameEl  && !nameEl.value && e.data.name) nameEl.value = e.data.name;
+                    showToast('✅ 구글 계정 정보가 입력됐어요!');
+                }
+            });
+        });
 
         document.getElementById('preg-submit').addEventListener('click', function(){
             const name = (document.getElementById('preg-name').value || '').trim();
@@ -7906,8 +7998,7 @@ https://life2radio.github.io/affirmation/
     }
 
         function checkFirstVisit(){
-        // ★ 이름 등록 안 한 경우 실행 안 함
-        if(!safeGetItem('my_nickname','')) return;
+        // 이름 없어도 첫 방문 30PT 지급 (등록은 새싹 등업 시에만 필수)
         // ★ 단일 키 사용 (PWA/크롬 구분 없이 동일)
         const KEY = 'pt_first_visit';
         if(safeGetItem(KEY,'') === '1') return;
@@ -7921,7 +8012,7 @@ https://life2radio.github.io/affirmation/
         safeSetItem('pt_first_standalone','1');
 
         // ★ 첫 방문 환영 팝업
-        const _nick = safeGetItem('my_nickname','') || '회원';
+        const _nick = safeGetItem('my_nickname','') || '새 친구';
         setTimeout(function(){
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
