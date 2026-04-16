@@ -952,13 +952,13 @@
         { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
         { id:'Rx', rev:false, text:'나는 나 자신을 충분히 좋아하고 존중해요' },
     ];
-    const VIA_ITEMS_SHORT = VIA_ITEMS.slice(0, 14);
+    const VIA_ITEMS_SHORT = (typeof VIA_ITEMS !== 'undefined') ? VIA_ITEMS.slice(0, 14) : [];
 
     let pA = {}; // psychAnswers
     let pStep = 0;
     let pMode = 'full';
     let pFontSize = 'normal'; // 'normal' | 'large' // 'full' | 'quick'
-    const P_TOTAL = INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length;
+    const P_TOTAL = (typeof INFO_ITEMS !== 'undefined') ? INFO_ITEMS.length + BFI_ITEMS.length + RSE_ITEMS.length + VIA_ITEMS.length : 0;
     function getPTotal(){ return INFO_ITEMS.length + (pMode==='quick'?BFI_ITEMS_SHORT:BFI_ITEMS).length + (pMode==='quick'?RSE_ITEMS_SHORT:RSE_ITEMS).length + (pMode==='quick'?VIA_ITEMS_SHORT:VIA_ITEMS).length; }
     function getBFI(){ return pMode==='quick' ? BFI_ITEMS_SHORT : BFI_ITEMS; }
     function getRSE(){ return pMode==='quick' ? RSE_ITEMS_SHORT : RSE_ITEMS; }
@@ -1891,7 +1891,7 @@
         } else {
             // 앱 미설치 유저라면 보류 상태로 만들고 설치 유도
             safeSetItem('pending_psych_save', '1');
-            if(window.pwaInstallPrompt){
+            if(pwaInstallPrompt){
                 installFromPrompt();
             } else {
                 // pwaInstallPrompt 없으면 설치 안내 페이지로 이동
