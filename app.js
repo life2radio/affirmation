@@ -916,41 +916,27 @@
     const EMOJI_SCALE = ['😫','😟','😐','🙂','😊','😄','🤩'];
 
     // ★ 빠른 테스트용 단축 문항
+    // ── 간편 테스트: BFI 20문항 + RSE 5문항 (축당 정/역 2문항씩 균형) ──
     const BFI_ITEMS_SHORT = [
-        // ── E 외향성 4문항 (BFI-44: E1,E8,E3,E2) ──
-        { id:'E1',  axis:'E', rev:false, text:'나는 말이 많은 편이에요' },
-        { id:'E8',  axis:'E', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
-        { id:'E3',  axis:'E', rev:false, text:'나는 활기차고 에너지가 넘쳐요' },
-        { id:'E2',  axis:'E', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
-        // ── O 개방성 4문항 (BFI-44: O1,O2,O5,O9) ──
-        { id:'O1',  axis:'O', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
-        { id:'O2',  axis:'O', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
-        { id:'O5',  axis:'O', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
-        { id:'O9',  axis:'O', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
-        // ── A 친화성 4문항 (BFI-44: A2,A7,A5,A3) ──
-        { id:'A2',  axis:'A', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
-        { id:'A7',  axis:'A', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
-        { id:'A5',  axis:'A', rev:false, text:'나는 일반적으로 다른 사람을 믿는 편이에요' },
-        { id:'A3',  axis:'A', rev:true,  text:'나는 다른 사람과 다툴 때가 있어요' },
-        // ── C 성실성 4문항 (BFI-44: C1,C6,C5,C9) ──
-        { id:'C1',  axis:'C', rev:false, text:'나는 철저하게 일을 처리해요' },
-        { id:'C6',  axis:'C', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
-        { id:'C5',  axis:'C', rev:true,  text:'나는 게으른 편이에요' },
-        { id:'C9',  axis:'C', rev:true,  text:'나는 쉽게 주의가 산만해지는 편이에요' },
-        // ── N 정서안정성 4문항 (BFI-44: N1,N4,N5,N7) ──
-        { id:'N1',  axis:'N', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
-        { id:'N4',  axis:'N', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
-        { id:'N5',  axis:'N', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
-        { id:'N7',  axis:'N', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
+        // E: 사교성 1+역1, 주도성 1+역1
+        BFI_ITEMS.find(i=>i.id==='E1'),  BFI_ITEMS.find(i=>i.id==='E6'),
+        BFI_ITEMS.find(i=>i.id==='E11'), BFI_ITEMS.find(i=>i.id==='E10'),
+        // O: 지적탐구 1+역1, 예술감수성 1+역1
+        BFI_ITEMS.find(i=>i.id==='O1'),  BFI_ITEMS.find(i=>i.id==='O4'),
+        BFI_ITEMS.find(i=>i.id==='O9'),  BFI_ITEMS.find(i=>i.id==='O10'),
+        // A: 공감능력 1+역1, 협력성 1+역1
+        BFI_ITEMS.find(i=>i.id==='A1'),  BFI_ITEMS.find(i=>i.id==='A4'),
+        BFI_ITEMS.find(i=>i.id==='A9'),  BFI_ITEMS.find(i=>i.id==='A8'),
+        // C: 계획성 1+역1, 성취지향 1+역1
+        BFI_ITEMS.find(i=>i.id==='C1'),  BFI_ITEMS.find(i=>i.id==='C4'),
+        BFI_ITEMS.find(i=>i.id==='C7'),  BFI_ITEMS.find(i=>i.id==='C8'),
+        // N: 불안 1+역1, 감정기복 1+역1
+        BFI_ITEMS.find(i=>i.id==='N1'),  BFI_ITEMS.find(i=>i.id==='N2'),
+        BFI_ITEMS.find(i=>i.id==='N7'),  BFI_ITEMS.find(i=>i.id==='N6')
     ];
     const RSE_ITEMS_SHORT = [
-        // ★ 모두 정방향 (높은 점수 = 높은 자존감, 역문항 없음)
-        { id:'R1', rev:false, text:'나는 내가 적어도 다른 사람만큼 가치 있는 사람이라고 생각해요' },
-        { id:'R2', rev:false, text:'나는 좋은 자질을 많이 가지고 있다고 생각해요' },
-        { id:'R4', rev:false, text:'나는 대부분의 사람들처럼 일을 잘 할 수 있어요' },
-        { id:'R6', rev:false, text:'나는 나 자신에 대해 긍정적인 태도를 가지고 있어요' },
-        { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
-        { id:'Rx', rev:false, text:'나는 나 자신을 충분히 좋아하고 존중해요' },
+        RSE_ITEMS.find(i=>i.id==='R1'), RSE_ITEMS.find(i=>i.id==='R7'), RSE_ITEMS.find(i=>i.id==='R9'),
+        RSE_ITEMS.find(i=>i.id==='R2'), RSE_ITEMS.find(i=>i.id==='R6')
     ];
     const VIA_ITEMS_SHORT = (typeof VIA_ITEMS !== 'undefined') ? VIA_ITEMS.slice(0, 14) : [];
 

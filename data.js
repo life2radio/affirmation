@@ -506,75 +506,106 @@
             desc:'따뜻하고 유쾌한 에너지로 주변을 환하게 밝히는 사람이에요. 외향적인 친화성으로 누구와도 금세 친해지고, 즉흥적이고 자유로운 방식으로 삶을 즐겨요. 사람들을 편안하게 해주는 천재성이 있어요.' },
     };
 
+    // ====================================================
+    // ★ 심리테스트 v4.0 — 초정밀 일상 밀착형 66문항 마스터 세트
+    // 정밀 테스트: INFO(3) + BFI(56) + RSE(10) = 69문항
+    // 간편 테스트: INFO(3) + BFI_SHORT(20) + RSE_SHORT(5) = 28문항
+    // ====================================================
+
+    // ── 1. BFI (Big 5 성격 척도) : 56문항 ──
     const BFI_ITEMS = [
-        // E (외향성): sociability(사교성) vs assertiveness(주도성)
-        { id:'E1',  axis:'E', facet:'sociability', rev:false, text:'나는 말이 많은 편이에요' },
-        { id:'E2',  axis:'E', facet:'assertiveness', rev:true,  text:'나는 내성적이고 조용한 편이에요' },
-        { id:'E3',  axis:'E', facet:'sociability', rev:false, text:'나는 활기차고 에너지가 넘쳐요' },
-        { id:'E4',  axis:'E', facet:'assertiveness', rev:false, text:'나는 주변에 열정을 불러일으키는 편이에요' },
-        { id:'E5',  axis:'E', facet:'assertiveness', rev:true,  text:'나는 말이 없고 낯을 가리는 편이에요' },
-        { id:'E6',  axis:'E', facet:'assertiveness', rev:false, text:'나는 자신감 있고 당당하게 나를 표현해요' },
-        { id:'E7',  axis:'E', facet:'sociability', rev:true,  text:'나는 수줍음이 많고 소심한 편이에요' },
-        { id:'E8',  axis:'E', facet:'sociability', rev:false, text:'나는 사교적이고 외향적인 편이에요' },
+        // 🔴 E (외향성) - 1. Sociability (사교성)
+        { id:'E1',  axis:'E', facet:'sociability',   rev:false, text:'주말이나 쉬는 날, 혼자 조용히 쉬기보다는 모임이나 친구들을 만나 웃고 떠들어야 에너지가 충전된다.' },
+        { id:'E2',  axis:'E', facet:'sociability',   rev:true,  text:'낯선 사람들이 많은 새로운 모임에 가면, 어색하고 기가 빨려서 빨리 집에 가고 싶어진다.' },
+        { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'식당이나 카페에 가면 사장님이나 종업원과 가벼운 농담이나 스몰토크를 자연스럽게 주고받는다.' },
+        { id:'E4',  axis:'E', facet:'sociability',   rev:true,  text:'전화벨이 울리면 바로 받기보다, "무슨 일이지?" 하고 망설이거나 문자로 답하는 게 더 편하다.' },
+        { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'동창회나 친목 모임에서 분위기를 띄우고 사람들을 연결해 주는 역할을 자주 맡는다.' },
+        { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'내 관심이 집중되거나 여러 사람 앞에서 내 이야기를 길게 해야 하는 상황은 웬만하면 피하고 싶다.' },
 
-        // O (개방성): intellect(지적호기심) vs aesthetics(예술감수성)
-        { id:'O1',  axis:'O', facet:'intellect', rev:false, text:'나는 독창적이고 새로운 아이디어를 잘 내요' },
-        { id:'O2',  axis:'O', facet:'intellect', rev:false, text:'나는 다양한 것에 호기심이 많아요' },
-        { id:'O3',  axis:'O', facet:'intellect', rev:false, text:'나는 영리하고 생각이 깊은 편이에요' },
-        { id:'O4',  axis:'O', facet:'aesthetics', rev:false, text:'나는 예술적 상상력이 풍부한 편이에요' },
-        { id:'O5',  axis:'O', facet:'intellect', rev:false, text:'나는 창의적이고 독창적인 편이에요' },
-        { id:'O6',  axis:'O', facet:'aesthetics', rev:false, text:'나는 예술·음악·문학을 감상하는 것을 즐겨요' },
-        { id:'O7',  axis:'O', facet:'aesthetics', rev:true,  text:'나는 다양한 관심사보다 한 가지에 집중하는 편이에요' },
-        { id:'O8',  axis:'O', facet:'intellect', rev:false, text:'나는 깊이 생각하고 복잡한 아이디어를 즐겨요' },
-        { id:'O9',  axis:'O', facet:'intellect', rev:true,  text:'나는 상상하는 것보다 현실적인 것을 더 좋아해요' },
-        { id:'O10', axis:'O', facet:'aesthetics', rev:false, text:'나는 문화·예술에 대한 관심이 많아요' },
+        // 🔴 E (외향성) - 2. Assertiveness (주도성)
+        { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'식당에서 서비스나 음식이 잘못 나왔을 때, 속으로 참기보다 점원에게 정중하지만 확실하게 시정을 요구한다.' },
+        { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'모임에서 메뉴나 여행지를 정할 때 "난 아무거나 다 좋아"라며 남들의 결정에 따르는 편이다.' },
+        { id:'E9',  axis:'E', facet:'assertiveness', rev:false, text:'누군가 부당한 요구나 무리한 부탁을 해오면, 관계가 어색해지더라도 단호하게 "안 된다"고 거절한다.' },
+        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'회의나 가족 모임에서 내 의견과 다르게 상황이 흘러가도, 굳이 나서서 반대하기보다는 묻어가는 쪽을 택한다.' },
+        { id:'E11', axis:'E', facet:'assertiveness', rev:false, text:'처리해야 할 문제가 생기면 남들이 나서기를 기다리기보다 "이렇게 해결해 봅시다!" 하고 앞장서서 판을 짠다.' },
+        { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
 
-        // A (친화성): compassion(공감/따뜻함) vs cooperation(협력)
-        { id:'A1',  axis:'A', facet:'compassion', rev:true,  text:'나는 다른 사람의 단점을 잘 찾아내는 편이에요' },
-        { id:'A2',  axis:'A', facet:'compassion', rev:false, text:'나는 남을 잘 돕고 사심이 없어요' },
-        { id:'A3',  axis:'A', facet:'cooperation', rev:true,  text:'나는 다른 사람과 다툴 때가 있어요' },
-        { id:'A4',  axis:'A', facet:'compassion', rev:false, text:'나는 용서하는 마음이 있어요' },
-        { id:'A5',  axis:'A', facet:'cooperation', rev:false, text:'나는 일반적으로 다른 사람을 믿는 편이에요' },
-        { id:'A6',  axis:'A', facet:'compassion', rev:true,  text:'나는 때때로 냉정하고 무뚝뚝할 수 있어요' },
-        { id:'A7',  axis:'A', facet:'compassion', rev:false, text:'나는 다른 사람에게 친절하고 배려심이 많아요' },
-        { id:'A8',  axis:'A', facet:'cooperation', rev:true,  text:'나는 때로 다른 사람에게 무례할 수 있어요' },
-        { id:'A9',  axis:'A', facet:'cooperation', rev:false, text:'나는 다른 사람과 협력하는 것을 좋아해요' },
+        // 🟡 O (개방성) - 1. Intellect (지적탐구)
+        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'뉴스나 다큐멘터리를 볼 때, 겉으로 드러난 현상보다 "저 일의 진짜 원인이 뭘까?" 하고 깊이 파고드는 것을 즐긴다.' },
+        { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
+        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'스마트폰의 새로운 앱이나 키오스크 같은 낯선 기술을 마주하면, 피하기보다 어떻게든 눌러보며 배우려고 한다.' },
+        { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
+        { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'나와 완전히 다른 정치적 성향이나 가치관을 가진 사람의 생각이라도 "왜 저렇게 생각할까?" 하고 호기심을 가지고 들어본다.' },
+        { id:'O6',  axis:'O', facet:'intellect',     rev:true,  text:'일어나지도 않은 미래의 일이나 공상 과학 같은 허무맹랑한 이야기를 상상하는 것은 시간 낭비처럼 느껴진다.' },
 
-        // C (성실성): order(계획성/조직성) vs industriousness(성취지향/근면성)
-        { id:'C1',  axis:'C', facet:'order', rev:false, text:'나는 철저하게 일을 처리해요' },
-        { id:'C2',  axis:'C', facet:'industriousness', rev:true,  text:'나는 부주의하게 행동할 때가 있어요' },
-        { id:'C3',  axis:'C', facet:'order', rev:false, text:'나는 믿을 수 있는 사람이에요' },
-        { id:'C4',  axis:'C', facet:'order', rev:true,  text:'나는 체계 없이 어수선한 편이에요' },
-        { id:'C5',  axis:'C', facet:'industriousness', rev:true,  text:'나는 게으른 편이에요' },
-        { id:'C6',  axis:'C', facet:'industriousness', rev:false, text:'나는 목표를 향해 꾸준히 노력해요' },
-        { id:'C7',  axis:'C', facet:'order', rev:false, text:'나는 효율적으로 계획하고 실행해요' },
-        { id:'C8',  axis:'C', facet:'order', rev:false, text:'나는 계획을 세우고 그대로 실행해요' },
-        { id:'C9',  axis:'C', facet:'industriousness', rev:true,  text:'나는 쉽게 주의가 산만해지는 편이에요' },
+        // 🟡 O (개방성) - 2. Aesthetics (예술감수성)
+        { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
+        { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'미술관이나 클래식 음악회에 가면, 솔직히 깊은 감동보다는 "지루하다"거나 "어렵다"는 생각이 먼저 든다.' },
+        { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'시 한 구절이나 책의 좋은 문장, 혹은 옛날 노래 가사를 들으며 혼자 눈시울이 붉어지거나 가슴이 먹먹해질 때가 있다.' },
+        { id:'O10', axis:'O', facet:'aesthetics',    rev:true,  text:'실용성이 없는 예쁜 장식품이나 예술 작품을 돈 주고 사는 것은 별로 합리적이지 않다고 생각한다.' },
+        { id:'O11', axis:'O', facet:'aesthetics',    rev:false, text:'인테리어나 옷을 고를 때, 단순히 편하고 튼튼한 것보다는 색감과 디자인이 내 마음에 쏙 드는 아름다운 것을 고른다.' },
+        { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
 
-        // N (신경증): anxiety(불안감) vs volatility(감정불안정성)
-        { id:'N1',  axis:'N', facet:'volatility', rev:false, text:'나는 우울하고 침울할 때가 있어요' },
-        { id:'N2',  axis:'N', facet:'volatility', rev:true,  text:'나는 느긋하고 스트레스를 잘 다뤄요' },
-        { id:'N3',  axis:'N', facet:'anxiety', rev:false, text:'나는 긴장되거나 초조할 때가 있어요' },
-        { id:'N4',  axis:'N', facet:'anxiety', rev:false, text:'나는 걱정을 많이 하는 편이에요' },
-        { id:'N5',  axis:'N', facet:'anxiety', rev:true,  text:'나는 감정적으로 안정되어 있어요' },
-        { id:'N6',  axis:'N', facet:'volatility', rev:false, text:'나는 기분 변화가 있는 편이에요' },
-        { id:'N7',  axis:'N', facet:'volatility', rev:true,  text:'나는 침착하게 어려운 상황을 처리해요' },
-        { id:'N8',  axis:'N', facet:'anxiety', rev:false, text:'나는 쉽게 긴장하고 불안해져요' },
+        // 🟢 A (친화성) - 1. Compassion (공감능력)
+        { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'지인이 억울한 일로 하소연을 하면, 잘잘못을 따지기 전에 나도 모르게 감정이 이입되어 같이 화를 내거나 울어준다.' },
+        { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복하면 "왜 자꾸 저러지?" 하고 답답해하며, 그 사람의 숨겨진 사정을 이해해주려는 마음이 잘 안 생긴다.' },
+        { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'길거리에 힘든 사람을 보거나 TV에서 안타까운 사연이 나오면, 내 일이 아님에도 며칠 동안 마음이 쓰이고 도와주고 싶다.' },
+        { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'고민 상담을 해줄 때, "많이 힘들었겠다"라는 위로보다는 "그건 네가 이렇게 대처했어야 해"라는 현실적인 조언이 먼저 나간다.' },
+        { id:'A5',  axis:'A', facet:'compassion',    rev:false, text:'나에게 큰 상처를 줬던 사람이라도, 진심으로 눈물 흘리며 사과하면 결국 마음이 약해져서 용서해 주고 만다.' },
+        { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'다른 사람의 표정이나 말투가 약간 변해도 금방 알아채기보다는, 상대가 직접 말해주기 전까지는 기분을 잘 눈치채지 못한다.' },
+
+        // 🟢 A (친화성) - 2. Cooperation (협력성)
+        { id:'A7',  axis:'A', facet:'cooperation',   rev:false, text:'단체 모임이나 가족 여행에서 내 계획과 다르게 일정이 바뀌더라도, 분위기를 깨기 싫어서 흔쾌히 사람들에게 맞춰준다.' },
+        { id:'A8',  axis:'A', facet:'cooperation',   rev:true,  text:'내가 옳다고 확신하는 일이라면, 주변 사람들이 모두 반대하고 불편해하더라도 끝까지 내 고집을 밀어붙인다.' },
+        { id:'A9',  axis:'A', facet:'cooperation',   rev:false, text:'사람들과 의견이 충돌할 때 목소리를 높여 이기려 하기보다, 한 발씩 양보해서 중간 지점을 찾는 평화로운 타협을 선호한다.' },
+        { id:'A10', axis:'A', facet:'cooperation',   rev:true,  text:'일을 할 때 "좋은 게 좋은 거지"라며 두루뭉술하게 넘어가는 사람들을 보면 화가 나고, 원칙대로 짚고 넘어가야 속이 시원하다.' },
+        { id:'A11', axis:'A', facet:'cooperation',   rev:false, text:'다른 사람과 경쟁해서 1등을 차지하는 것보다, 다 같이 협력해서 좋은 결과를 나누는 것이 훨씬 더 가치 있다고 생각한다.' },
+        { id:'A12', axis:'A', facet:'cooperation',   rev:true,  text:'식당이나 서비스를 이용할 때 내 돈을 낸 만큼의 정당한 대우를 받지 못하면, 상대가 무안하더라도 확실하게 따져 묻는다.' },
+
+        // 🔵 C (성실성) - 1. Order (계획성)
+        { id:'C1',  axis:'C', facet:'order',           rev:false, text:'여행을 가거나 중요한 일정이 생기면, 출발 시간부터 동선, 준비물까지 수첩이나 폰에 꼼꼼히 정리해둬야 마음이 편하다.' },
+        { id:'C2',  axis:'C', facet:'order',           rev:true,  text:'내 책상이나 서랍, 혹은 스마트폰 사진첩을 보면 각자의 자리에 정돈되어 있기보다 여기저기 어수선하게 흩어져 있는 편이다.' },
+        { id:'C3',  axis:'C', facet:'order',           rev:false, text:'오늘 하루 동안 처리해야 할 일들을 아침에 머릿속으로 순서를 짜거나 메모해 두고, 하나씩 지워가며 실행한다.' },
+        { id:'C4',  axis:'C', facet:'order',           rev:true,  text:'일을 할 때 매뉴얼이나 순서대로 딱딱 맞추기보다는, 상황에 맞춰 유연하고 즉흥적으로 처리하는 것을 훨씬 좋아한다.' },
+        { id:'C5',  axis:'C', facet:'order',           rev:false, text:'약속 시간에 늦는 것을 극도로 싫어하며, 항상 약속 시간 10~15분 전에는 미리 도착해서 기다리는 편이다.' },
+        { id:'C6',  axis:'C', facet:'order',           rev:true,  text:'집안 물건을 쓰고 나서 제자리에 바로 두기보다는, 일단 손닿는 곳에 뒀다가 나중에 한꺼번에 치우는 경우가 많다.' },
+
+        // 🔵 C (성실성) - 2. Industriousness (성취지향)
+        { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일(운동, 다이어트, 공부 등)은 비가 오나 눈이 오나 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
+        { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'꼭 해야 할 골치 아픈 일이 생기면 "어떻게든 되겠지, 내일 하자" 하며 마감 직전까지 미루고 딴짓을 하는 습관이 있다.' },
+        { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'내 나이나 현재 상황에 안주하지 않고, "올해는 이것을 꼭 이뤄야지" 하는 목표가 항상 가슴 속에 불타오르고 있다.' },
+        { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'무언가를 시작할 때 초반에는 의욕이 넘치지만, 조금만 힘들거나 지루해지면 금방 흥미를 잃고 포기하는 경우가 잦다.' },
+        { id:'C11', axis:'C', facet:'industriousness', rev:false, text:'일이든 취미든 내가 맡은 분야에서는 적당히 타협하지 않고, 스스로 만족할 때까지 완벽한 결과를 만들어 내야 직성이 풀린다.' },
+        { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'"남들보다 더 높이 올라가자"는 야망이나 성취보다는, 그저 남들에게 피해주지 않고 지금처럼 편안하게 사는 것이 최고라고 생각한다.' },
+
+        // 🟣 N (신경증) - 불안감 및 감정기복
+        { id:'N1',  axis:'N', facet:'anxiety',    rev:false, text:'건강 문제, 노후 자금, 자녀 문제 등 아직 일어나지도 않은 불확실한 미래를 상상하며 미리 가슴을 졸일 때가 많다.' },
+        { id:'N2',  axis:'N', facet:'anxiety',    rev:true,  text:'예상치 못한 큰 문제가 터져도 당황하기보다 "죽고 사는 문제도 아닌데 어떻게든 해결되겠지" 하고 툭 털어버리는 여유가 있다.' },
+        { id:'N3',  axis:'N', facet:'anxiety',    rev:false, text:'사람들의 무심한 말 한마디나 눈빛에도 "내가 뭘 잘못했나?" 하고 며칠 동안 곱씹으며 신경을 쓰는 편이다.' },
+        { id:'N4',  axis:'N', facet:'anxiety',    rev:true,  text:'아주 낯선 장소에 가거나 난생처음 해보는 일을 맡게 되어도, 크게 긴장하지 않고 덤덤하게 받아들인다.' },
+        { id:'N5',  axis:'N', facet:'volatility', rev:false, text:'자다가 문득 과거의 실수나 억울했던 일이 떠올라, 갑자기 분노가 치밀거나 하루 종일 우울한 기분에 빠져있는다.' },
+        { id:'N6',  axis:'N', facet:'volatility', rev:true,  text:'누군가 나를 화나게 하더라도 그 감정에 오래 휘둘리지 않고, 금방 평정심을 되찾아 일상으로 돌아온다.' },
+        { id:'N7',  axis:'N', facet:'volatility', rev:false, text:'아침엔 기분이 날아갈 듯 좋았다가도 사소한 일 하나에 갑자기 온종일 기분이 바닥으로 가라앉는 등 감정 기복이 꽤 있다.' },
+        { id:'N8',  axis:'N', facet:'volatility', rev:true,  text:'내 감정은 언제나 잔잔한 호수처럼 평온하며, 외부의 충격이나 스트레스에도 감정이 크게 요동치지 않는다.' }
     ];
 
-    // Rosenberg 자존감 척도 (Rosenberg, 1965)
+    // ── 2. RSE (자존감 척도) : 10문항 (시니어 맞춤) ──
     const RSE_ITEMS = [
-        { id:'R1', rev:false, text:'나는 내가 적어도 다른 사람만큼 가치 있는 사람이라고 생각해요' },
-        { id:'R2', rev:false, text:'나는 좋은 자질을 많이 가지고 있다고 생각해요' },
-        { id:'R3', rev:true,  text:'나는 대체로 실패하는 경향이 있다고 느껴요' },
-        { id:'R4', rev:false, text:'나는 대부분의 사람들처럼 일을 잘 할 수 있어요' },
-        { id:'R5', rev:true,  text:'나는 자랑스러워할 것이 별로 없다고 생각해요' },
-        { id:'R6', rev:false, text:'나는 나 자신에 대해 긍정적인 태도를 가지고 있어요' },
-        { id:'R7', rev:false, text:'나는 전반적으로 나 자신에 대해 만족해요' },
-        { id:'R8', rev:true,  text:'나는 나 자신을 좀 더 존중할 수 있으면 좋겠어요' },
-        { id:'R9', rev:true,  text:'나는 때때로 내가 쓸모없는 사람이라는 느낌이 들어요' },
-        { id:'R10', rev:true, text:'나는 때때로 내가 좋지 않은 사람이라고 생각해요' },
+        { id:'R1',  rev:false, text:'지나온 내 인생을 가만히 돌아보면, 나름대로 풍파를 잘 견뎌내며 내 몫을 훌륭히 해냈다고 스스로가 대견스럽다.' },
+        { id:'R2',  rev:true,  text:'동년배 친구들의 편안해 보이는 삶과 비교해볼 때, 유독 "내 인생만 왠지 꼬인 것 같다"며 씁쓸해질 때가 있다.' },
+        { id:'R3',  rev:false, text:'나이가 들었어도 내게는 남들에게 "이것만큼은 내가 참 잘해"라고 당당하게 말할 수 있는 멋진 장점들이 있다.' },
+        { id:'R4',  rev:true,  text:'과거의 내 행동이나 아쉬운 선택들을 떠올리며 "나는 대체 그때 왜 그렇게 어리석었을까" 하고 깊이 자책하곤 한다.' },
+        { id:'R5',  rev:false, text:'가끔 어이없는 실수를 하거나 늙어가는 내 모습을 발견해도, "이 정도면 참 잘 살고 있다"며 나 자신을 너그럽게 안아준다.' },
+        { id:'R6',  rev:true,  text:'나이가 점점 들어가면서 가족이나 사회에서 "이제 내 쓸모가 다 된 건 아닐까" 하는 서글픈 무력감이 불쑥 찾아온다.' },
+        { id:'R7',  rev:false, text:'새로운 스마트 기기를 배우거나 낯선 환경에 놓여도, "나라고 못 할 게 뭐 있어, 부딪혀보지 뭐" 하는 단단한 자신감이 있다.' },
+        { id:'R8',  rev:true,  text:'거울 속의 내 모습을 멍하니 보거나 혼자 조용히 있을 때, 왠지 모르게 내 자신이 초라하게 느껴져 우울해지곤 한다.' },
+        { id:'R9',  rev:false, text:'내가 살아가는 지금의 방식, 내 나이, 내 주름까지 이 모든 것에 대체로 평안하고 깊은 만족감을 느낀다.' },
+        { id:'R10', rev:true,  text:'살아온 날들을 되돌아볼 때, 내가 이뤄낸 것들이 한없이 작게 느껴지고 남들에게 내세울 게 없다는 생각에 위축된다.' }
     ];
+
+
+
+
 
     // VIA 강점 (Peterson & Seligman, 2004 — 12문항 확장)
     const VIA_ITEMS = [
