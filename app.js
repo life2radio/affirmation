@@ -2627,7 +2627,106 @@
         ].join('<br>');
     }
 
-        // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
+
+    // ════════════════════════════════════════════════════
+    // 🔬 심리테스트 점수 분석 디버그 뷰
+    // ════════════════════════════════════════════════════
+    window.showPsychDebug = function() {
+        const r = window._lastPsychResult;
+        if (!r) { showToast('결과를 먼저 완료해주세요!'); return; }
+        const d = r._debug || {};
+        const s = r.scores || {};
+        const fs10 = (d.allFacets10) || {};
+        const td = d.typeDecision || {};
+        const vd = d.variantDecision || {};
+
+        function bar(pct, color) {
+            var p = Math.max(0, Math.min(100, pct||0));
+            return '<div style="background:#eee;border-radius:6px;height:10px;width:100%;margin-top:4px;">' +
+                   '<div style="background:' + color + ';height:10px;border-radius:6px;width:' + p + '%;"></div></div>';
+        }
+        function row(label, pct, color, note) {
+            var lvl = pct >= 65 ? '높음 ↑' : pct < 38 ? '낮음 ↓' : '보통';
+            return '<div style="margin-bottom:12px;">' +
+                   '<div style="display:flex;justify-content:space-between;font-size:0.85em;">' +
+                   '<span style="font-weight:700;">' + label + '</span>' +
+                   '<span style="color:' + color + ';font-weight:700;">' + pct + '% · ' + lvl + '</span>' +
+                   '</div>' + bar(pct, color) +
+                   (note ? '<div style="font-size:0.75em;color:#888;margin-top:3px;">' + note + '</div>' : '') +
+                   '</div>';
+        }
+
+        const html = '<div class="psych-debug-wrap" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:200000;overflow-y:auto;">' +
+        '<div style="background:var(--bg-color);max-width:480px;margin:0 auto;min-height:100vh;padding:24px 20px 80px;">' +
+
+        // 헤더
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+        '<div style="font-size:1.1em;font-weight:900;color:#1B4332;">🔬 내 점수 상세 분석</div>' +
+        '<button id="psych-debug-close" style="background:none;border:none;font-size:1.3em;cursor:pointer;">✕</button>' +
+        '</div>' +
+
+        // ── STEP 1: Big5 축 점수 ──
+        '<div style="background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin-bottom:14px;">📊 STEP 1 · Big5 축 점수</div>' +
+        row('외향성 (E)', s.E||0, '#4ECDC4', '50% 이상=외향(☀️), 미만=내향(🌙) → ' + (td.E_label||'-')) +
+        row('개방성 (O)', s.O||0, '#9B59B6', '50% 이상=개방(🔥), 미만=신중(🌱) → ' + (td.O_label||'-')) +
+        row('친화성 (A)', s.A||0, '#E91E63', '50% 이상=친화(🤝), 미만=독립(🧊) → ' + (td.A_label||'-')) +
+        row('성실성 (C)', s.C||0, '#FF9800', '50% 이상=성실(⚡), 미만=유연(💭) → ' + (td.C_label||'-')) +
+        row('안정성 (N)', 100-(s.N||0), '#4CAF50', 'N점수를 반전 → 안정성으로 표시') +
+        '</div>' +
+
+        // ── STEP 2: 동물 결정 ──
+        '<div style="background:#E8F5E9;border-radius:14px;padding:18px;margin-bottom:14px;border:2px solid #1B4332;">' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin-bottom:10px;">🐾 STEP 2 · 동물 결정 과정</div>' +
+        '<div style="font-size:0.85em;line-height:2.2;color:#333;">' +
+        '<div>E=' + (s.E||0) + '% → <b>' + (td.E_symbol||'?') + '</b> (' + (td.E_label||'-') + ')</div>' +
+        '<div>O=' + (s.O||0) + '% → <b>' + (td.O_symbol||'?') + '</b> (' + (td.O_label||'-') + ')</div>' +
+        '<div>A=' + (s.A||0) + '% → <b>' + (td.A_symbol||'?') + '</b> (' + (td.A_label||'-') + ')</div>' +
+        '<div>C=' + (s.C||0) + '% → <b>' + (td.C_symbol||'?') + '</b> (' + (td.C_label||'-') + ')</div>' +
+        '<div style="border-top:1px solid #1B4332;margin-top:8px;padding-top:8px;">' +
+        'typeKey = <b style="font-size:1.2em;letter-spacing:2px;">' + (td.typeKey||'?') + '</b></div>' +
+        '<div style="font-size:1.1em;font-weight:900;color:#1B4332;margin-top:4px;">→ ' + (r.animal ? r.animal.animal + ' ' + r.animal.name : '-') + '</div>' +
+        '</div></div>' +
+
+        // ── STEP 3: 10개 세부 facet ──
+        '<div style="background:var(--card-bg);border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin-bottom:14px;">🎯 STEP 3 · 10개 세부 점수</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.82em;">' +
+        ['사교성','주도성','지적호기심','예술감수성','공감능력','협력성','계획성','성취지향','불안관리','감정조절'].map(function(k) {
+            var v = fs10[k] || 0;
+            var col = v >= 65 ? '#1B4332' : v < 38 ? '#E91E63' : '#888';
+            return '<div style="background:#f8f8f8;border-radius:8px;padding:8px;border-left:3px solid ' + col + ';">' +
+                   '<div style="font-weight:700;">' + k + '</div>' +
+                   '<div style="font-size:1.1em;font-weight:900;color:' + col + ';">' + v + '%</div>' +
+                   '</div>';
+        }).join('') +
+        '</div></div>' +
+
+        // ── STEP 4: A/B/C/D 결정 ──
+        '<div style="background:#FFF8E7;border-radius:14px;padding:18px;margin-bottom:14px;border:2px solid #C9A84C;">' +
+        '<div style="font-size:0.9em;font-weight:900;color:#856404;margin-bottom:10px;">🔑 STEP 4 · A/B/C/D 결정</div>' +
+        '<div style="font-size:0.85em;line-height:2.0;color:#333;">' +
+        '<div>' + (vd.f1_label||'-') + ' = <b>' + (vd.f1_score||0) + '%</b> → ' + ((vd.f1_score||0) >= 50 ? '✅ HIGH' : '❌ LOW') + '</div>' +
+        '<div>' + (vd.f2_label||'-') + ' = <b>' + (vd.f2_score||0) + '%</b> → ' + ((vd.f2_score||0) >= 50 ? '✅ HIGH' : '❌ LOW') + '</div>' +
+        '<div style="border-top:1px dashed #C9A84C;margin-top:8px;padding-top:8px;">' +
+        'HIGH+HIGH=A / HIGH+LOW=B / LOW+HIGH=C / LOW+LOW=D</div>' +
+        '<div style="font-size:1.15em;font-weight:900;color:#856404;margin-top:4px;">' +
+        '→ <b>' + (r.animal ? r.animal.animal + ' ' + r.animal.name + '-' + (r.variantKey||'?') : '-') + '</b></div>' +
+        '</div></div>' +
+
+        '</div></div>';
+
+        document.body.insertAdjacentHTML('beforeend', html);
+        setTimeout(function(){
+            var cl = document.getElementById('psych-debug-close');
+            if(cl) cl.addEventListener('click', function(){
+                var wrap = document.querySelector('.psych-debug-wrap');
+                if(wrap) wrap.remove();
+            });
+        }, 100);
+    };
+
+    // getVariantDescription: ANIMAL_FACET_MAP 기반 64유형 프로필 반환
     // ════════════════════════════════════════════════════
     window.getVariantDescription = function(animalEmoji, variantKey) {
         if (typeof ANIMAL_FACET_MAP === 'undefined' || !ANIMAL_FACET_MAP[animalEmoji]) return null;
@@ -2770,7 +2869,34 @@
             variant: variantProfile, variantKey, facetData, allFacets,
             pAnswers: Object.assign({}, pA),
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
-            date: getTodayStr()
+            date: getTodayStr(),
+            _debug: {
+                typeDecision: {
+                    E_score: scores.E, E_symbol: E, E_label: scores.E >= 50 ? '외향(☀️)' : '내향(🌙)',
+                    O_score: scores.O, O_symbol: O, O_label: scores.O >= 50 ? '개방(🔥)' : '신중(🌱)',
+                    A_score: scores.A, A_symbol: A, A_label: scores.A >= 50 ? '친화(🤝)' : '독립(🧊)',
+                    C_score: scores.C, C_symbol: C, C_label: scores.C >= 50 ? '성실(⚡)' : '유연(💭)',
+                    typeKey: typeKey, animal: animalData.name
+                },
+                variantDecision: {
+                    variantKey: variantKey,
+                    f1_label: facetData.l1, f1_score: facetData.s1,
+                    f2_label: facetData.l2, f2_score: facetData.s2,
+                    rule: facetData.l1 + ' ' + (facetData.s1>=50?'↑HIGH':'↓LOW') + ' / ' + facetData.l2 + ' ' + (facetData.s2>=50?'↑HIGH':'↓LOW')
+                },
+                allFacets10: {
+                    사교성: Math.round((f_sociability-1)/6*100),
+                    주도성: Math.round((f_assertiveness-1)/6*100),
+                    지적호기심: Math.round((f_intellect-1)/6*100),
+                    예술감수성: Math.round((f_aesthetics-1)/6*100),
+                    공감능력: Math.round((f_compassion-1)/6*100),
+                    협력성: Math.round((f_cooperation-1)/6*100),
+                    계획성: Math.round((f_order-1)/6*100),
+                    성취지향: Math.round((f_industriousness-1)/6*100),
+                    불안관리: Math.round((1-(f_anxiety||4)/7)*100),
+                    감정조절: Math.round((1-(f_volatility||4)/7)*100)
+                }
+            }
         };
 
         safeSetItem('psych_result_v2', JSON.stringify(result));
@@ -3291,6 +3417,8 @@
         animal.animal + ' 내 결과 공유하기 📤</button>' +
         '<button onclick="sharePsychInvite()" style="width:100%;min-height:40px;background:var(--card-bg);color:#1B4332;border:2px solid #1B4332;border-radius:12px;font-size:0.85em;font-weight:700;cursor:pointer;">' +
         '💌 친구에게 테스트 추천하기</button>' +
+        '<button onclick="showPsychDebug()" style="width:100%;min-height:40px;background:none;border:1px dashed #aaa;border-radius:12px;font-size:0.82em;color:var(--text-muted);cursor:pointer;margin-top:4px;">' +
+        '🔬 내 점수 분석 자세히 보기</button>' +
         '</div></div>' +
 
         // 30일 성장 추적 CTA
