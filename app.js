@@ -3099,9 +3099,9 @@ https://life2radio.github.io/affirmation/?psych=1`;
                 <div style="font-size:36px;margin-bottom:10px;">🏅</div>
                 <div style="font-size:1.15em;font-weight:700;color:#1B4332;margin-bottom:6px;">잠깐! 이름을 알려주세요</div>
                 <div style="font-size:0.88em;color:#666;line-height:1.7;margin-bottom:20px;">
-                    이름과 이메일을 등록하면<br>
-                    <b style="color:#1B4332;">사연 보내기에 자동 입력</b>되고<br>
-                    명예의 전당에도 올라가요 😊
+                    이름과 이메일을 등록하시면<br>
+                    <b style="color:#1B4332;">나의 소중한 확언 기록이 안전하게 보관</b>되고,<br>
+                    30일 뒤 성장 리포트를 받아볼 수 있어요 😊
                 </div>
                 <input id="nm-nick" type="text" maxlength="15" placeholder="이름 또는 별명 (예: 전주 60대 주부)"
                     style="width:100%;padding:12px 14px;font-size:1em;border:2px solid #1B4332;border-radius:10px;box-sizing:border-box;text-align:center;outline:none;margin-bottom:10px;">
@@ -3883,7 +3883,20 @@ https://life2radio.github.io/affirmation/?psych=1`;
             riseMsg.style.display = 'none';
         }
     }
-    function renderMood(type){const saved=safeGetItem(`mood_${type}_${getFormatDate(selectedDateObj)}`,null),ct=document.getElementById(`mood-${type}-container`);let html='';EMOJIS.forEach((em,idx)=>{const ac=saved==idx?' active':'',dis=isToday?'':' disabled';html+=`<button class="mood-btn${ac}" ${dis} onclick="selectMood('${type}',${idx})">${em}</button>`;});ct.innerHTML=html;}
+    function renderMood(type){
+        const EMOJIS_LIST = ['😔','😐','🙂','😊','😄']; // 강제 선언으로 오류 원천 차단
+        const saved = safeGetItem(`mood_${type}_${getFormatDate(selectedDateObj)}`, null);
+        const ct = document.getElementById(`mood-${type}-container`);
+        if(!ct) return; // 컨테이너가 없으면 에러 방지
+        
+        let html = '';
+        EMOJIS_LIST.forEach((em, idx) => {
+            const ac = (saved == idx) ? ' active' : '';
+            const dis = isToday ? '' : ' disabled';
+            html += `<button class="mood-btn${ac}" ${dis} onclick="selectMood('${type}',${idx})">${em}</button>`;
+        });
+        ct.innerHTML = html;
+    }
 
     window.completeToday=function(){if(!isToday)return;try{const ts=getFormatDate(selectedDateObj);let completed=safeGetJSON('completed_dates',[]);if(!completed.includes(ts)){completed.push(ts);safeSetJSON('completed_dates',completed);updateCompleteButton();renderStreakProtectHome();let streak=calcCurrentStreak(completed);checkStreakBadges(streak);showInsightIfNeeded(completed.length);renderScreen();
         trackEvent('complete_affirmation', {day_count: completed.length, streak: streak});
@@ -5980,8 +5993,8 @@ https://life2radio.github.io/affirmation/
         },
         {
             finger:'🏅', badge:'4 / 4',
-            title:'나만의 이름과 이메일을 등록해요',
-            desc:'사연 보내기, 명예의 전당에 자동으로 사용돼요 😊',
+            title:'나의 확언 기록을 안전하게 보관해요',
+            desc:'이름과 이메일을 등록하면 기록이 영구 보관되며,\n30일 뒤 나의 성장 변화를 수치로 확인할 수 있어요! ✨',
             highlight: null,
             isNickname: true
         }
