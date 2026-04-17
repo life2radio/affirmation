@@ -1232,7 +1232,7 @@
                         <span style="font-size:1.7em;">⚡</span>
                         <div>
                             <div style="font-size:1em;font-weight:900;">빠른 테스트</div>
-                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 8분 · 40문항</div>
+                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 9분 · 42문항</div>
                         </div>
                     </button>
                     <button id="psych-full-btn"
@@ -1240,7 +1240,7 @@
                         <span style="font-size:1.7em;">🔬</span>
                         <div>
                             <div style="font-size:1em;font-weight:900;">정밀 테스트</div>
-                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 12분 · 66문항 · 정확도 90%</div>
+                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 15분 · 81문항 · 정확도 90%</div>
                         </div>
                     </button>
                 </div>
@@ -1706,7 +1706,7 @@
 
             // 헤더
             +'<div class="header">'
-            +'<div class="badge">인생2막라디오 확언앱 · 64유형 성격 분석 결과지</div>'
+            +'<div class="badge">인생2막라디오 확언앱 · 64유형 성격 분석 결과지 v4.0</div>'
             +'<div class="animal">'+r.animal.animal+'</div>'
             +'<div class="type-name">'+r.animal.name+(r.variantKey?'-'+r.variantKey:'')+'</div>'
             +'<div style="font-size:18px;color:#C9A84C;font-weight:700;margin:4px 0;">'+(r.variant&&r.variant.label?r.variant.label:r.animal.name)+'</div>'
@@ -1718,6 +1718,17 @@
 
             // 경계선 알림
             + borderHTML
+
+            // 64유형 변형 카드
+            +(r.variant && r.variant.label ? (
+            '<div class="card" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;">'
+            +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;letter-spacing:1px;">나의 64유형 정밀 프로필</div>'
+            +'<div style="font-size:22px;font-weight:900;color:#C9A84C;margin-bottom:4px;">'
+            +r.animal.animal+' '+r.animal.name+'-'+(r.variantKey||'A')+'</div>'
+            +'<div style="font-size:15px;font-weight:700;color:#C9A84C;margin-bottom:10px;">'+r.variant.label+'</div>'
+            +(r.variant.narrative ? '<div style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.8;">'+r.variant.narrative+'</div>' : '')
+            +'</div>'
+            ) : '')
 
             // 전반적 성격 서술
             +'<div class="card">'
@@ -2989,7 +3000,7 @@
 
         // ── [3] 빠른테스트 배지/CTA ──
         const _qBadge  = pMode==='quick' ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>' : '';
-        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(66문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
+        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(81문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
 
         // ── [4] Facet 텍스트 테이블 ──
         const _FT = {
@@ -3210,13 +3221,17 @@
         }).join('');
 
         // ── [12] 궁합 동물 ──
-        // 궁합 동물: E축(외향/내향) 반대 유형 찾기
-        var _myE = (result.scores && result.scores.E >= 50) ? '\u2600\uFE0F' : '\uD83C\uDF19'; // ☀️ or 🌙
-        var _oppE = _myE === '\u2600\uFE0F' ? '\uD83C\uDF19' : '\u2600\uFE0F';
-        var compatibleKey = Object.keys(PSYCH_ANIMALS).find(function(k) {
-            return k !== result.typeKey && k.slice(0,2) === _oppE;
-        }) || Object.keys(PSYCH_ANIMALS).find(function(k){ return k !== result.typeKey; });
-        var compatible = (compatibleKey && PSYCH_ANIMALS[compatibleKey]) || { animal:'🦁', name:'사자형' };
+        // 궁합 동물: ANIMAL_FACET_MAP의 compatible 정보 사용
+        var _compatInfo = null;
+        if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+            ANIMAL_FACET_MAP[animal.animal] &&
+            ANIMAL_FACET_MAP[animal.animal].variants[_vKey] &&
+            ANIMAL_FACET_MAP[animal.animal].variants[_vKey].compatible) {
+            _compatInfo = ANIMAL_FACET_MAP[animal.animal].variants[_vKey].compatible;
+        }
+        var compatible = _compatInfo
+            ? { animal: _compatInfo.emoji, name: _compatInfo.name, variantLabel: _compatInfo.label }
+            : { animal:'🦁', name:'사자형', variantLabel:'' };
 
         // ── [13] 이메일 등록 여부 ──
         var _hasEmail = safeGetItem('my_email','') !== '';
@@ -3253,8 +3268,13 @@
         '</div></div>' +
         '<div style="font-size:0.83em;color:rgba(255,255,255,0.72);">' + animal.title + '</div>' +
         '<div style="margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
-        '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + animal.mbti + '</span>' +
-        '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + '</span>' +
+        '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + (function(){
+    if(typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti){
+        return ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti;
+    }
+    return animal.mbti;
+})() + '</span>' +
+        '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</span>' +
         '</div></div>' +
 
         '<div style="padding:16px 16px 0;">' +
@@ -3266,6 +3286,25 @@
         '<div style="font-size:0.87em;line-height:2.0;color:var(--text-color);">' +
         (function(){ try { return buildPersonalNarrative(vLabel, fs, scores, _vKey); } catch(e){ return '<span style="color:#888;font-size:0.85em;">나의 성격을 분석 중이에요...</span>'; } })() +
         '</div>' +
+
+        // 강점 / 약점 / 성장 카드 (ANIMAL_FACET_MAP 기반)
+        (function(){
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            if(!_fm.strength) return '';
+            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">✨ 핵심 강점 · ⚠️ 치명적 약점 · 🌱 성장 포인트</div>' +
+            '<div style="background:#E8F5E9;border-radius:12px;padding:14px;margin-bottom:10px;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#1B4332;margin-bottom:6px;">✨ 핵심 강점</div>' +
+            '<div style="font-size:0.85em;line-height:1.8;color:#333;">' + (_fm.strength||'') + '</div></div>' +
+            '<div style="background:#FFF3E0;border-radius:12px;padding:14px;margin-bottom:10px;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#E65100;margin-bottom:6px;">⚠️ 치명적 약점</div>' +
+            '<div style="font-size:0.85em;line-height:1.8;color:#333;">' + (_fm.weakness||'') + '</div></div>' +
+            '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:12px;padding:14px;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:6px;">🌱 인생 2막 성장 포인트</div>' +
+            '<div style="font-size:0.85em;line-height:1.8;color:rgba(255,255,255,0.9);">' + (_fm.growth||'') + '</div></div>' +
+            '</div>';
+        })() +
+
         '</div>' +
 
         // SEC 2: Big5 Facet 심층 분석
@@ -3419,73 +3458,39 @@
         '🔬 내 점수 분석 자세히 보기</button>' +
         '</div></div>' +
 
-        // ★ 프리미엄 상세 분석 (결제 예정)
+        // ★ 프리미엄 심층 분석 (결제 예정)
         '<div style="background:linear-gradient(135deg,#0A0A0A,#1a1a2e);border-radius:16px;padding:22px 20px;margin-bottom:14px;border:1.5px solid rgba(201,168,76,0.5);">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-        '<span style="font-size:1.3em;">👑</span>' +
-        '<div style="font-size:1em;font-weight:900;color:#C9A84C;">프리미엄 심층 분석 리포트</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+        '<span>👑</span><div style="font-size:1em;font-weight:900;color:#C9A84C;">프리미엄 심층 분석 리포트</div>' +
         '<div style="font-size:0.72em;background:#C9A84C;color:#000;padding:2px 8px;border-radius:20px;font-weight:900;margin-left:auto;">₩5,000</div>' +
         '</div>' +
-        '<div style="font-size:0.8em;color:rgba(255,255,255,0.65);line-height:1.8;margin-bottom:14px;">' +
-        '✅ 64유형 완전 심층 분석 (20페이지)<br>' +
-        '✅ 연애·직장·인간관계 맞춤 전략<br>' +
-        '✅ 나만의 강점 개발 로드맵<br>' +
-        '✅ 유형별 성장 코칭 가이드' +
-        '</div>' +
-        '<button onclick="window._premiumPayAlert()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8B84B);color:#000;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">' +
-        '👑 지금 구매하기 ₩5,000</button>' +
+        '<div style="font-size:0.8em;color:rgba(255,255,255,0.65);line-height:1.8;margin-bottom:14px;">✅ 64유형 완전 심층 분석 (20페이지)<br>✅ 연애·직장·인간관계 맞춤 전략<br>✅ 나만의 강점 개발 로드맵<br>✅ 유형별 성장 코칭 가이드</div>' +
+        '<button onclick="window._premiumPayAlert()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8B84B);color:#000;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">👑 지금 구매하기 ₩5,000</button>' +
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;">준비중 · 곧 오픈</div>' +
         '</div>' +
 
-        // 30일 성장 추적 CTA
+        // 30일 성장 추적
         '<div style="background:linear-gradient(135deg,#0D2818,#1B4332);border-radius:16px;padding:24px 20px;margin-bottom:14px;text-align:center;">' +
         '<div style="font-size:1.05em;font-weight:900;color:#C9A84C;margin-bottom:8px;">📈 30일 성장 추적</div>' +
-        '<div style="font-size:0.83em;color:rgba(255,255,255,0.8);line-height:1.85;margin-bottom:16px;">' +
-        '지금 등록하면 30일 뒤 재검사로<br>' +
-        '나의 <b style="color:#C9A84C;">성장 변화를 수치로</b> 확인할 수 있어요<br>' +
-        '<span style="font-size:0.85em;opacity:0.65;">각 차원별 변화 그래프 · 성장 보고서 발급</span>' +
-        '</div>' +
-        '<div style="background:rgba(201,168,76,0.12);border-radius:10px;padding:12px;margin-bottom:16px;">' +
-        '<div style="display:flex;justify-content:space-around;">' +
-        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">5</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">성격 요인</div></div>' +
-        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">10</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">세부 성향</div></div>' +
-        '<div style="text-align:center;"><div style="font-size:1.3em;font-weight:900;color:#C9A84C;">30일</div><div style="font-size:0.7em;color:rgba(255,255,255,0.55);">후 비교</div></div>' +
-        '</div></div>' +
+        '<div style="font-size:0.83em;color:rgba(255,255,255,0.8);line-height:1.85;margin-bottom:16px;">지금 등록하면 30일 뒤 재검사로<br>나의 <b style="color:#C9A84C;">성장 변화를 수치로</b> 확인할 수 있어요</div>' +
         _ctaEmail +
         '</div>' +
 
-        '</div>' + // padding div 끝
-
-        // STICKY 하단 CTA
-        '<div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">' +
-        '<div style="flex:1;">' +
-        '<div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>' +
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.55);">매일 무료로 · 지금 바로 시작</div>' +
         '</div>' +
+        '</div>' +
+        '</div>' +
+
+        '<div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">' +
+        '<div style="flex:1;"><div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.55);">매일 무료로 · 지금 바로 시작</div></div>' +
         '<button id="psych-result-cta-btn" style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">🌿 확언 시작하기</button>' +
         '</div>' +
-
-        '</div>' + // psych-result-content 닫기
-        '</div>'; // 전체 div 끝
+        '</div>';
 
         } catch(e) {
-            console.error('showPsychResult 렌더 에러:', e);
+            console.error('showPsychResult 에러:', e);
             showToast('결과 표시 오류: ' + e.message);
             return;
-        }
-
-        // ── [15] 이벤트 바인딩 ──
-        // 글자 크기 조절
-        var _pFontSizes  = [0.88, 1.0, 1.12, 1.25, 1.4];
-        var _pFontIdx    = 1;
-        var _pFontLabels = ['매우 작게', '기본', '크게', '더 크게', '매우 크게'];
-        window._psychFontUp   = function(){ if(_pFontIdx < 4){ _pFontIdx++; _pApplyFont(); } };
-        window._psychFontDown = function(){ if(_pFontIdx > 0){ _pFontIdx--; _pApplyFont(); } };
-        function _pApplyFont(){
-            var wrap  = document.getElementById('psych-result-content');
-            var label = document.getElementById('psych-font-label');
-            if(wrap)  wrap.style.fontSize   = _pFontSizes[_pFontIdx] + 'em';
-            if(label) label.textContent     = _pFontLabels[_pFontIdx];
         }
 
         setTimeout(function(){
@@ -9672,4 +9677,107 @@ https://life2radio.github.io/affirmation/
             setTimeout(function(){ window._backPressedOnce = false; }, 2000);
         });
     });
+
+// ============================================================
+// ★ 결과 이미지 저장 (앱 미설치 → 게이팅 / 설치 → PNG 저장)
+// ============================================================
+window.downloadPsychImage = function(result) {
+    var r = result || window._lastPsychResult;
+    if (!r || !r.animal) { showToast('결과를 먼저 완료해주세요!'); return; }
+
+    // 미등록 → 게이팅 모달
+    var nick  = safeGetItem('my_nickname','');
+    var email = safeGetItem('my_email','');
+    if (!nick || !email) {
+        var gm = document.getElementById('psych-gating-modal');
+        if (gm) { gm.style.display = 'flex'; return; }
+    }
+
+    showToast('📸 이미지를 만들고 있어요...');
+    var W = 1080, H = 1080;
+    var canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    var FONT = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+
+    // 배경
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#1B4332');
+    grad.addColorStop(0.6, '#0D2B20');
+    grad.addColorStop(1, '#050F0A');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+    // 골드 테두리
+    ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = 6;
+    ctx.strokeRect(44, 44, W-88, H-88);
+    ctx.lineWidth = 1.5; ctx.strokeRect(56, 56, W-112, H-112);
+
+    // 후광
+    var glow = ctx.createRadialGradient(W/2, 320, 0, W/2, 320, 260);
+    glow.addColorStop(0, 'rgba(201,168,76,0.22)');
+    glow.addColorStop(1, 'rgba(201,168,76,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(W/2, 320, 260, 0, Math.PI*2); ctx.fill();
+
+    // 동물 이모지
+    ctx.font = '190px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(r.animal.animal, W/2, 310);
+
+    // 64유형 배지
+    var _vKey = r.variantKey || 'A';
+    var variantLabel = (r.variant && r.variant.label) ? r.variant.label : r.animal.name;
+    ctx.font = 'bold 34px ' + FONT; ctx.fillStyle = '#C9A84C';
+    ctx.fillText(r.animal.name + '-' + _vKey + '  ' + variantLabel, W/2, 520);
+
+    // 동물 이름
+    ctx.font = '900 82px ' + FONT; ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(r.animal.name, W/2, 615);
+
+    // MBTI
+    if (r.animal.mbti) {
+        ctx.font = '500 32px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('MBTI: ' + r.animal.mbti, W/2, 680);
+    }
+
+    // 구분선
+    ctx.strokeStyle = 'rgba(201,168,76,0.4)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(160, 720); ctx.lineTo(W-160, 720); ctx.stroke();
+
+    // 대표 유명인
+    var celebName = '';
+    if (r.variant && r.variant.celebrities && r.variant.celebrities.length > 0) {
+        var c0 = r.variant.celebrities[0];
+        celebName = typeof c0 === 'object' ? c0.name : String(c0);
+    }
+    if (celebName) {
+        ctx.font = 'bold 30px ' + FONT; ctx.fillStyle = '#C9A84C';
+        ctx.fillText('👥 닮은 리더: ' + celebName, W/2, 775);
+    }
+
+    // Big5 점수
+    var s = r.scores || {};
+    var sc = ['외향 '+(s.E||0)+'%','개방 '+(s.O||0)+'%','친화 '+(s.A||0)+'%','성실 '+(s.C||0)+'%','안정 '+(100-(s.N||0))+'%'].join('  ');
+    ctx.font = '400 26px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(sc, W/2, 845);
+
+    // 닉네임
+    if (nick) {
+        ctx.font = '400 28px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText(nick + ' 님의 성격 유형', W/2, 910);
+    }
+
+    // 워터마크
+    ctx.font = '400 24px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText('🌿 인생2막라디오 · 64유형 심리테스트', W/2, 975);
+
+    // 다운로드
+    setTimeout(function() {
+        try {
+            var link = document.createElement('a');
+            link.download = '인생확언_' + r.animal.name + '-' + _vKey + '.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            showToast('✅ 이미지가 저장됐어요!');
+        } catch(e) { showToast('저장 오류: ' + e.message); }
+    }, 300);
+};
 
