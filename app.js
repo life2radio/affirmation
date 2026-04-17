@@ -1135,14 +1135,13 @@
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
         const resultBanner = done && prevResult ? `
-            <div style="background:#F0F7F4;border:2px solid #1B4332;border-radius:16px;padding:20px;margin-bottom:16px;">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                    <span style="font-size:2.5em;">${prevResult.animal.animal}</span>
-                    <div>
-                        <div style="font-size:0.75em;color:#1B4332;font-weight:700;">내 결과</div>
-                        <div style="font-size:1.1em;font-weight:900;color:#1B4332;">${prevResult.animal.name}</div>
-                        <div style="font-size:0.82em;color:#2D6A4F;">"${prevResult.animal.title}"</div>
-                    </div>
+            <div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border:none;border-radius:16px;padding:20px;margin-bottom:16px;">
+                <div style="text-align:center;margin-bottom:14px;">
+                    <div style="font-size:0.75em;color:rgba(255,255,255,0.6);font-weight:700;margin-bottom:4px;">나의 확언 동물 유형</div>
+                    <span style="font-size:3em;display:block;margin-bottom:6px;">${prevResult.animal.animal}</span>
+                    <div style="font-size:1.15em;font-weight:900;color:#fff;">${prevResult.animal.name}${prevResult.variantKey ? '-'+prevResult.variantKey : ''}</div>
+                    ${(prevResult.variant && prevResult.variant.label) ? `<div style="font-size:0.88em;color:#C9A84C;font-weight:700;margin-top:2px;">${prevResult.variant.label}</div>` : ''}
+                    <div style="font-size:0.78em;color:rgba(255,255,255,0.55);margin-top:4px;">"${prevResult.animal.title}"</div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                     <button onclick="viewMyPsychResult()" style="min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.88em;font-weight:700;cursor:pointer;">📋 전체 결과 보기</button>
@@ -2973,6 +2972,29 @@
         }
         // 유명인 데이터: ANIMAL_FACET_MAP + EXTRA_CELEBS 합산 (4~5명)
         var _vKey = result.variantKey || 'A';
+
+    // MBTI 연결 이유 맵
+    var _MBTI_REASONS = {
+        '🦁': {
+            base: 'E(외향)+O(개방)+A낮음(독립)+C(성실) → ENTJ',
+            reason: 'Big5에서 외향성↑·개방성↑·친화성↓·성실성↑인 당신은, MBTI 언어로 번역하면 세상을 지배하는 전략적 리더 ENTJ입니다.'
+        },
+        '🐺': { base: 'I(내향)+O(개방)+A낮음(독립)+C(성실) → INTJ', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↑인 당신은, 그림자 속 완벽한 설계자 INTJ입니다.' },
+        '🦅': { base: 'E(외향)+O낮음(안정)+A낮음(독립)+C(성실) → ESTJ', reason: 'Big5에서 외향성·개방성↓·친화성↓·성실성↑인 당신은, 원칙과 질서의 수호자 ESTJ입니다.' },
+        '🦫': { base: 'I(내향)+O낮음(안정)+A낮음(독립)+C(성실) → ISTJ', reason: 'Big5에서 내향성·개방성↓·친화성↓·성실성↑인 당신은, 묵묵한 원칙의 장인 ISTJ입니다.' },
+        '🐘': { base: 'E(외향)+O(개방)+A(친화)+C(성실) → ENFJ', reason: 'Big5에서 외향성·개방성↑·친화성↑·성실성↑인 당신은, 대중의 마음을 움직이는 포용의 리더 ENFJ입니다.' },
+        '🐋': { base: 'I(내향)+O(개방)+A(친화)+C(성실) → INFJ', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↑인 당신은, 심연을 치유하는 통찰자 INFJ입니다.' },
+        '🦝': { base: 'E(외향)+O낮음(안정)+A(친화)+C(성실) → ESFJ', reason: 'Big5에서 외향성·개방성↓·친화성↑·성실성↑인 당신은, 다정한 일상의 버팀목 ESFJ입니다.' },
+        '🐢': { base: 'I(내향)+O낮음(안정)+A(친화)+C(성실) → ISFJ', reason: 'Big5에서 내향성·개방성↓·친화성↑·성실성↑인 당신은, 조용한 헌신자 ISFJ입니다.' },
+        '🐒': { base: 'E(외향)+O(개방)+A낮음(독립)+C낮음(유연) → ENTP', reason: 'Big5에서 외향성·개방성↑·친화성↓·성실성↓인 당신은, 지적 쾌감의 탐험가 ENTP입니다.' },
+        '🦊': { base: 'I(내향)+O(개방)+A낮음(독립)+C낮음(유연) → INTP', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↓인 당신은, 진리를 파헤치는 해부학자 INTP입니다.' },
+        '🦦': { base: 'E(외향)+O(개방)+A(친화)+C낮음(유연) → ENFP', reason: 'Big5에서 외향성·개방성↑·친화성↑·성실성↓인 당신은, 영혼의 불꽃을 옮기는 자 ENFP입니다.' },
+        '🦌': { base: 'I(내향)+O(개방)+A(친화)+C낮음(유연) → INFP', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↓인 당신은, 내면 우주의 몽상가 INFP입니다.' },
+        '🐯': { base: 'I(내향)+O낮음(안정)+A낮음(독립)+C(성실) → ISTJ/ISTP', reason: 'Big5에서 내향성·개방성↓·친화성↓·성실성↑인 당신은, 야생의 절대 강자 계열입니다.' },
+        '🐆': { base: 'I(내향)+O(개방)+A낮음(독립)+C(성실) → INTJ/ISTP', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↑인 당신은, 본능적인 타격가 계열입니다.' },
+        '🦢': { base: 'I(내향)+O(개방)+A(친화)+C낮음(유연) → INFP/INFJ', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↓인 당신은, 무대 위의 스타 계열입니다.' },
+        '🐱': { base: 'I(내향)+O낮음(안정)+A(친화)+C낮음(유연) → ISFP/ISFJ', reason: 'Big5에서 내향성·개방성↓·친화성↑·성실성↓인 당신은, 매혹적인 아티스트 계열입니다.' },
+    };
         var vCelebs = [];
         if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
             ANIMAL_FACET_MAP[animal.animal] &&
@@ -3230,8 +3252,8 @@
             _compatInfo = ANIMAL_FACET_MAP[animal.animal].variants[_vKey].compatible;
         }
         var compatible = _compatInfo
-            ? { animal: _compatInfo.emoji, name: _compatInfo.name, variantLabel: _compatInfo.label }
-            : { animal:'🦁', name:'사자형', variantLabel:'' };
+            ? { animal: _compatInfo.emoji, name: _compatInfo.name, variantLabel: _compatInfo.label, reason: _compatInfo.reason || '' }
+            : { animal:'🦁', name:'사자형', variantLabel:'', reason:'' };
 
         // ── [13] 이메일 등록 여부 ──
         var _hasEmail = safeGetItem('my_email','') !== '';
@@ -3280,6 +3302,32 @@
         '<div style="padding:16px 16px 0;">' +
         _precCTA +
 
+        // 궁합 이유 카드
+        (compatible.reason ? (
+        '<div style="background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:16px;margin-bottom:14px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:1.3em;">' + compatible.animal + '</span>' +
+        '<div>' +
+        '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;">💑 왜 우리가 잘 맞을까요?</div>' +
+        '<div style="font-size:0.75em;color:rgba(255,255,255,0.55);">나의 궁합 최고 파트너: ' + compatible.name + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</div>' +
+        '</div></div>' +
+        '<div style="font-size:0.85em;line-height:1.85;color:var(--text-color);">' + compatible.reason + '</div>' +
+        '</div>'
+        ) : '') +
+
+        // MBTI 연결 이유 카드
+        (function(){
+            var _mr = _MBTI_REASONS[animal.animal];
+            if(!_mr) return '';
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            var _mbtiStr = _fm.mbti || animal.mbti;
+            return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
+            '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">🧬 왜 ' + _mbtiStr + '인가?</div>' +
+            '<div style="font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.8;">' + _mr.reason + '</div>' +
+            '<div style="font-size:0.72em;color:rgba(201,168,76,0.7);margin-top:6px;">Big5 → MBTI 변환: ' + _mr.base + '</div>' +
+            '</div>';
+        })() +
+
         // SEC 1: 당신의 진짜 이야기 (facet 점수 기반 맞춤 내러티브)
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">🔬 당신의 진짜 이야기</div>' +
@@ -3307,6 +3355,48 @@
 
         '</div>' +
 
+        // ── 연애 스타일 카드 ──
+        (function(){
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            if(!_fm.romance) return '';
+            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💑 나의 연애 스타일</div>' +
+            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);margin-bottom:12px;">' + _fm.romance + '</div>' +
+            (_fm.relationship ? '<div style="background:#F0F7F4;border-radius:10px;padding:12px;font-size:0.83em;line-height:1.8;color:#2D5A40;"><b>🤝 깊은 관계의 고수 스타일:</b><br>' + _fm.relationship + '</div>' : '') +
+            '</div>';
+        })() +
+
+        // ── 일/성취 스타일 카드 ──
+        (function(){
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            if(!_fm.work) return '';
+            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💼 나의 일 & 성취 스타일</div>' +
+            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);">' + _fm.work + '</div>' +
+            '</div>';
+        })() +
+
+        // ── 소비/자산 패턴 카드 ──
+        (function(){
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            if(!_fm.money) return '';
+            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💸 나의 소비 & 자산 패턴</div>' +
+            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);">' + _fm.money + '</div>' +
+            '</div>';
+        })() +
+
+        // ── 처방 확언 카드 ──
+        (function(){
+            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
+            if(!_fm.affirmation) return '';
+            return '<div style="background:linear-gradient(135deg,#1B4332,#0D2B20);border-radius:16px;padding:22px 20px;margin-bottom:14px;text-align:center;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:12px;letter-spacing:1px;">🗣️ 오늘 밤 나에게 보내는 처방 확언</div>' +
+            '<div style="font-size:0.95em;line-height:2.0;color:#fff;font-style:italic;font-weight:500;">"' + _fm.affirmation + '"</div>' +
+            '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-top:12px;">잠들기 전 세 번 소리 내어 읽어보세요</div>' +
+            '</div>';
+        })() +
+
         // SEC 2: Big5 Facet 심층 분석
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">📊 Big 5 성격 심층 분석</div>' +
@@ -3324,17 +3414,8 @@
         sec3 +
         '</div></div>' : '') +
 
-        // SEC 4: 강점 & 성장 포인트
-        '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">💪 핵심 강점 & 성장 포인트</div>' +
-        '<div style="background:#E8F5E9;border-radius:12px;padding:14px;margin-bottom:12px;">' +
-        '<div style="font-size:0.8em;font-weight:800;color:#2E7D32;margin-bottom:10px;">🌟 돋보이는 강점</div>' +
-        sec4strengths +
-        '</div>' +
-        '<div style="background:#FFF3E0;border-radius:12px;padding:14px;">' +
-        '<div style="font-size:0.8em;font-weight:800;color:#E65100;margin-bottom:10px;">⚠️ 이 점은 주의해요</div>' +
-        sec4cautions +
-        '</div></div>' +
+        // SEC 4: 강점/주의 카드 제거 (ANIMAL_FACET_MAP 카드로 대체됨)
+
 
         // SEC 5: 연애 & 관계 스타일
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
@@ -9689,8 +9770,14 @@ window.downloadPsychImage = function(result) {
     var nick  = safeGetItem('my_nickname','');
     var email = safeGetItem('my_email','');
     if (!nick || !email) {
+        // 게이팅 모달 표시 또는 이메일 입력 토스트
         var gm = document.getElementById('psych-gating-modal');
-        if (gm) { gm.style.display = 'flex'; return; }
+        if (gm) {
+            gm.style.display = 'flex';
+        } else {
+            showToast('📸 이름·이메일을 먼저 등록해주세요!');
+        }
+        return;
     }
 
     showToast('📸 이미지를 만들고 있어요...');
@@ -9769,15 +9856,41 @@ window.downloadPsychImage = function(result) {
     ctx.font = '400 24px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fillText('🌿 인생2막라디오 · 64유형 심리테스트', W/2, 975);
 
-    // 다운로드
+    // 다운로드 (모바일 호환)
     setTimeout(function() {
         try {
-            var link = document.createElement('a');
-            link.download = '인생확언_' + r.animal.name + '-' + _vKey + '.png';
-            link.href = canvas.toDataURL('image/png');
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-            showToast('✅ 이미지가 저장됐어요!');
+            var dataUrl = canvas.toDataURL('image/png');
+            // Web Share API 지원 시 (iOS/Android 모바일)
+            if (navigator.share && navigator.canShare) {
+                canvas.toBlob(function(blob) {
+                    var file = new File([blob], '인생확언_' + r.animal.name + '-' + _vKey + '.png', { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        navigator.share({ files: [file], title: r.animal.name + ' 성격 유형 결과' })
+                            .then(function(){ showToast('✅ 이미지 공유/저장 완료!'); })
+                            .catch(function(e){ _fallbackDownload(dataUrl, r, _vKey); });
+                    } else {
+                        _fallbackDownload(dataUrl, r, _vKey);
+                    }
+                }, 'image/png');
+            } else {
+                _fallbackDownload(dataUrl, r, _vKey);
+            }
         } catch(e) { showToast('저장 오류: ' + e.message); }
     }, 300);
 };
+
+function _fallbackDownload(dataUrl, r, _vKey) {
+    try {
+        var link = document.createElement('a');
+        link.download = '인생확언_' + r.animal.name + '-' + _vKey + '.png';
+        link.href = dataUrl;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        showToast('✅ 이미지가 저장됐어요!');
+    } catch(e) {
+        // 마지막 수단: 새 탭에서 이미지 열기
+        var w = window.open();
+        if(w) { w.document.write('<img src="' + dataUrl + '" style="max-width:100%">'); }
+        showToast('📸 이미지를 길게 눌러 저장하세요!');
+    }
+}
 
