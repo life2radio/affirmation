@@ -1239,7 +1239,7 @@
                         <span style="font-size:1.7em;">⚡</span>
                         <div>
                             <div style="font-size:1em;font-weight:900;">빠른 테스트</div>
-                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 9분 · 42문항</div>
+                            <div style="font-size:0.78em;color:#666;margin-top:2px;">약 5분 · 31문항</div>
                         </div>
                     </button>
                     <button id="psych-full-btn"
@@ -1247,7 +1247,7 @@
                         <span style="font-size:1.7em;">🔬</span>
                         <div>
                             <div style="font-size:1em;font-weight:900;">정밀 테스트</div>
-                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 15분 · 81문항 · 정확도 90%</div>
+                            <div style="font-size:0.78em;color:rgba(255,255,255,0.75);margin-top:2px;">약 13분 · 78문항 · 정확도 90%</div>
                         </div>
                     </button>
                 </div>
@@ -2517,20 +2517,52 @@
 
         // 구글 버튼 이벤트
         document.getElementById('psych-google-btn').addEventListener('click', function(){
-            window._googleOneTap();
-            // postMessage로 이메일 수신 후 자동 입력
-            window.addEventListener('message', function _pe(e){
-                if(e.data && e.data.type === 'oauth_email'){
-                    window.removeEventListener('message', _pe);
-                    const inp = document.getElementById('psych-email-input');
-                    if(inp && e.data.email) inp.value = e.data.email;
-                    // ★ 이름도 함께 (기존 닉네임 없을 때만)
-                    if(e.data.name && !safeGetItem('my_nickname','')) {
-                        safeSetItem('my_nickname', e.data.name);
-                    }
-                    showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
+            // ★ 심리테스트 답변을 localStorage에 백업 (구글 이동 전 보호)
+            try { safeSetItem('psych_answers_backup', JSON.stringify(pA)); } catch(e){}
+            safeSetItem('psych_mode_backup', pMode || 'full');
+
+            var isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+            if(isMobile){
+                // 모바일: 새 탭만 시도, 실패 시 직접 입력 안내 (리디렉션 절대 금지)
+                var scope = encodeURIComponent('email profile');
+                var redirectUri = encodeURIComponent('https://life2radio.github.io/affirmation/');
+                var url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+GOOGLE_CLIENT_ID
+                    +'&redirect_uri='+redirectUri+'&response_type=token&scope='+scope+'&prompt=select_account';
+                var newTab = window.open(url, '_blank');
+                if(!newTab){
+                    // 새 탭 차단 → 리디렉션 없이 안내만
+                    showToast('⚠️ 팝업이 차단됐어요. 이메일을 직접 입력해주세요!');
+                    var inp = document.getElementById('psych-email-input');
+                    if(inp){ inp.focus(); inp.scrollIntoView({behavior:'smooth'}); }
+                    return;
                 }
-            });
+                // 새 탭에서 postMessage로 이메일 전달받기
+                window.addEventListener('message', function _pe(e){
+                    if(e.data && e.data.type === 'oauth_email'){
+                        window.removeEventListener('message', _pe);
+                        var inp = document.getElementById('psych-email-input');
+                        if(inp && e.data.email) inp.value = e.data.email;
+                        if(e.data.name && !safeGetItem('my_nickname','')) {
+                            safeSetItem('my_nickname', e.data.name);
+                        }
+                        showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
+                    }
+                });
+            } else {
+                // PC: 기존 팝업 방식 유지
+                window._googleOneTap();
+                window.addEventListener('message', function _pe(e){
+                    if(e.data && e.data.type === 'oauth_email'){
+                        window.removeEventListener('message', _pe);
+                        var inp = document.getElementById('psych-email-input');
+                        if(inp && e.data.email) inp.value = e.data.email;
+                        if(e.data.name && !safeGetItem('my_nickname','')) {
+                            safeSetItem('my_nickname', e.data.name);
+                        }
+                        showToast('✅ 이메일이 입력됐어요! 결과 보기를 눌러주세요.');
+                    }
+                });
+            }
         });
     }
 
@@ -2546,6 +2578,16 @@
                 addPoint(30, '심리테스트가입보너스', 'psych_join_bonus');
             }
         }
+        // ★ 혹시 리디렉션으로 답변이 날아갔다면 백업에서 복원
+        if(Object.keys(pA).length === 0){
+            try {
+                var backup = safeGetItem('psych_answers_backup','');
+                if(backup) { pA = JSON.parse(backup); }
+            } catch(e){}
+        }
+        // 백업 데이터 정리
+        safeSetItem('psych_answers_backup','');
+        safeSetItem('psych_mode_backup','');
         // 기존 이메일 모달 제거 후 결과 표시
         var _em = document.getElementById('psych-modal');
         if(_em) _em.remove();
@@ -3081,7 +3123,7 @@
 
         // ── [3] 빠른테스트 배지/CTA ──
         const _qBadge  = pMode==='quick' ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>' : '';
-        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(81문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
+        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(78문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
 
         // ── [4] Facet 텍스트 테이블 ──
         const _FT = {
