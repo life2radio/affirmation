@@ -3386,14 +3386,14 @@
 
         // 궁합 이유 카드
         (compatible.reason ? (
-        '<div style="background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:16px;margin-bottom:14px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-        '<span style="font-size:1.3em;">' + compatible.animal + '</span>' +
+        '<div style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);border-radius:16px;padding:18px;margin-bottom:14px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+        '<span style="font-size:2em;">' + compatible.animal + '</span>' +
         '<div>' +
-        '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;">💑 왜 우리가 잘 맞을까요?</div>' +
-        '<div style="font-size:0.75em;color:rgba(255,255,255,0.55);">나의 궁합 최고 파트너: ' + compatible.name + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</div>' +
+        '<div style="font-size:0.88em;font-weight:900;color:#C9A84C;margin-bottom:2px;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
+        '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">나의 가장 완벽한 짝꿍</div>' +
         '</div></div>' +
-        '<div style="font-size:0.85em;line-height:1.85;color:var(--text-color);">' + compatible.reason + '</div>' +
+        '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
         '</div>'
         ) : '') +
 
