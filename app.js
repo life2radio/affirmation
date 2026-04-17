@@ -2974,26 +2974,108 @@
         var _vKey = result.variantKey || 'A';
 
     // MBTI 연결 이유 맵
+    // 변형(A/B/C/D)별 MBTI 연결 이유 — 다정한 말투
     var _MBTI_REASONS = {
+        // ── Group1 TJ: 사자·늑대·독수리·비버 ──
         '🦁': {
-            base: 'E(외향)+O(개방)+A낮음(독립)+C(성실) → ENTJ',
-            reason: 'Big5에서 외향성↑·개방성↑·친화성↓·성실성↑인 당신은, MBTI 언어로 번역하면 세상을 지배하는 전략적 리더 ENTJ입니다.'
+            'A': { mbti:'ENTJ', msg:'당신은 타고난 에너지와 치밀한 계획력을 모두 가지고 있어요. 사람들을 이끌고 큰 목표를 실현하는 것이 가장 자연스러운 분이에요 💪' },
+            'B': { mbti:'ENTP', msg:'당신은 에너지가 넘치면서도 계획보다는 직관으로 돌파하는 스타일이에요. 예상치 못한 방식으로 문제를 해결할 때 빛나는 분이에요 ⚡' },
+            'C': { mbti:'ESTJ', msg:'당신은 감각적·현실적이면서 체계적으로 일을 처리해요. 흔들리지 않는 안정감으로 주변 사람들에게 믿음을 주는 분이에요 🏛️' },
+            'D': { mbti:'ESTP', msg:'당신은 현장에서 빛나는 즉흥적인 해결사예요. 규칙보다 결과를, 계획보다 지금 이 순간을 즐기는 자유로운 에너지를 가지고 있어요 🔥' },
         },
-        '🐺': { base: 'I(내향)+O(개방)+A낮음(독립)+C(성실) → INTJ', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↑인 당신은, 그림자 속 완벽한 설계자 INTJ입니다.' },
-        '🦅': { base: 'E(외향)+O낮음(안정)+A낮음(독립)+C(성실) → ESTJ', reason: 'Big5에서 외향성·개방성↓·친화성↓·성실성↑인 당신은, 원칙과 질서의 수호자 ESTJ입니다.' },
-        '🦫': { base: 'I(내향)+O낮음(안정)+A낮음(독립)+C(성실) → ISTJ', reason: 'Big5에서 내향성·개방성↓·친화성↓·성실성↑인 당신은, 묵묵한 원칙의 장인 ISTJ입니다.' },
-        '🐘': { base: 'E(외향)+O(개방)+A(친화)+C(성실) → ENFJ', reason: 'Big5에서 외향성·개방성↑·친화성↑·성실성↑인 당신은, 대중의 마음을 움직이는 포용의 리더 ENFJ입니다.' },
-        '🐋': { base: 'I(내향)+O(개방)+A(친화)+C(성실) → INFJ', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↑인 당신은, 심연을 치유하는 통찰자 INFJ입니다.' },
-        '🦝': { base: 'E(외향)+O낮음(안정)+A(친화)+C(성실) → ESFJ', reason: 'Big5에서 외향성·개방성↓·친화성↑·성실성↑인 당신은, 다정한 일상의 버팀목 ESFJ입니다.' },
-        '🐢': { base: 'I(내향)+O낮음(안정)+A(친화)+C(성실) → ISFJ', reason: 'Big5에서 내향성·개방성↓·친화성↑·성실성↑인 당신은, 조용한 헌신자 ISFJ입니다.' },
-        '🐒': { base: 'E(외향)+O(개방)+A낮음(독립)+C낮음(유연) → ENTP', reason: 'Big5에서 외향성·개방성↑·친화성↓·성실성↓인 당신은, 지적 쾌감의 탐험가 ENTP입니다.' },
-        '🦊': { base: 'I(내향)+O(개방)+A낮음(독립)+C낮음(유연) → INTP', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↓인 당신은, 진리를 파헤치는 해부학자 INTP입니다.' },
-        '🦦': { base: 'E(외향)+O(개방)+A(친화)+C낮음(유연) → ENFP', reason: 'Big5에서 외향성·개방성↑·친화성↑·성실성↓인 당신은, 영혼의 불꽃을 옮기는 자 ENFP입니다.' },
-        '🦌': { base: 'I(내향)+O(개방)+A(친화)+C낮음(유연) → INFP', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↓인 당신은, 내면 우주의 몽상가 INFP입니다.' },
-        '🐯': { base: 'I(내향)+O낮음(안정)+A낮음(독립)+C(성실) → ISTJ/ISTP', reason: 'Big5에서 내향성·개방성↓·친화성↓·성실성↑인 당신은, 야생의 절대 강자 계열입니다.' },
-        '🐆': { base: 'I(내향)+O(개방)+A낮음(독립)+C(성실) → INTJ/ISTP', reason: 'Big5에서 내향성·개방성↑·친화성↓·성실성↑인 당신은, 본능적인 타격가 계열입니다.' },
-        '🦢': { base: 'I(내향)+O(개방)+A(친화)+C낮음(유연) → INFP/INFJ', reason: 'Big5에서 내향성·개방성↑·친화성↑·성실성↓인 당신은, 무대 위의 스타 계열입니다.' },
-        '🐱': { base: 'I(내향)+O낮음(안정)+A(친화)+C낮음(유연) → ISFP/ISFJ', reason: 'Big5에서 내향성·개방성↓·친화성↑·성실성↓인 당신은, 매혹적인 아티스트 계열입니다.' },
+        '🐺': {
+            'A': { mbti:'INTJ', msg:'당신은 혼자만의 깊은 생각과 완벽한 계획을 사랑해요. 남들이 보지 못하는 것을 미리 꿰뚫어 보는 놀라운 통찰력이 있어요 🔭' },
+            'B': { mbti:'INTP', msg:'당신은 기존 규칙을 의심하고 새로운 방식을 탐구하는 것을 즐겨요. 논리와 직관이 만나는 자신만의 독창적인 세계가 있는 분이에요 💡' },
+            'C': { mbti:'INFJ', msg:'당신은 논리적이면서도 사람의 마음을 깊이 이해하는 따뜻함이 있어요. 조용히 세상을 더 나은 방향으로 이끄는 분이에요 🌟' },
+            'D': { mbti:'INFP', msg:'당신은 혼자만의 철학과 내면세계를 소중히 여겨요. 물질적 성공보다 진정한 의미를 찾는 가장 독립적인 영혼이에요 🌙' },
+        },
+        '🦅': {
+            'A': { mbti:'ESTJ', msg:'당신은 어떤 조직에서도 자연스럽게 리더가 되는 분이에요. 명확한 원칙과 실행력으로 사람들을 이끄는 것이 가장 잘 맞아요 🦅' },
+            'B': { mbti:'ESTP', msg:'당신은 현장에서 빠르게 판단하고 행동하는 것이 강점이에요. 위기 상황에서 누구보다 침착하게 해결책을 찾아내는 분이에요 ⚡' },
+            'C': { mbti:'ESFJ', msg:'당신은 따뜻하게 사람들을 챙기면서도 체계적으로 조직을 유지해요. 모두가 편안하게 일할 수 있도록 환경을 만들어주는 든든한 분이에요 🌿' },
+            'D': { mbti:'ENTP', msg:'당신은 틀에 얽매이지 않으면서도 현실적인 목표를 잊지 않아요. 유연하게 상황에 적응하며 자신만의 길을 개척하는 분이에요 🗺️' },
+        },
+        '🦫': {
+            'A': { mbti:'ISTJ', msg:'당신은 책임감과 꼼꼼함이 타의 추종을 불허해요. 한 번 맡은 일은 끝까지 완벽하게 해내는 가장 믿음직한 분이에요 💎' },
+            'B': { mbti:'ISTP', msg:'당신은 상황에 맞게 유연하게 문제를 해결해요. 이론보다 실제로 만져보고 경험으로 배우는 현장형 전문가예요 🔧' },
+            'C': { mbti:'ISFJ', msg:'당신은 안정적이고 헌신적으로 주변을 돌봐요. 조용히 자신의 자리를 지키며 모두에게 편안함을 주는 분이에요 🌿' },
+            'D': { mbti:'ISFP', msg:'당신은 타인의 시선보다 자신만의 가치를 중요하게 여겨요. 자유롭고 소박하게 자신의 길을 가는 여유로운 분이에요 🍃' },
+        },
+        // ── Group2 FJ: 코끼리·고래·라쿤·거북이 ──
+        '🐘': {
+            'A': { mbti:'ENFJ', msg:'당신은 사람들의 마음을 자연스럽게 모으고 함께 성장시키는 능력이 있어요. 주변 모두를 따뜻하게 이끄는 타고난 리더예요 🌈' },
+            'B': { mbti:'ENFP', msg:'당신은 열정적으로 사람들에게 영감을 주면서도 자신의 신념을 절대 굽히지 않아요. 따뜻하면서도 강한 에너지를 가진 분이에요 💫' },
+            'C': { mbti:'ESTJ', msg:'당신은 감정에 흔들리지 않고 가장 현실적으로 관계를 조율하는 분이에요. 따뜻함보다 결과와 실행으로 신뢰를 쌓는 든든한 기둥이에요 🏛️' },
+            'D': { mbti:'ENTP', msg:'당신은 조용히 자신의 신념을 실천하는 분이에요. 화려한 말보다 묵묵한 행동으로 세상에 변화를 만들어가요 🌱' },
+        },
+        '🐋': {
+            'A': { mbti:'INFP', msg:'당신은 영혼의 깊은 곳에서 세상의 진실을 느끼는 분이에요. 타협 없는 순수함으로 주변 사람들에게 깊은 감동을 주는 따뜻한 존재예요 🌊' },
+            'B': { mbti:'INFJ', msg:'당신은 말하지 않아도 상대방의 마음을 먼저 느끼는 신비로운 직관이 있어요. 조용히 상처받은 사람들의 영혼을 치유하는 분이에요 💙' },
+            'C': { mbti:'INTP', msg:'당신은 감정의 소용돌이에 휩쓸리지 않고 세상의 본질을 차분히 관찰해요. 깊은 내면에서 나오는 고요한 지혜를 가진 분이에요 🔮' },
+            'D': { mbti:'INTJ', msg:'당신은 이성과 감성의 균형으로 복잡한 관계를 조율해요. 말보다 깊은 통찰로 주변 사람들에게 길을 알려주는 분이에요 🧭' },
+        },
+        '🦝': {
+            'A': { mbti:'ESFJ', msg:'당신은 모임에 있으면 자연스럽게 분위기를 밝히는 에너지가 있어요. 모두를 따뜻하게 품으며 행복한 공동체를 만들어가는 분이에요 ☀️' },
+            'B': { mbti:'ESFP', msg:'당신은 따뜻하면서도 자신만의 기준이 확고해요. 유쾌한 에너지로 주변을 행복하게 만들면서도 중요한 선은 지키는 분이에요 🌻' },
+            'C': { mbti:'ESTJ', msg:'당신은 센스 있게 상황을 파악하고 필요한 곳에 힘을 쓰는 실용적인 분이에요. 넓은 인맥을 능숙하게 관리하는 사교의 달인이에요 🤝' },
+            'D': { mbti:'ESTP', msg:'당신은 불필요한 에너지를 아끼고 꼭 필요한 순간에만 자신의 센스를 발휘해요. 효율적이면서도 여유로운 매력을 가진 분이에요 😎' },
+        },
+        '🐢': {
+            'A': { mbti:'ISFP', msg:'당신은 사랑하는 사람을 위해서라면 무엇이든 하는 따뜻한 분이에요. 조용하지만 필요할 때 누구보다 강하게 지켜주는 든든한 존재예요 🛡️' },
+            'B': { mbti:'ISFJ', msg:'당신은 자신을 낮추고 다른 사람들이 편안하도록 묵묵히 헌신해요. 그 따뜻한 마음이 주변 모두에게 평화를 선물하는 분이에요 🕊️' },
+            'C': { mbti:'ISTP', msg:'당신은 감정에 흔들리지 않고 주어진 일을 묵묵히 해내요. 변화보다 안정을 추구하며 일상의 질서를 지키는 소중한 분이에요 ⚓' },
+            'D': { mbti:'ISTJ', msg:'당신은 작은 일도 소홀히 하지 않는 성실함이 있어요. 조용히 자신의 역할을 다하며 공동체의 든든한 기초가 되어주는 분이에요 🏛️' },
+        },
+        // ── Group3 NP: 원숭이·여우·수달·사슴 ──
+        '🐒': {
+            'A': { mbti:'ENFP', msg:'당신은 지식과 감성을 자유롭게 넘나드는 창의적인 에너지가 있어요. 전혀 다른 두 세계를 연결해 새로운 것을 만들어내는 특별한 재능이 있어요 🎨' },
+            'B': { mbti:'ENTP', msg:'당신은 날카로운 논리와 끝없는 호기심으로 세상의 허점을 찾아내요. 어떤 토론에서도 핵심을 꿰뚫는 날카로운 두뇌를 가진 분이에요 🧠' },
+            'C': { mbti:'ESFP', msg:'당신은 시대의 흐름과 사람들의 감각을 본능적으로 포착해요. 트렌드를 읽고 새로운 기획으로 대중을 사로잡는 감각파예요 🎭' },
+            'D': { mbti:'ESTP', msg:'당신은 어떤 상황에서도 유쾌하게 적응하며 살아남아요. 특유의 재치와 현실 감각으로 복잡한 문제를 가볍게 해결하는 분이에요 🎲' },
+        },
+        '🦊': {
+            'A': { mbti:'INTP', msg:'당신은 모든 것을 논리로 분석하고 진실을 탐구하는 것을 사랑해요. 남들이 보지 못한 깊은 곳까지 파고드는 날카로운 지성을 가진 분이에요 🔬' },
+            'B': { mbti:'INFP', msg:'당신은 논리와 감성이 결합된 독창적인 세계관을 가지고 있어요. 아무도 생각하지 못한 방식으로 세상을 바라보는 독보적인 분이에요 🌌' },
+            'C': { mbti:'ISFP', msg:'당신은 세상의 규칙 바깥에서 자신만의 아름다운 세계를 구축해요. 뻔하지 않은 독창적인 감각으로 주변을 놀라게 하는 분이에요 🦋' },
+            'D': { mbti:'ISTP', msg:'당신은 불필요한 것을 모두 걷어내고 가장 효율적인 답을 찾아요. 실용적이고 현명하게 자원을 활용하는 영리한 분이에요 ⚙️' },
+        },
+        '🦦': {
+            'A': { mbti:'ENFP', msg:'당신은 어디서든 사람들의 마음에 불꽃을 지피는 에너지가 있어요. 뜨거운 열정과 통찰력으로 주변 모두에게 영감을 주는 분이에요 🔥' },
+            'B': { mbti:'ENTP', msg:'당신은 "될 거야!"라는 긍정적인 에너지로 불가능해 보이는 일에 뛰어들어요. 그 무한한 긍정이 실제로 기적을 만들어내는 분이에요 ✨' },
+            'C': { mbti:'ESFP', msg:'당신은 상대방의 아주 작은 감정 변화까지 느끼는 섬세함이 있어요. 그 따뜻한 공감으로 주변 사람들에게 가장 특별한 교감을 선물해요 💗' },
+            'D': { mbti:'ESTP', msg:'당신은 오늘 이 순간의 행복을 최대한 즐기는 자유로운 영혼이에요. 어떤 상황에서도 유쾌함을 잃지 않는 매력적인 분이에요 🎉' },
+        },
+        '🦌': {
+            'A': { mbti:'INFP', msg:'당신은 감정에만 머물지 않고 세상의 본질에 대한 깊은 질문을 품어요. 내면에서 우러나오는 진지한 철학으로 삶을 바라보는 분이에요 📚' },
+            'B': { mbti:'INTP', msg:'당신은 삶의 비극과 아름다움을 동시에 느끼는 섬세한 감수성이 있어요. 그 깊이에서 세상을 울리는 예술이 탄생하는 분이에요 🎭' },
+            'C': { mbti:'ISFP', msg:'당신은 세속적인 기준에 오염되지 않은 순수한 감수성을 가지고 있어요. 그 맑은 영혼이 주변 사람들의 마음을 조용히 녹여주는 분이에요 🌸' },
+            'D': { mbti:'ISTP', msg:'당신은 경쟁과 욕심을 내려놓고 자신만의 평화로운 세계에서 살아가요. 그 여유로운 안식처 같은 존재감이 주변을 편안하게 해주는 분이에요 🌿' },
+        },
+        // ── Group4 SP: 호랑이·표범·백조·고양이 ──
+        '🐯': {
+            'A': { mbti:'ISTP', msg:'당신은 결정적인 순간에 누구보다 빠르게 판을 장악하는 본능이 있어요. 평소엔 조용하지만 승부처에서 빛나는 진짜 강자예요 ⚡' },
+            'B': { mbti:'ISFP', msg:'당신은 강한 카리스마를 내려놓고 사람들과 어울릴 때 정말 빛나요. 털털하고 인간적인 매력으로 모두에게 사랑받는 분이에요 🌟' },
+            'C': { mbti:'ISTJ', msg:'당신은 드러나지 않는 곳에서 묵묵히 실력을 쌓아요. 승부가 필요할 때 가장 정확하게 터뜨리는 진짜 고수예요 🎯' },
+            'D': { mbti:'INFP', msg:'당신은 세상의 소음에 흔들리지 않고 자신만의 시선으로 본질을 꿰뚫어요. 쿨하고 독립적인 매력이 있는 분이에요 🌙' },
+        },
+        '🐆': {
+            'A': { mbti:'ISTP', msg:'당신은 통제받는 것을 싫어하고 자유롭게 세상을 탐험하는 분이에요. 언제나 자신만의 방식으로 짜릿한 삶을 사는 모험가예요 🏔️' },
+            'B': { mbti:'INTJ', msg:'당신은 자신만의 구역에서 누구도 넘볼 수 없는 실력을 갈고닦아요. 사교와 전략을 동시에 구사하는 완벽한 사냥꾼이에요 🎯' },
+            'C': { mbti:'INFP', msg:'당신은 무리의 소음에서 벗어나 혼자만의 평온함을 사랑해요. 독립적이고 자유롭게 자신의 세계를 지키는 분이에요 🌲' },
+            'D': { mbti:'ISTJ', msg:'당신은 조용히 수십 년간 자신의 기술을 완성해가는 분이에요. 세상이 알아주지 않아도 자신만의 깊이를 쌓아가는 진짜 장인이에요 💎' },
+        },
+        '🦢': {
+            'A': { mbti:'INFJ', msg:'당신은 어떤 무대에서도 자연스럽게 사람들의 시선을 모으는 매력이 있어요. 그 뒤에 깊은 감성과 내면의 세계가 숨어있는 분이에요 ✨' },
+            'B': { mbti:'INFP', msg:'당신은 유쾌하고 긍정적인 에너지로 삶을 파티처럼 즐기는 분이에요. 어디서든 사람들을 행복하게 만드는 즉흥적인 매력이 있어요 🎉' },
+            'C': { mbti:'INTP', msg:'당신은 가식 없이 솔직하게 자신의 방식대로 살아가는 쿨한 분이에요. 그 자유롭고 도도한 에너지가 특별한 매력이에요 💫' },
+            'D': { mbti:'INTJ', msg:'당신은 소수의 진짜 관계만 소중히 여기며 자신만의 품격을 지켜요. 그 우아한 고집이 당신을 가장 독보적인 존재로 만들어요 👑' },
+        },
+        '🐱': {
+            'A': { mbti:'ISFP', msg:'당신은 억지로 꾸미지 않아도 자연스럽게 사람들이 끌려오는 매력이 있어요. 부드럽고 다정한 에너지로 조용히 마음을 사로잡는 분이에요 🌺' },
+            'B': { mbti:'ISFJ', msg:'당신은 대중 앞에서도 빛나고 혼자만의 예술 세계에서도 빛나요. 두 가지 세계를 완벽하게 살아가는 특별한 분이에요 🎭' },
+            'C': { mbti:'ISTP', msg:'당신은 뻔한 성공보다 자신이 진짜 즐거운 것을 선택하는 분이에요. 세상의 잣대에 얽매이지 않는 자유로운 영혼이에요 🦋' },
+            'D': { mbti:'ISTJ', msg:'당신은 유행에 흔들리지 않고 자신만의 예술적 신념을 타협 없이 지켜요. 그 확고한 미학이 당신을 가장 독창적인 아티스트로 만들어요 🎨' },
+        },
     };
         var vCelebs = [];
         if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
@@ -3315,16 +3397,15 @@
         '</div>'
         ) : '') +
 
-        // MBTI 연결 이유 카드
+        // MBTI 연결 이유 카드 (변형별)
         (function(){
-            var _mr = _MBTI_REASONS[animal.animal];
+            var _mrMap = _MBTI_REASONS[animal.animal];
+            if(!_mrMap) return '';
+            var _mr = _mrMap[_vKey] || _mrMap['A'];
             if(!_mr) return '';
-            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
-            var _mbtiStr = _fm.mbti || animal.mbti;
-            return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
-            '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">🧬 왜 ' + _mbtiStr + '인가?</div>' +
-            '<div style="font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.8;">' + _mr.reason + '</div>' +
-            '<div style="font-size:0.72em;color:rgba(201,168,76,0.7);margin-top:6px;">Big5 → MBTI 변환: ' + _mr.base + '</div>' +
+            return '<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:14px;padding:16px;margin-bottom:14px;">' +
+            '<div style="font-size:0.75em;color:rgba(201,168,76,0.8);font-weight:700;margin-bottom:8px;">🧬 나는 왜 ' + _mr.mbti + '일까요?</div>' +
+            '<div style="font-size:0.85em;color:rgba(255,255,255,0.9);line-height:1.9;">' + _mr.msg + '</div>' +
             '</div>';
         })() +
 
@@ -3354,48 +3435,6 @@
         })() +
 
         '</div>' +
-
-        // ── 연애 스타일 카드 ──
-        (function(){
-            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
-            if(!_fm.romance) return '';
-            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💑 나의 연애 스타일</div>' +
-            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);margin-bottom:12px;">' + _fm.romance + '</div>' +
-            (_fm.relationship ? '<div style="background:#F0F7F4;border-radius:10px;padding:12px;font-size:0.83em;line-height:1.8;color:#2D5A40;"><b>🤝 깊은 관계의 고수 스타일:</b><br>' + _fm.relationship + '</div>' : '') +
-            '</div>';
-        })() +
-
-        // ── 일/성취 스타일 카드 ──
-        (function(){
-            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
-            if(!_fm.work) return '';
-            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💼 나의 일 & 성취 스타일</div>' +
-            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);">' + _fm.work + '</div>' +
-            '</div>';
-        })() +
-
-        // ── 소비/자산 패턴 카드 ──
-        (function(){
-            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
-            if(!_fm.money) return '';
-            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">💸 나의 소비 & 자산 패턴</div>' +
-            '<div style="font-size:0.87em;line-height:1.85;color:var(--text-color);">' + _fm.money + '</div>' +
-            '</div>';
-        })() +
-
-        // ── 처방 확언 카드 ──
-        (function(){
-            var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
-            if(!_fm.affirmation) return '';
-            return '<div style="background:linear-gradient(135deg,#1B4332,#0D2B20);border-radius:16px;padding:22px 20px;margin-bottom:14px;text-align:center;">' +
-            '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:12px;letter-spacing:1px;">🗣️ 오늘 밤 나에게 보내는 처방 확언</div>' +
-            '<div style="font-size:0.95em;line-height:2.0;color:#fff;font-style:italic;font-weight:500;">"' + _fm.affirmation + '"</div>' +
-            '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-top:12px;">잠들기 전 세 번 소리 내어 읽어보세요</div>' +
-            '</div>';
-        })() +
 
         // SEC 2: Big5 Facet 심층 분석
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
