@@ -938,7 +938,15 @@
         RSE_ITEMS.find(i=>i.id==='R1'), RSE_ITEMS.find(i=>i.id==='R7'), RSE_ITEMS.find(i=>i.id==='R9'),
         RSE_ITEMS.find(i=>i.id==='R2'), RSE_ITEMS.find(i=>i.id==='R6')
     ];
-    const VIA_ITEMS_SHORT = (typeof VIA_ITEMS !== 'undefined') ? VIA_ITEMS.slice(0, 14) : [];
+    // ── 4. 간편 테스트용 VIA 배열 (6대 덕목 핵심 1문항씩 총 6문항) ──
+    const VIA_ITEMS_SHORT = [
+        VIA_ITEMS.find(i=>i.id==='V2'),  // 지혜 (통찰/조언)
+        VIA_ITEMS.find(i=>i.id==='V4'),  // 용기 (끈기/목표달성)
+        VIA_ITEMS.find(i=>i.id==='V5'),  // 인간애 (이타심/도움)
+        VIA_ITEMS.find(i=>i.id==='V7'),  // 정의 (공정성)
+        VIA_ITEMS.find(i=>i.id==='V10'), // 절제 (감정통제)
+        VIA_ITEMS.find(i=>i.id==='V12')  // 초월 (긍정/유머)
+    ];
 
     let pA = {}; // psychAnswers
     let pStep = 0;
@@ -1707,27 +1715,55 @@
             +'<div class="header">'
             +'<div class="badge">인생2막라디오 확언앱 · 64유형 성격 분석 결과지 v4.0</div>'
             +'<div class="animal">'+r.animal.animal+'</div>'
-            +'<div class="type-name">'+r.animal.name+(r.variantKey?'-'+r.variantKey:'')+'</div>'
-            +'<div style="font-size:18px;color:#C9A84C;font-weight:700;margin:4px 0;">'+(r.variant&&r.variant.label?r.variant.label:r.animal.name)+'</div>'
-            +'<div class="type-title">'+r.animal.title+'</div>'
-            +'<div class="mbti">MBTI 유사 유형: '+(r.animal.mbti||'-')+'</div>'
-            +'<div class="intro">'+(r.variant&&r.variant.narrative?r.variant.narrative:(r.animal.desc||r.animal.tagline||''))+'</div>'
-            +'<div class="date">검사일: '+today+' · '+nick+'님</div>'
+            // ★ ANIMAL_FACET_MAP에서 항상 최신 라벨/서술 읽기
+            +(function(){
+                var _vk = r.variantKey || 'A';
+                var _fm = (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+                    ANIMAL_FACET_MAP[r.animal.animal] &&
+                    ANIMAL_FACET_MAP[r.animal.animal].variants[_vk])
+                    ? ANIMAL_FACET_MAP[r.animal.animal].variants[_vk] : null;
+                var _label     = (_fm && _fm.label)     ? _fm.label     : (r.variant&&r.variant.label?r.variant.label:r.animal.name);
+                var _narrative = (_fm && _fm.narrative) ? _fm.narrative : (r.variant&&r.variant.narrative?r.variant.narrative:(r.animal.desc||r.animal.tagline||''));
+                var _mbti      = r.animal.animal ? (function(){
+                    var MBTI_MAP = {'🦁':'ENTJ','🐺':'INTJ','🦅':'ESTJ','🦫':'ISTJ','🐘':'ENFJ','🐋':'INFJ','🦝':'ESFJ','🐢':'ISFJ','🐒':'ENTP','🦊':'INTP','🦦':'ENFP','🦌':'INFP','🐯':'ESTP','🐆':'ISTP','🦢':'ESFP','🐱':'ISFP'};
+                    return MBTI_MAP[r.animal.animal] || r.animal.mbti || '-';
+                })() : '-';
+                // 궁합 정보
+                var _compat = (_fm && _fm.compatible) ? _fm.compatible : null;
+                var _compatStr = _compat
+                    ? (' 💑 ' + _compat.name + (_compat.variant ? '-'+_compat.variant : '') + ' · ' + (_compat.label||''))
+                    : '';
+                return '<div class="type-name">'+r.animal.name+(r.variantKey?'-'+r.variantKey:'')+'</div>'
+                    +'<div style="font-size:18px;color:#C9A84C;font-weight:700;margin:4px 0;">'+_label+'</div>'
+                    +'<div class="type-title">'+r.animal.title+'</div>'
+                    +'<div class="mbti">MBTI: '+_mbti+'</div>'
+                    +(_compatStr ? '<div style="font-size:14px;color:#C9A84C;margin:4px 0;">최고의 궁합'+_compatStr+'</div>' : '')
+                    +'<div class="intro">'+_narrative+'</div>'
+                    +'<div class="date">검사일: '+today+' · '+nick+'님</div>';
+            })()
             +'</div>'
 
             // 경계선 알림
             + borderHTML
 
             // 64유형 변형 카드
-            +(r.variant && r.variant.label ? (
-            '<div class="card" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;">'
-            +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;letter-spacing:1px;">나의 64유형 정밀 프로필</div>'
-            +'<div style="font-size:22px;font-weight:900;color:#C9A84C;margin-bottom:4px;">'
-            +r.animal.animal+' '+r.animal.name+'-'+(r.variantKey||'A')+'</div>'
-            +'<div style="font-size:15px;font-weight:700;color:#C9A84C;margin-bottom:10px;">'+r.variant.label+'</div>'
-            +(r.variant.narrative ? '<div style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.8;">'+r.variant.narrative+'</div>' : '')
-            +'</div>'
-            ) : '')
+            +(function(){
+                var _vk = r.variantKey || 'A';
+                var _fm = (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+                    ANIMAL_FACET_MAP[r.animal.animal] &&
+                    ANIMAL_FACET_MAP[r.animal.animal].variants[_vk])
+                    ? ANIMAL_FACET_MAP[r.animal.animal].variants[_vk] : null;
+                var _lb = (_fm&&_fm.label) ? _fm.label : (r.variant&&r.variant.label?r.variant.label:'');
+                var _nr = (_fm&&_fm.narrative) ? _fm.narrative : (r.variant&&r.variant.narrative?r.variant.narrative:'');
+                if(!_lb) return '';
+                return '<div class="card" style="background:linear-gradient(135deg,#1B4332,#2D6A4F);color:#fff;border:none;">'
+                    +'<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;letter-spacing:1px;">나의 64유형 정밀 프로필</div>'
+                    +'<div style="font-size:22px;font-weight:900;color:#C9A84C;margin-bottom:4px;">'
+                    +r.animal.animal+' '+r.animal.name+'-'+_vk+'</div>'
+                    +'<div style="font-size:15px;font-weight:700;color:#C9A84C;margin-bottom:10px;">'+_lb+'</div>'
+                    +(_nr ? '<div style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.8;">'+_nr+'</div>' : '')
+                    +'</div>';
+            })()
 
             // 전반적 성격 서술
             +'<div class="card">'
@@ -2962,8 +2998,13 @@
             return Math.round(axisScore || 50);
         }
 
-        const vLabel     = variant ? variant.label     : animal.name;
-        const vNarrative = variant ? variant.narrative : (animal.desc || '');
+        // ★ 항상 ANIMAL_FACET_MAP에서 최신 라벨/내러티브 읽기
+        var _fmVariant = (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+            ANIMAL_FACET_MAP[animal.animal] &&
+            ANIMAL_FACET_MAP[animal.animal].variants[_vKey])
+            ? ANIMAL_FACET_MAP[animal.animal].variants[_vKey] : null;
+        const vLabel     = (_fmVariant && _fmVariant.label)     ? _fmVariant.label     : (variant ? variant.label     : animal.name);
+        const vNarrative = (_fmVariant && _fmVariant.narrative) ? _fmVariant.narrative : (variant ? variant.narrative : (animal.desc || ''));
         // 강점/주의점: 항상 ANIMAL_STRENGTH_MAP에서 재조회 (저장 결과 호환)
         var vStrengths = [];
         var vCautions  = [];
@@ -2980,6 +3021,18 @@
         }
         // 유명인 데이터: ANIMAL_FACET_MAP + EXTRA_CELEBS 합산 (4~5명)
         var _vKey = result.variantKey || 'A';
+
+        // ★ variant label/narrative를 항상 ANIMAL_FACET_MAP에서 최신으로 읽기 (캐시 무시)
+        if (typeof ANIMAL_FACET_MAP !== 'undefined' &&
+            ANIMAL_FACET_MAP[animal.animal] &&
+            ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) {
+            var _freshV = ANIMAL_FACET_MAP[animal.animal].variants[_vKey];
+            if (_freshV.label)     { if(result.variant) result.variant.label     = _freshV.label; }
+            if (_freshV.narrative) { if(result.variant) result.variant.narrative = _freshV.narrative; }
+            if (_freshV.compatible && result.compatible) {
+                result.compatible.label = _freshV.compatible.label;
+            }
+        }
 
     // MBTI 연결 이유 맵
     // 동물별 MBTI 연결 이유 (A/B/C/D 모두 같은 MBTI)
@@ -3314,8 +3367,10 @@
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
         '<span style="font-size:2em;">' + compatible.animal + '</span>' +
         '<div>' +
-        '<div style="font-size:0.88em;font-weight:900;color:#C9A84C;margin-bottom:2px;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
-        '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">나의 가장 완벽한 짝꿍</div>' +
+        '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
+            animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
+        '<div style="font-size:0.9em;font-weight:900;color:#fff;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.45);">나의 가장 완벽한 짝꿍</div>' +
         '</div></div>' +
         '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
         '</div>'
@@ -3325,9 +3380,9 @@
         (function(){
             var _mr = _MBTI_REASONS[animal.animal];
             if(!_mr) return '';
-            return '<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.13);border-radius:14px;padding:16px;margin-bottom:14px;">' +
-            '<div style="font-size:0.75em;color:rgba(201,168,76,0.8);font-weight:700;margin-bottom:8px;">🧬 나는 왜 ' + _mr.mbti + '일까요?</div>' +
-            '<div style="font-size:0.85em;color:rgba(255,255,255,0.9);line-height:1.9;">' + _mr.msg + '</div>' +
+            return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _mr.mbti + '일까요?</div>' +
+            '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _mr.msg + '</div>' +
             '</div>';
         })() +
 
@@ -6752,15 +6807,25 @@ https://life2radio.github.io/affirmation/
             const nickInput  = document.getElementById('ob-nick-input');
             const emailInput = document.getElementById('ob-email-input');
             
-            // ★ 체크박스 체크 여부로 등록 결정
-            if(obAgree && obAgree.checked){
-                // 가입하겠다고 선택한 경우 → 필수 입력 검증
-                if(!nickInput || !nickInput.value.trim()){
-                    showToast('이름을 입력해주세요!'); return;
+            const hasNick  = nickInput  && nickInput.value.trim();
+            const hasEmail = emailInput && emailInput.value.trim();
+            const isChecked = obAgree && obAgree.checked;
+
+            // ★ 이름이나 이메일을 입력했는데 체크박스 미체크 → 경고 후 차단
+            if((hasNick || hasEmail) && !isChecked){
+                showToast('아래 개인정보 수집 동의를 먼저 체크해주세요! ☑️');
+                // 체크박스 강조
+                if(obAgree){
+                    obAgree.style.outline = '3px solid #C9A84C';
+                    setTimeout(function(){ obAgree.style.outline = ''; }, 2000);
                 }
-                if(!emailInput || !emailInput.value.trim()){
-                    showToast('이메일을 입력해주세요!'); return;
-                }
+                return;
+            }
+
+            // ★ 체크박스 체크한 경우 → 필수 입력 검증 후 저장
+            if(isChecked){
+                if(!hasNick){ showToast('이름을 입력해주세요!'); return; }
+                if(!hasEmail){ showToast('이메일을 입력해주세요!'); return; }
                 // 정보 저장
                 safeSetItem('my_nickname', nickInput.value.trim());
                 safeSetItem('my_email', emailInput.value.trim());
@@ -6772,7 +6837,7 @@ https://life2radio.github.io/affirmation/
                 if(se) se.value = emailInput.value.trim();
                 window._sendUserUpdate();
             }
-            
+
             // 등록 여부와 관계없이 온보딩 완료
             skipOnboarding();
         }
@@ -9731,14 +9796,98 @@ window.downloadPsychImage = function(result) {
     var nick  = safeGetItem('my_nickname','');
     var email = safeGetItem('my_email','');
     if (!nick || !email) {
-        // 게이팅 모달 표시 또는 이메일 입력 토스트
         var gm = document.getElementById('psych-gating-modal');
-        if (gm) {
-            gm.style.display = 'flex';
-        } else {
-            showToast('📸 이름·이메일을 먼저 등록해주세요!');
-        }
+        if (gm) { gm.style.display = 'flex'; }
+        else { showToast('📸 이름·이메일을 먼저 등록해주세요!'); }
         return;
+    }
+
+    // ── 이미지 미리보기 모달 표시 함수 ──
+    function showImagePreviewModal(dataUrl, blob, filename) {
+        // 기존 모달 제거
+        var exist = document.getElementById('img-preview-modal');
+        if (exist) exist.remove();
+
+        var modal = document.createElement('div');
+        modal.id = 'img-preview-modal';
+        modal.style.cssText = [
+            'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;',
+            'background:rgba(0,0,0,0.92);display:flex;flex-direction:column;',
+            'align-items:center;justify-content:center;padding:16px;box-sizing:border-box;'
+        ].join('');
+
+        var img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.cssText = 'max-width:100%;max-height:60vh;border-radius:16px;border:2px solid #C9A84C;';
+
+        var hint = document.createElement('div');
+        hint.style.cssText = 'color:rgba(255,255,255,0.6);font-size:0.78em;margin:12px 0 4px;text-align:center;';
+        hint.textContent = '이미지를 길게 눌러 저장하거나, 아래 버튼을 이용하세요';
+
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:10px;width:100%;max-width:380px;margin-top:8px;';
+
+        // 갤러리 저장 버튼
+        var btnSave = document.createElement('button');
+        btnSave.style.cssText = [
+            'flex:1;padding:14px 0;background:#C9A84C;color:#1B4332;',
+            'border:none;border-radius:12px;font-size:0.92em;font-weight:900;cursor:pointer;'
+        ].join('');
+        btnSave.textContent = '📥 갤러리 저장';
+        btnSave.onclick = function() {
+            if (blob && navigator.share && navigator.canShare) {
+                var file = new File([blob], filename, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    navigator.share({ files: [file], title: r.animal.name + ' 성격 유형' })
+                        .then(function(){ showToast('✅ 저장 완료!'); modal.remove(); })
+                        .catch(function(){ _fallbackDownload(dataUrl, r, r.variantKey||'A'); modal.remove(); });
+                    return;
+                }
+            }
+            _fallbackDownload(dataUrl, r, r.variantKey||'A');
+            modal.remove();
+        };
+
+        // 공유하기 버튼
+        var btnShare = document.createElement('button');
+        btnShare.style.cssText = [
+            'flex:1;padding:14px 0;background:#1B4332;color:#fff;',
+            'border:1px solid #C9A84C;border-radius:12px;font-size:0.92em;font-weight:900;cursor:pointer;'
+        ].join('');
+        btnShare.textContent = '📤 공유하기';
+        btnShare.onclick = function() {
+            if (blob && navigator.share) {
+                var file = new File([blob], filename, { type: 'image/png' });
+                navigator.share({ files: [file], title: r.animal.name + ' 성격 유형', text: '나의 64유형 심리테스트 결과예요! 💚' })
+                    .then(function(){ modal.remove(); })
+                    .catch(function(){});
+            } else if (navigator.share) {
+                navigator.share({ title: r.animal.name, text: '나의 64유형 심리테스트 결과예요!' }).catch(function(){});
+                modal.remove();
+            }
+        };
+
+        // 닫기 버튼
+        var btnClose = document.createElement('button');
+        btnClose.style.cssText = [
+            'position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);',
+            'color:#fff;border:none;border-radius:50%;width:36px;height:36px;',
+            'font-size:1.1em;cursor:pointer;display:flex;align-items:center;justify-content:center;'
+        ].join('');
+        btnClose.textContent = '✕';
+        btnClose.onclick = function() { modal.remove(); };
+
+        modal.style.position = 'fixed';
+        btnRow.appendChild(btnSave);
+        btnRow.appendChild(btnShare);
+        modal.appendChild(btnClose);
+        modal.appendChild(img);
+        modal.appendChild(hint);
+        modal.appendChild(btnRow);
+
+        // 배경 클릭 시 닫기
+        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+        document.body.appendChild(modal);
     }
 
     showToast('📸 이미지를 만들고 있어요...');
@@ -9817,26 +9966,16 @@ window.downloadPsychImage = function(result) {
     ctx.font = '400 24px ' + FONT; ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.fillText('🌿 인생2막라디오 · 64유형 심리테스트', W/2, 975);
 
-    // 다운로드 (모바일 호환)
+    // ── 캔버스 완성 후 미리보기 모달 표시 ──
     setTimeout(function() {
         try {
             var dataUrl = canvas.toDataURL('image/png');
-            // Web Share API 지원 시 (iOS/Android 모바일)
-            if (navigator.share && navigator.canShare) {
-                canvas.toBlob(function(blob) {
-                    var file = new File([blob], '인생확언_' + r.animal.name + '-' + _vKey + '.png', { type: 'image/png' });
-                    if (navigator.canShare({ files: [file] })) {
-                        navigator.share({ files: [file], title: r.animal.name + ' 성격 유형 결과' })
-                            .then(function(){ showToast('✅ 이미지 공유/저장 완료!'); })
-                            .catch(function(e){ _fallbackDownload(dataUrl, r, _vKey); });
-                    } else {
-                        _fallbackDownload(dataUrl, r, _vKey);
-                    }
-                }, 'image/png');
-            } else {
-                _fallbackDownload(dataUrl, r, _vKey);
-            }
-        } catch(e) { showToast('저장 오류: ' + e.message); }
+            var filename = '인생2막_' + r.animal.name + '-' + _vKey + '.png';
+            // blob 생성 후 미리보기 모달
+            canvas.toBlob(function(blob) {
+                showImagePreviewModal(dataUrl, blob, filename);
+            }, 'image/png');
+        } catch(e) { showToast('이미지 생성 오류: ' + e.message); }
     }, 300);
 };
 
