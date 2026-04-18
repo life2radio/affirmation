@@ -3802,12 +3802,10 @@ https://life2radio.github.io/affirmation/?psych=1`;
             if(nickEl2 && nickEl2.value) safeSetItem('oauth_pending_nick_tmp', nickEl2.value);
             const newTab = window.open(url, '_blank');
             if(!newTab){
-                // 새 탭 차단된 경우 리디렉션으로 폴백
-                const isStandalone2 = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-                safeSetItem('pt_first_visit', '1');
-                safeSetItem('pt_first_standalone', '1');
-                safeSetItem('oauth_in_progress', '1');
-                window.location.href = url;
+                // 새 탭 차단된 경우 → 절대 리디렉션 금지, 직접 입력 안내
+                showToast('⚠️ 팝업이 차단됐어요. 이메일을 직접 입력해주세요!');
+                const _emailInp = document.getElementById('nm-email') || document.getElementById('ob-email-input') || document.getElementById('psych-email-input');
+                if(_emailInp){ _emailInp.focus(); _emailInp.scrollIntoView({behavior:'smooth'}); }
             }
             // 새 탭에서 postMessage로 이메일 전달받기
             window.addEventListener('message', function _oauthMsg(e){
