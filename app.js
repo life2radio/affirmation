@@ -1166,7 +1166,7 @@
 
         const modal = document.createElement('div');
         modal.id = 'psych-modal';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:var(--bg-color);overflow-y:auto;display:flex;flex-direction:column;';
         modal.innerHTML = `
         <div style="min-height:100vh;display:flex;flex-direction:column;">
             <div style="background:#1B4332;padding:16px 20px;display:flex;align-items:center;gap:12px;">
@@ -1287,24 +1287,100 @@
 
     function sendPsychToSheet(result){
         if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
+
+        var pA = result.pAnswers || {};
+        var af = result.allFacets || {};
+        var via = result.viaScores || {};
+
+        // ── B. BFI 원점수 (56개) ──
+        var bfiRaw = {};
+        ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12',
+         'O1','O2','O3','O4','O5','O6','O7','O8','O9','O10','O11','O12',
+         'A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12',
+         'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12',
+         'N1','N2','N3','N4','N5','N6','N7','N8'
+        ].forEach(function(id){
+            bfiRaw['bfi_'+id] = pA['bfi_'+id] || pA[id] || '';
+        });
+
+        // ── C. RSE 원점수 (10개) ──
+        var rseRaw = {};
+        ['R1','R2','R3','R4','R5','R6','R7','R8','R9','R10'].forEach(function(id){
+            rseRaw['rse_'+id] = pA['rse_'+id] || pA[id] || '';
+        });
+
+        // ── D. VIA 원점수 (12개) ──
+        var viaRaw = {};
+        ['V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12'].forEach(function(id){
+            viaRaw['via_'+id] = pA['via_'+id] || pA[id] || '';
+        });
+
+        // ── G. VIA 덕목 점수 계산 ──
+        function viaAvg(ids){ 
+            var vals = ids.map(function(id){ return Number(pA['via_'+id]||pA[id]||0); }).filter(function(v){ return v>0; });
+            return vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length*20) : ''; // 1~5점 → 0~100
+        }
+        var viaScores = {
+            via_지혜:    viaAvg(['V1','V2']),
+            via_용기:    viaAvg(['V3','V4']),
+            via_인간애:  viaAvg(['V5','V6']),
+            via_정의:    viaAvg(['V7','V8']),
+            via_절제:    viaAvg(['V9','V10']),
+            via_초월:    viaAvg(['V11','V12'])
+        };
+
+        // ── 궁합 정보 ──
+        var compatName = '';
+        try {
+            if(typeof ANIMAL_FACET_MAP !== 'undefined' && result.animal && result.variantKey) {
+                var fc = ANIMAL_FACET_MAP[result.animal.animal];
+                if(fc && fc.variants[result.variantKey] && fc.variants[result.variantKey].compatible) {
+                    var cp = fc.variants[result.variantKey].compatible;
+                    compatName = (cp.name||'') + '-' + (cp.variant||'') + ' ' + (cp.label||'');
+                }
+            }
+        } catch(e){}
+
+        var payload = Object.assign({
+            action:      'psych_result_v2',
+            // A. 메타데이터
+            nickname:    safeGetItem('my_nickname','미설정'),
+            email:       safeGetItem('my_email',''),
+            date:        result.date,
+            mode:        pMode || 'full',
+            elapsed_sec: result._elapsedSec || '',
+            age:         result.info ? result.info.age : '',
+            region:      result.info ? result.info.region : '',
+            route:       result.info ? result.info.route : '',
+            // E. 페이싯 점수
+            facet_sociability:     af.sociability||'',
+            facet_assertiveness:   af.assertiveness||'',
+            facet_intellect:       af.intellect||'',
+            facet_aesthetics:      af.aesthetics||'',
+            facet_compassion:      af.compassion||'',
+            facet_cooperation:     af.cooperation||'',
+            facet_order:           af.order||'',
+            facet_industriousness: af.industriousness||'',
+            facet_anxiety:         af.anxiety||'',
+            facet_volatility:      af.volatility||'',
+            // F. Big5 축 점수
+            E: result.scores.E, O: result.scores.O,
+            A: result.scores.A, C: result.scores.C,
+            N: result.scores.N, RSE: result.scores.RSE,
+            // H. 결과
+            animalType:  result.animal ? result.animal.name : '',
+            typeKey:     result.typeKey || '',
+            variantKey:  result.variantKey || '',
+            variantLabel: (result.variant && result.variant.label) ? result.variant.label : '',
+            strengths:   result.viaStrengths ? result.viaStrengths.join(',') : '',
+            compat:      compatName
+        }, bfiRaw, rseRaw, viaRaw, viaScores);
+
         fetch(SHEET_API_URL, {
             method:'POST', mode:'no-cors',
             headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                action: 'psych_result',
-                nickname: safeGetItem('my_nickname','미설정'),
-                date: result.date,
-                route: result.info.route,
-                age: result.info.age,
-                region: result.info.region,
-                animalType: result.animal.name,
-                typeKey: result.typeKey,
-                E: result.scores.E, O: result.scores.O,
-                A: result.scores.A, C: result.scores.C,
-                N: result.scores.N, RSE: result.scores.RSE,
-                strengths: result.viaStrengths.join(',')
-            })
-        }).catch(()=>{});
+            body: JSON.stringify(payload)
+        }).catch(function(){});
     }
 
     function getScoreBar(score, color='#1B4332'){
@@ -2290,7 +2366,7 @@
     window._doPsychStart = function(mode){
         pMode = mode || 'full';
         // ★ psych_last_date는 결과 계산 시에만 저장 (중간에 종료해도 30일 제한 없음)
-        pA = {}; pStep = 0;
+        pA = {}; pStep = 0; window._psychStartTime = Date.now();
         showPsychStep(0);
     }
 
@@ -2417,7 +2493,7 @@
         modal.innerHTML = `
             <div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="document.getElementById('psych-modal').remove();"
+                    <button onclick="(function(){if(confirm('심리테스트를 종료할까요? 진행 중인 답변은 저장되지 않아요.')){document.getElementById('psych-modal').remove();document.body.style.overscrollBehavior='';}})();"
                         style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
@@ -2454,6 +2530,29 @@
                 </button>
             </div>`;
         document.body.appendChild(modal);
+
+        // ★ 심리테스트 중 당겨서 나가기 완전 차단
+        // overscroll (pull-to-refresh) 차단
+        modal.style.overscrollBehavior = 'contain';
+        document.body.style.overscrollBehavior = 'none';
+
+        // 최상단에서 더 당기거나 최하단에서 더 내리는 동작 차단
+        var _touchStartY = 0;
+        modal.addEventListener('touchstart', function(e){
+            _touchStartY = e.touches[0].clientY;
+        }, {passive: true});
+        modal.addEventListener('touchmove', function(e){
+            var scrollTop = modal.scrollTop;
+            var scrollHeight = modal.scrollHeight;
+            var clientHeight = modal.clientHeight;
+            var touchY = e.touches[0].clientY;
+            var isAtTop = scrollTop <= 0 && touchY > _touchStartY;
+            var isAtBottom = scrollTop + clientHeight >= scrollHeight && touchY < _touchStartY;
+            if(isAtTop || isAtBottom){
+                e.preventDefault();
+            }
+        }, {passive: false});
+
         // ★ 스크롤 위치 복원
         if(_savedScroll > 0){
             requestAnimationFrame(function(){
@@ -2827,9 +2926,69 @@
         };
     };
 
-        function calcAndShowResult(){
+    
+    // ════════════════════════════════════════════════════════
+    // ★ 정밀 MBTI 계산 (페이싯 핵심값 기반 — BFI 점수와 완전 독립)
+    // 사교성→E/I / 지적탐구→N/S / 공감능력→F/T / 계획성→J/P
+    // ════════════════════════════════════════════════════════
+    function calcAccurateMBTI(af, mode) {
+        // 간편테스트(quick)는 문항 부족으로 정확도 낮음 → 계산 안 함
+        if (mode === 'quick') return null;
+
+        // allFacets 없으면 계산 불가
+        if (!af) return null;
+
+        // ── 각 축 페이싯 값 추출 (변수명 mbti_ 접두어로 N 충돌 방지) ──
+        var mbti_EI  = af.sociability     != null ? af.sociability     : null;
+        var mbti_NS  = af.intellect       != null ? af.intellect       : null;
+        var mbti_FT  = af.compassion      != null ? af.compassion      : null;
+        var mbti_JP  = af.order           != null ? af.order           : null;
+
+        // 보조 페이싯 (경계선 46~54% 구간에서만 사용)
+        var mbti_EI2 = af.assertiveness   != null ? af.assertiveness   : null;
+        var mbti_NS2 = af.aesthetics      != null ? af.aesthetics      : null;
+        var mbti_FT2 = af.cooperation     != null ? af.cooperation     : null;
+        var mbti_JP2 = af.industriousness != null ? af.industriousness : null;
+
+        // 하나라도 null이면 계산 불가
+        if (mbti_EI===null || mbti_NS===null || mbti_FT===null || mbti_JP===null) return null;
+
+        // ── 판별 함수 (경계선 처리 포함) ──
+        // 50% 이상 → 해당 축 방향 / 미만 → 반대 방향
+        // 경계선(46~54%): 2차 페이싯 보조
+        function decide(primary, secondary, highChar, lowChar) {
+            if (primary >= 55) return highChar;
+            if (primary <= 45) return lowChar;
+            // 46~54% 경계선 → 보조 페이싯
+            if (secondary !== null) {
+                return secondary >= 50 ? highChar : lowChar;
+            }
+            // 보조도 없으면 50 기준 단순 결정
+            return primary >= 50 ? highChar : lowChar;
+        }
+
+        var ei = decide(mbti_EI,  mbti_EI2,  '☀️', '🌙');
+        var ns = decide(mbti_NS,  mbti_NS2,  '🔥', '🌱');
+        var ft = decide(mbti_FT,  mbti_FT2,  '🤝', '🧊');
+        var jp = decide(mbti_JP,  mbti_JP2,  '⚡', '💭');
+
+        // ── 이모지 → MBTI 텍스트 변환 ──
+        var E = ei === '☀️' ? 'E' : 'I';
+        var N = ns === '🔥' ? 'N' : 'S';
+        var F = ft === '🤝' ? 'F' : 'T';
+        var J = jp === '⚡' ? 'J' : 'P';
+
+        return E + N + F + J;
+    }
+
+    function calcAndShowResult(){
         if(!safeGetItem('my_email','')) window._psychNoEmailResult = true;
         safeSetItem('psych_last_date', new Date().toISOString().slice(0,10));
+        // 소요시간 계산
+        if(window._psychStartTime) {
+            var _elapsed = Math.round((Date.now() - window._psychStartTime) / 1000);
+            pA['_elapsed_sec'] = _elapsed;
+        }
         
         // 1. 기본 Big 5 채점
         const bfi = { E:[], O:[], A:[], C:[], N:[] };
@@ -2954,6 +3113,7 @@
             typeKey, animal: animalData, scores, rawScores, viaStrengths,
             variant: variantProfile, variantKey, facetData, allFacets,
             pAnswers: Object.assign({}, pA),
+            _elapsedSec: pA['_elapsed_sec'] || '',
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr(),
             _debug: {
@@ -2984,6 +3144,12 @@
                 }
             }
         };
+
+        // ★ 정밀 MBTI 계산 (기존 typeKey·동물유형 완전 독립)
+        var _mbtiAccurate = calcAccurateMBTI(allFacets, pMode);
+        if (_mbtiAccurate) {
+            result.mbtiAccurate = _mbtiAccurate;
+        }
 
         safeSetItem('psych_result_v2', JSON.stringify(result));
         renderPsychPreview();
@@ -3123,7 +3289,7 @@
 
         // ── [3] 빠른테스트 배지/CTA ──
         const _qBadge  = pMode==='quick' ? '<div style="background:rgba(255,193,7,0.2);border:1px solid rgba(255,193,7,0.4);border-radius:20px;padding:5px 16px;font-size:0.78em;color:#FFC107;font-weight:700;margin-bottom:10px;display:inline-block;">⚡ 빠른 테스트 결과</div>' : '';
-        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(78문항)로 연애·일·소비 스타일까지 완전 분석해보세요!</div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
+        const _precCTA = pMode==='quick' ? '<div style="background:#FFF8E7;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #F0D080;text-align:center;"><div style="font-size:0.88em;font-weight:700;color:#856404;margin-bottom:8px;">🔬 더 정확한 결과를 원하신다면?</div><div style="font-size:0.82em;color:#856404;line-height:1.7;margin-bottom:12px;">정밀 테스트(78문항)로 연애·일·소비 스타일까지 완전 분석해보세요!<br><span style="font-size:0.9em;opacity:0.85;">✅ 정밀 테스트 완료 시 더 정확한 MBTI 유형도 함께 알려드려요</span></div><button id="_precisionBtn" style="background:#1B4332;color:#fff;border:none;border-radius:12px;padding:10px 24px;font-size:0.88em;font-weight:700;cursor:pointer;">🔬 정밀 테스트 시작하기</button></div>' : '';
 
         // ── [4] Facet 텍스트 테이블 ──
         const _FT = {
@@ -3392,6 +3558,8 @@
         '<div style="font-size:0.83em;color:rgba(255,255,255,0.72);">' + animal.title + '</div>' +
         '<div style="margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
         '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + (function(){
+    // ★ 정밀 MBTI 우선 (정밀테스트에서만 계산됨)
+    if(result.mbtiAccurate && pMode !== 'quick') return result.mbtiAccurate;
     if(typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti){
         return ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti;
     }
@@ -3422,9 +3590,17 @@
         (function(){
             var _mr = _MBTI_REASONS[animal.animal];
             if(!_mr) return '';
+            // ★ 정밀 MBTI 우선 사용 (정밀테스트에서만 계산됨, 기존 동물유형과 독립)
+            var _displayMBTI = (result.mbtiAccurate && pMode !== 'quick')
+                ? result.mbtiAccurate
+                : _mr.mbti;
+            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && pMode !== 'quick')
+                ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + _mr.mbti + ')과 다를 수 있어요. 정밀 페이싯 분석 결과 기준이에요.</div>'
+                : '';
             return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _mr.mbti + '일까요?</div>' +
+            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _displayMBTI + '일까요?</div>' +
             '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _mr.msg + '</div>' +
+            _mbtiDiffNote +
             '</div>';
         })() +
 
@@ -3619,7 +3795,7 @@
         '</div>' +
         '</div>' +
 
-        '<div id="psych-result-cta" style="position:sticky;bottom:0;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);">' +
+        '<div id="psych-result-cta" style="position:fixed;bottom:0;left:0;width:100%;z-index:100000;background:rgba(27,67,50,0.97);backdrop-filter:blur(8px);padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(201,168,76,0.3);box-sizing:border-box;">' +
         '<div style="flex:1;"><div id="psych-cta-title" style="font-size:0.85em;font-weight:700;color:#C9A84C;">맞춤 확언 받아보기</div>' +
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.55);">매일 무료로 · 지금 바로 시작</div></div>' +
         '<button id="psych-result-cta-btn" style="background:#C9A84C;color:#1B4332;border:none;border-radius:12px;padding:10px 20px;font-size:0.9em;font-weight:900;cursor:pointer;white-space:nowrap;">🌿 확언 시작하기</button>' +
@@ -9766,6 +9942,20 @@ https://life2radio.github.io/affirmation/
                 window.initApp();
             }
         }
+
+        // ★ psych-modal 제거 시 overscrollBehavior 자동 복원
+        (function(){
+            var _psychObserver = new MutationObserver(function(mutations){
+                mutations.forEach(function(m){
+                    m.removedNodes.forEach(function(node){
+                        if(node.id === 'psych-modal'){
+                            document.body.style.overscrollBehavior = '';
+                        }
+                    });
+                });
+            });
+            _psychObserver.observe(document.body, {childList: true});
+        })();
 
         // ★ 뒤로가기 처리 시스템
         // 항상 뒤로가기를 가로채기 위해 dummy state push

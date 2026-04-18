@@ -516,11 +516,11 @@
         { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
 
         // 🟡 O (개방성) - 1. Intellect (지적탐구)
-        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'뉴스나 다큐멘터리를 볼 때, 겉으로 드러난 현상보다 "저 일의 진짜 원인이 뭘까?" 하고 깊이 파고드는 것을 즐긴다.' },
+        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'실제로 눈에 보이는 결과보다, 그 결과가 만들어진 보이지 않는 구조나 원리를 이해하는 것이 더 흥미롭다.' },
         { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
-        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'여행을 가거나 외식을 할 때, 검증된 단골집이나 익숙한 코스보다 실패할 위험이 있더라도 한 번도 가보지 않은 낯선 곳을 탐험해 보는 것이 즐겁다.' },
+        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'어떤 일이 생겼을 때, 구체적인 해결책을 찾기보다 \"왜 이런 일이 생기는 걸까?\"라는 근본 원인이 더 먼저 궁금하다.' },
         { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
-        { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'나와 완전히 다른 정치적 성향이나 가치관을 가진 사람의 생각이라도 "왜 저렇게 생각할까?" 하고 호기심을 가지고 들어본다.' },
+        { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'사람들이 \"쓸데없는 상상\"이라고 무시하는 \"만약에(What if)\" 질문이 오히려 가장 재밌다.' },
         { id:'O6',  axis:'O', facet:'intellect',     rev:true,  text:'일어나지도 않은 미래의 일이나 공상 과학 같은 허무맹랑한 이야기를 상상하는 것은 시간 낭비처럼 느껴진다.' },
 
         // 🟡 O (개방성) - 2. Aesthetics (예술감수성)
@@ -532,12 +532,12 @@
         { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
 
         // 🟢 A (친화성) - 1. Compassion (공감능력)
-        { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'지인이 억울한 일로 하소연을 하면, 잘잘못을 따지기 전에 나도 모르게 감정이 이입되어 같이 화를 내거나 울어준다.' },
-        { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복하면 "왜 자꾸 저러지?" 하고 답답해하며, 그 사람의 숨겨진 사정을 이해해주려는 마음이 잘 안 생긴다.' },
-        { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'길거리에 힘든 사람을 보거나 TV에서 안타까운 사연이 나오면, 내 일이 아님에도 며칠 동안 마음이 쓰이고 도와주고 싶다.' },
+        { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'누군가 나에게 어떤 문제나 고민을 털어놓을 때, \"어떻게 해결해줄까\"보다 \"지금 기분이 어떨까\"가 머릿속에서 먼저 자동으로 켜진다.' },
+        { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복할 때, 그 사람의 사정을 이해하더라도 결국 \"원칙은 원칙\"이라는 생각으로 돌아와 같은 기준을 적용하게 된다.' },
+        { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'혼자서 중요한 결정을 앞두고 고민할 때, 나도 모르게 \"이 사람들이 어떻게 느낄까\"가 \"어떤 선택이 더 옳고 나은가\"보다 먼저 떠오른다.' },
         { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 힘든 일을 털어놓을 때, 따뜻하게 공감해 주는 것보다 실질적인 해결 방법을 함께 찾아주는 것이 더 도움이 된다고 생각한다.' },
-        { id:'A5',  axis:'A', facet:'compassion',    rev:true,  text:'나에게 깊은 상처를 준 사람이 진심으로 사과해도, 한번 금이 간 신뢰를 예전처럼 회복하기까지는 꽤 오랜 시간과 노력이 필요하다.' },
-        { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'다른 사람의 표정이나 말투가 약간 변해도 금방 알아채기보다는, 상대가 직접 말해주기 전까지는 기분을 잘 눈치채지 못한다.' },
+        { id:'A5',  axis:'A', facet:'compassion',    rev:true,  text:'주변 사람이 힘들어하더라도, 그것이 스스로 초래한 결과라면 도와주기보다 스스로 해결하도록 두는 것이 더 올바르다고 생각한다.' },
+        { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'중요한 결정을 내릴 때, 사람들의 감정이나 인간적인 정(情)에 이끌리기보다는 객관적인 원칙과 논리를 우선으로 따르는 것이 언제나 옳다고 생각한다.' },
 
         // 🟢 A (친화성) - 2. Cooperation (협력성)
         { id:'A7',  axis:'A', facet:'cooperation',   rev:false, text:'단체 모임이나 가족 여행에서 내 계획과 다르게 일정이 바뀌더라도, 분위기를 깨기 싫어서 흔쾌히 사람들에게 맞춰준다.' },
@@ -557,9 +557,9 @@
 
         // 🔵 C (성실성) - 2. Industriousness (성취지향)
         { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일(운동, 다이어트, 공부 등)은 비가 오나 눈이 오나 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
-        { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'꼭 해야 할 골치 아픈 일이 생기면 "어떻게든 되겠지, 내일 하자" 하며 마감 직전까지 미루고 딴짓을 하는 습관이 있다.' },
+        { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'해야 할 일이 생기면, 내가 좋아하는 일이든 싫어하는 일이든 관계없이, 마감이 닥쳐야 겨우 시작하는 편이다.' },
         { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'지금 이 순간에도 올해 안에 꼭 이루고 싶은 구체적인 목표나 계획이 선명하게 마음속에 있다.' },
-        { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'무언가를 시작할 때 초반에는 의욕이 넘치지만, 조금만 힘들거나 지루해지면 금방 흥미를 잃고 포기하는 경우가 잦다.' },
+        { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'스스로 \"꼭 해야겠다\"고 마음먹은 일도, 조금만 힘들어지면 결국 흐지부지 포기해버리는 경우가 잦다.' },
         { id:'C11', axis:'C', facet:'industriousness', rev:false, text:'일이든 취미든 내가 맡은 분야에서는 적당히 타협하지 않고, 스스로 만족할 때까지 완벽한 결과를 만들어 내야 직성이 풀린다.' },
         { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'"남들보다 더 높이 올라가자"는 야망이나 성취보다는, 그저 남들에게 피해주지 않고 지금처럼 편안하게 사는 것이 최고라고 생각한다.' },
 
