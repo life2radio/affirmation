@@ -516,7 +516,7 @@
         { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
 
         // 🟡 O (개방성) - 1. Intellect (지적탐구)
-        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'실제로 눈에 보이는 결과보다, 그 결과가 만들어진 보이지 않는 구조나 원리를 이해하는 것이 더 흥미롭다.' },
+        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'어떤 주제든 세세한 사실 하나하나보다, 전체적인 흐름과 맥락을 파악하는 것이 훨씬 더 편하고 재밌다.' },
         { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
         { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'어떤 일이 생겼을 때, 구체적인 해결책을 찾기보다 \"왜 이런 일이 생기는 걸까?\"라는 근본 원인이 더 먼저 궁금하다.' },
         { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
@@ -526,7 +526,7 @@
         // 🟡 O (개방성) - 2. Aesthetics (예술감수성)
         { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
         { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'드라마를 볼 때 배우들의 감정 연기보다는 스토리 전개나 결말이 어떻게 될지가 더 궁금하다.' },
-        { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'시 한 구절이나 책의 좋은 문장, 혹은 옛날 노래 가사를 들으며 혼자 눈시울이 붉어지거나 가슴이 먹먹해질 때가 있다.' },
+        { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'물건을 고르거나 집 안을 정리할 때, 색상이나 디자인이 촌스럽거나 어울리지 않으면 기능상 문제가 없어도 그냥 넘기기 어렵고 신경이 쓰인다.' },
         { id:'O10', axis:'O', facet:'aesthetics',    rev:true,  text:'실용성이 없는 예쁜 장식품이나 예술 작품을 돈 주고 사는 것은 별로 합리적이지 않다고 생각한다.' },
         { id:'O11', axis:'O', facet:'aesthetics',    rev:false, text:'인테리어나 옷을 고를 때, 단순히 편하고 튼튼한 것보다는 색감과 디자인이 내 마음에 쏙 드는 아름다운 것을 고른다.' },
         { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
