@@ -2493,7 +2493,7 @@
         modal.innerHTML = `
             <div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="showPsychExitConfirm(function(){ document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; });"
+                    <button onclick="(function(){ if(typeof pA!=='undefined' && Object.keys(pA).length > 0 && typeof pStep!=='undefined' && pStep > 0){ showPsychExitConfirm(function(){ document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; }); } else { document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; } })();"
                         style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
@@ -3161,6 +3161,11 @@
     function showPsychResult(result){
         window._lastPsychResult = result; // 이미지 저장용 전역 보관
         var _resultMode = result._mode || result.mode || pMode || 'full';
+        // 빠른테스트 localStorage에서 불러올 때도 mode 확인
+        if (!result._mode && !result.mode) {
+            var _savedMode = typeof safeGetItem === 'function' ? safeGetItem('psych_mode_backup','') : '';
+            if (_savedMode === 'quick') _resultMode = 'quick';
+        }
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
         var modal = document.getElementById('psych-modal');
         if(!modal){
@@ -3582,7 +3587,7 @@
         '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
             animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
         '<div style="font-size:0.9em;font-weight:900;color:#fff;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.85);text-shadow:0 1px 3px rgba(0,0,0,0.5);">나의 가장 완벽한 짝꿍</div>' +
+        '<div style="font-size:0.72em;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,0.8),0 0 8px rgba(0,0,0,0.5);">나의 가장 완벽한 짝꿍</div>' +
         '</div></div>' +
         '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
         '</div>'
@@ -3662,6 +3667,17 @@
                 '관심 없는 일은 철저히 외면하지만 <b>한번 꽂히면 밥도 잊고 몰입</b>하는 패턴이에요. ' +
                 '이건 게으름이 아니라 <b>희귀한 강점</b>이에요. ' +
                 '관심 분야에서만큼은 세상 누구보다 깊이 파고들 수 있어요.</div></div>');
+            }
+
+            // ① 사회화된 T형 (공감능력 낮음 + 협력성 높음)
+            var coop = _af.cooperation != null ? _af.cooperation : _s.A;
+            if (comp < 30 && coop > 70) {
+                insights.push('<div style="background:#F0FDF4;border-left:4px solid #22C55E;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#15803D;margin-bottom:6px;">🤝 사회화된 T형 패턴이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">공감능력이 낮게 나왔지만 협력성이 높다면, ' +
+                '결정은 늘 논리로 하지만 <b>관계와 팀워크를 소중히 여기는 법을 익히신 T형</b>이에요. ' +
+                '이건 T형의 성숙한 발전이에요. ' +
+                '감정보다 원칙이 먼저지만, 사람들과 잘 지내는 방법을 아는 분이에요.</div></div>');
             }
 
             // ② E/I 경계선 (사교성 46~54%)
