@@ -499,80 +499,63 @@
 
     // ── 1. BFI (Big 5 성격 척도) : 56문항 ──
     const BFI_ITEMS = [
-        // 🔴 E (외향성) - 1. Sociability (사교성)
-        { id:'E1',  axis:'E', facet:'sociability',   rev:false, text:'주말이나 쉬는 날, 혼자 조용히 쉬기보다는 모임이나 친구들을 만나 웃고 떠들어야 에너지가 충전된다.' },
-        { id:'E2',  axis:'E', facet:'sociability',   rev:true,  text:'낯선 사람들이 많은 새로운 모임에 가면, 어색하고 기가 빨려서 빨리 집에 가고 싶어진다.' },
-        { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'처음 만난 사람이나 낯선 자리에서도 자연스럽게 먼저 말을 건네고 대화를 이어가는 편이다.' },
-        { id:'E4',  axis:'E', facet:'sociability',   rev:true,  text:'처음 만나는 사람들 사이에서 먼저 말을 꺼내거나 분위기를 주도하기보다, 상대방의 반응을 살피며 조용히 관찰하는 쪽이 더 편하다.' },
-        { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'어떤 모임이나 자리에서든 자연스럽게 분위기를 주도하거나 사람들을 연결해 주는 역할을 하게 된다.' },
-        { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'약속이나 모임이 없는 조용한 혼자만의 시간이 오히려 가장 에너지가 충전되고 기분이 좋다.' },
-
-        // 🔴 E (외향성) - 2. Assertiveness (주도성)
-        { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'부당한 대우를 받거나 정당한 내 권리를 주장해야 할 상황이 오면, 상대방의 기분이나 체면을 신경 쓰기보다 내 입장을 확실하게 밝히는 편이다.' },
-        { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'다른 사람들이 어떤 방향으로 이미 의견을 모아가고 있으면, 내 생각이 달라도 굳이 흐름을 바꾸려 하지 않고 따라가는 편이다.' },
-        { id:'E9',  axis:'E', facet:'assertiveness', rev:false, text:'누군가 부당한 요구나 무리한 부탁을 해오면, 관계가 어색해지더라도 단호하게 "안 된다"고 거절한다.' },
-        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'어떤 일의 방향이나 결론을 다른 사람이 정해주면, 내가 직접 결정해야 하는 부담이 없어서 오히려 편하다.' },
-        { id:'E11', axis:'E', facet:'assertiveness', rev:false, text:'처리해야 할 문제가 생기면 남들이 나서기를 기다리기보다 "이렇게 해결해 봅시다!" 하고 앞장서서 판을 짠다.' },
-        { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
-
-        // 🟡 O (개방성) - 1. Intellect (지적탐구)
-        { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'어떤 주제든 세세한 사실 하나하나보다, 전체적인 흐름과 맥락을 파악하는 것이 훨씬 더 편하고 재밌다.' },
-        { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
-        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'어떤 일이 생겼을 때, 구체적인 해결책을 찾기보다 \"왜 이런 일이 생기는 걸까?\"라는 근본 원인이 더 먼저 궁금하다.' },
-        { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
-        { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'사람들이 \"쓸데없는 상상\"이라고 무시하는 \"만약에(What if)\" 질문이 오히려 가장 재밌다.' },
-        { id:'O6',  axis:'O', facet:'intellect',     rev:true,  text:'일어나지도 않은 미래의 일이나 공상 과학 같은 허무맹랑한 이야기를 상상하는 것은 시간 낭비처럼 느껴진다.' },
-
-        // 🟡 O (개방성) - 2. Aesthetics (예술감수성)
-        { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
-        { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'드라마를 볼 때 배우들의 감정 연기보다는 스토리 전개나 결말이 어떻게 될지가 더 궁금하다.' },
-        { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'물건을 고르거나 집 안을 정리할 때, 색상이나 디자인이 촌스럽거나 어울리지 않으면 기능상 문제가 없어도 그냥 넘기기 어렵고 신경이 쓰인다.' },
-        { id:'O10', axis:'O', facet:'aesthetics',    rev:true,  text:'실용성이 없는 예쁜 장식품이나 예술 작품을 돈 주고 사는 것은 별로 합리적이지 않다고 생각한다.' },
-        { id:'O11', axis:'O', facet:'aesthetics',    rev:false, text:'인테리어나 옷을 고를 때, 단순히 편하고 튼튼한 것보다는 색감과 디자인이 내 마음에 쏙 드는 아름다운 것을 고른다.' },
-        { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
-
-        // 🟢 A (친화성) - 1. Compassion (공감능력)
-        { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'누군가 나에게 어떤 문제나 고민을 털어놓을 때, \"어떻게 해결해줄까\"보다 \"지금 기분이 어떨까\"가 머릿속에서 먼저 자동으로 켜진다.' },
-        { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복할 때, 그 사람의 사정을 이해하더라도 결국 \"원칙은 원칙\"이라는 생각으로 돌아와 같은 기준을 적용하게 된다.' },
-        { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'혼자서 중요한 결정을 앞두고 고민할 때, 나도 모르게 \"이 사람들이 어떻게 느낄까\"가 \"어떤 선택이 더 옳고 나은가\"보다 먼저 떠오른다.' },
-        { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'누군가를 진정으로 돕는 가장 좋은 방법은 감정적 공감보다 문제를 해결할 실질적 방법을 찾아주는 것이라고 생각한다.' },
-        { id:'A5',  axis:'A', facet:'compassion',    rev:true,  text:'주변 사람이 힘들어하더라도, 그것이 스스로 초래한 결과라면 도와주기보다 스스로 해결하도록 두는 것이 더 올바르다고 생각한다.' },
-        { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'중요한 결정을 내릴 때, 사람들의 감정이나 인간적인 정(情)에 이끌리기보다는 객관적인 원칙과 논리를 우선으로 따르는 것이 언제나 옳다고 생각한다.' },
-
-        // 🟢 A (친화성) - 2. Cooperation (협력성)
-        { id:'A7',  axis:'A', facet:'cooperation',   rev:false, text:'단체 모임이나 가족 여행에서 내 계획과 다르게 일정이 바뀌더라도, 분위기를 깨기 싫어서 흔쾌히 사람들에게 맞춰준다.' },
-        { id:'A8',  axis:'A', facet:'cooperation',   rev:true,  text:'내가 옳다고 확신하는 일이라면, 주변 사람들이 모두 반대하고 불편해하더라도 끝까지 내 고집을 밀어붙인다.' },
-        { id:'A9',  axis:'A', facet:'cooperation',   rev:false, text:'사람들과 의견이 충돌할 때 목소리를 높여 이기려 하기보다, 한 발씩 양보해서 중간 지점을 찾는 평화로운 타협을 선호한다.' },
-        { id:'A10', axis:'A', facet:'cooperation',   rev:true,  text:'일을 할 때 "좋은 게 좋은 거지"라며 두루뭉술하게 넘어가는 사람들을 보면 화가 나고, 원칙대로 짚고 넘어가야 속이 시원하다.' },
-        { id:'A11', axis:'A', facet:'cooperation',   rev:false, text:'다른 사람과 경쟁해서 1등을 차지하는 것보다, 다 같이 협력해서 좋은 결과를 나누는 것이 훨씬 더 가치 있다고 생각한다.' },
-        { id:'A12', axis:'A', facet:'cooperation',   rev:true,  text:'팀 작업이나 공동 프로젝트에서 "나 혼자 하는 게 더 빠르고 낫겠다"는 생각이 자주 들어, 남과 협력하거나 내 방식을 맞춰가는 것이 답답하게 느껴진다.' },
-
-        // 🔵 C (성실성) - 1. Order (계획성)
-        { id:'C1',  axis:'C', facet:'order',           rev:false, text:'중요한 일뿐 아니라 일상의 사소한 것들도, 미리 순서와 방법을 정해두지 않으면 마음이 찜찜하고 불안하다.' },
-        { id:'C2',  axis:'C', facet:'order',           rev:true,  text:'내 방이나 책상, 거실의 물건들을 보면 항상 제자리에 칼같이 정돈되어 있기보다, 내가 쓰기 편하게 여기저기 흩어져 있는 편이다.' },
-        { id:'C3',  axis:'C', facet:'order',           rev:false, text:'오늘 하루 동안 처리해야 할 일들을 아침에 머릿속으로 순서를 짜거나 메모해 두고, 하나씩 지워가며 실행한다.' },
-        { id:'C4',  axis:'C', facet:'order',           rev:true,  text:'일을 할 때 매뉴얼이나 순서대로 딱딱 맞추기보다는, 상황에 맞춰 유연하고 즉흥적으로 처리하는 것을 훨씬 좋아한다.' },
-        { id:'C5',  axis:'C', facet:'order',           rev:false, text:'약속 시간에 늦는 것을 극도로 싫어하며, 항상 약속 시간 10~15분 전에는 미리 도착해서 기다리는 편이다.' },
-        { id:'C6',  axis:'C', facet:'order',           rev:true,  text:'집안 물건을 쓰고 나서 제자리에 바로 두기보다는, 일단 손닿는 곳에 뒀다가 나중에 한꺼번에 치우는 경우가 많다.' },
-
-        // 🔵 C (성실성) - 2. Industriousness (성취지향)
-        { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일(운동, 다이어트, 공부 등)은 비가 오나 눈이 오나 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
-        { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'해야 할 일이 생기면, 내가 좋아하는 일이든 싫어하는 일이든 관계없이, 마감이 닥쳐야 겨우 시작하는 편이다.' },
-        { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'지금 이 순간에도 올해 안에 꼭 이루고 싶은 구체적인 목표나 계획이 선명하게 마음속에 있다.' },
-        { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'스스로 \"꼭 해야겠다\"고 마음먹은 일도, 조금만 힘들어지면 결국 흐지부지 포기해버리는 경우가 잦다.' },
-        { id:'C11', axis:'C', facet:'industriousness', rev:false, text:'일이든 취미든 내가 맡은 분야에서는 적당히 타협하지 않고, 스스로 만족할 때까지 완벽한 결과를 만들어 내야 직성이 풀린다.' },
-        { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'"남들보다 더 높이 올라가자"는 야망이나 성취보다는, 그저 남들에게 피해주지 않고 지금처럼 편안하게 사는 것이 최고라고 생각한다.' },
-
-        // 🟣 N (신경증) - 불안감 및 감정기복
-        { id:'N1',  axis:'N', facet:'anxiety',    rev:false, text:'건강 문제, 노후 자금, 자녀 문제 등 아직 일어나지도 않은 불확실한 미래를 상상하며 미리 가슴을 졸일 때가 많다.' },
-        { id:'N2',  axis:'N', facet:'anxiety',    rev:true,  text:'예상치 못한 큰 문제가 터져도 당황하기보다 "죽고 사는 문제도 아닌데 어떻게든 해결되겠지" 하고 툭 털어버리는 여유가 있다.' },
-        { id:'N3',  axis:'N', facet:'anxiety',    rev:false, text:'사람들의 무심한 말 한마디나 눈빛에도 "내가 뭘 잘못했나?" 하고 며칠 동안 곱씹으며 신경을 쓰는 편이다.' },
-        { id:'N4',  axis:'N', facet:'anxiety',    rev:true,  text:'아주 낯선 장소에 가거나 난생처음 해보는 일을 맡게 되어도, 크게 긴장하지 않고 덤덤하게 받아들인다.' },
-        { id:'N5',  axis:'N', facet:'volatility', rev:false, text:'자다가 문득 과거의 실수나 억울했던 일이 떠올라, 갑자기 분노가 치밀거나 하루 종일 우울한 기분에 빠져있는다.' },
-        { id:'N6',  axis:'N', facet:'volatility', rev:true,  text:'누군가 나를 화나게 하더라도 그 감정에 오래 휘둘리지 않고, 금방 평정심을 되찾아 일상으로 돌아온다.' },
-        { id:'N7',  axis:'N', facet:'volatility', rev:false, text:'아침엔 기분이 날아갈 듯 좋았다가도 사소한 일 하나에 갑자기 온종일 기분이 바닥으로 가라앉는 등 감정 기복이 꽤 있다.' },
-        { id:'N8',  axis:'N', facet:'volatility', rev:true,  text:'내 감정은 언제나 잔잔한 호수처럼 평온하며, 외부의 충격이나 스트레스에도 감정이 크게 요동치지 않는다.' }
-    ];
+    { id:'E1',  axis:'E', facet:'sociability',   rev:false, text:'주말이나 쉬는 날, 혼자 조용히 쉬기보다는 모임이나 친구들을 만나 웃고 떠들어야 에너지가 충전된다.' },
+    { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'어떤 주제든 세세한 사실 하나하나보다, 전체적인 흐름과 맥락을 파악하는 것이 훨씬 더 편하고 재밌다.' },
+    { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'누군가 나에게 어떤 문제나 고민을 털어놓을 때, \"어떻게 해결해줄까\"보다 \"지금 기분이 어떨까\"가 머릿속에서 먼저 자동으로 켜진다.' },
+    { id:'C1',  axis:'C', facet:'order',           rev:false, text:'중요한 일뿐 아니라 일상의 사소한 것들도, 미리 순서와 방법을 정해두지 않으면 마음이 찜찜하고 불안하다.' },
+    { id:'N1',  axis:'N', facet:'anxiety',    rev:false, text:'건강 문제, 노후 자금, 자녀 문제 등 아직 일어나지도 않은 불확실한 미래를 상상하며 미리 가슴을 졸일 때가 많다.' },
+    { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'부당한 대우를 받거나 정당한 내 권리를 주장해야 할 상황이 오면, 상대방의 기분이나 체면을 신경 쓰기보다 내 입장을 확실하게 밝히는 편이다.' },
+    { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
+    { id:'A7',  axis:'A', facet:'cooperation',   rev:false, text:'단체 모임이나 가족 여행에서 내 계획과 다르게 일정이 바뀌더라도, 분위기를 깨기 싫어서 흔쾌히 사람들에게 맞춰준다.' },
+    { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일은, 하고 싶지 않은 날이 생겨도 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
+    { id:'N5',  axis:'N', facet:'volatility', rev:false, text:'자다가 문득 과거의 실수나 억울했던 일이 떠올라, 갑자기 분노가 치밀거나 하루 종일 우울한 기분에 빠져있는다.' },
+    { id:'E2',  axis:'E', facet:'sociability',   rev:true,  text:'낯선 사람들이 많은 새로운 모임에 가면, 어색하고 기가 빨려서 빨리 집에 가고 싶어진다.' },
+    { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
+    { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복할 때, 그 사람의 사정을 이해하더라도 결국 \"원칙은 원칙\"이라는 생각으로 돌아와 같은 기준을 적용하게 된다.' },
+    { id:'C2',  axis:'C', facet:'order',           rev:true,  text:'내 방이나 책상, 거실의 물건들을 보면 항상 제자리에 칼같이 정돈되어 있기보다, 내가 쓰기 편하게 여기저기 흩어져 있는 편이다.' },
+    { id:'N2',  axis:'N', facet:'anxiety',    rev:true,  text:'예상치 못한 큰 문제가 터져도 당황하기보다 "죽고 사는 문제도 아닌데 어떻게든 해결되겠지" 하고 툭 털어버리는 여유가 있다.' },
+    { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'다른 사람들이 어떤 방향으로 이미 의견을 모아가고 있으면, 내 생각이 달라도 굳이 흐름을 바꾸려 하지 않고 따라가는 편이다.' },
+    { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'드라마를 볼 때 배우들의 감정 연기보다는 스토리 전개나 결말이 어떻게 될지가 더 궁금하다.' },
+    { id:'A8',  axis:'A', facet:'cooperation',   rev:true,  text:'내가 옳다고 확신하는 일이라면, 주변 사람들이 모두 반대하고 불편해하더라도 끝까지 내 고집을 밀어붙인다.' },
+    { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'해야 할 일이 생기면, 내가 좋아하는 일이든 싫어하는 일이든 관계없이, 마감이 닥쳐야 겨우 시작하는 편이다.' },
+    { id:'N6',  axis:'N', facet:'volatility', rev:true,  text:'누군가 나를 화나게 하더라도 그 감정에 오래 휘둘리지 않고, 금방 평정심을 되찾아 일상으로 돌아온다.' },
+    { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'처음 만난 사람이나 낯선 자리에서도 자연스럽게 먼저 말을 건네고 대화를 이어가는 편이다.' },
+    { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'어떤 일이 생겼을 때, 구체적인 해결책을 찾기보다 \"왜 이런 일이 생기는 걸까?\"라는 근본 원인이 더 먼저 궁금하다.' },
+    { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'혼자서 중요한 결정을 앞두고 고민할 때, 나도 모르게 \"이 사람들이 어떻게 느낄까\"가 \"어떤 선택이 더 옳고 나은가\"보다 먼저 떠오른다.' },
+    { id:'C3',  axis:'C', facet:'order',           rev:false, text:'오늘 하루 동안 처리해야 할 일들을 아침에 머릿속으로 순서를 짜거나 메모해 두고, 하나씩 지워가며 실행한다.' },
+    { id:'N3',  axis:'N', facet:'anxiety',    rev:false, text:'사람들의 무심한 말 한마디나 눈빛에도 "내가 뭘 잘못했나?" 하고 며칠 동안 곱씹으며 신경을 쓰는 편이다.' },
+    { id:'E9',  axis:'E', facet:'assertiveness', rev:false, text:'누군가 부당한 요구나 무리한 부탁을 해오면, 관계가 어색해지더라도 단호하게 "안 된다"고 거절한다.' },
+    { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'물건을 고르거나 집 안을 정리할 때, 색상이나 디자인이 촌스럽거나 어울리지 않으면 기능상 문제가 없어도 그냥 넘기기 어렵고 신경이 쓰인다.' },
+    { id:'A9',  axis:'A', facet:'cooperation',   rev:false, text:'사람들과 의견이 충돌할 때 목소리를 높여 이기려 하기보다, 한 발씩 양보해서 중간 지점을 찾는 평화로운 타협을 선호한다.' },
+    { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'지금 이 순간에도 올해 안에 꼭 이루고 싶은 구체적인 목표나 계획이 선명하게 마음속에 있다.' },
+    { id:'N7',  axis:'N', facet:'volatility', rev:false, text:'아침엔 기분이 날아갈 듯 좋았다가도 사소한 일 하나에 갑자기 온종일 기분이 바닥으로 가라앉는 등 감정 기복이 꽤 있다.' },
+    { id:'E4',  axis:'E', facet:'sociability',   rev:true,  text:'처음 만나는 사람들 사이에서 먼저 말을 꺼내거나 분위기를 주도하기보다, 상대방의 반응을 살피며 조용히 관찰하는 쪽이 더 편하다.' },
+    { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
+    { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'누군가를 진정으로 돕는 가장 좋은 방법은 감정적 공감보다 문제를 해결할 실질적 방법을 찾아주는 것이라고 생각한다.' },
+    { id:'C4',  axis:'C', facet:'order',           rev:true,  text:'일을 할 때 매뉴얼이나 순서대로 딱딱 맞추기보다는, 상황에 맞춰 유연하고 즉흥적으로 처리하는 것을 훨씬 좋아한다.' },
+    { id:'N4',  axis:'N', facet:'anxiety',    rev:true,  text:'아주 낯선 장소에 가거나 난생처음 해보는 일을 맡게 되어도, 크게 긴장하지 않고 덤덤하게 받아들인다.' },
+    { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'어떤 일의 방향이나 결론을 다른 사람이 정해주면, 내가 직접 결정해야 하는 부담이 없어서 오히려 편하다.' },
+    { id:'O10', axis:'O', facet:'aesthetics',    rev:true,  text:'실용성이 없는 예쁜 장식품이나 예술 작품을 돈 주고 사는 것은 별로 합리적이지 않다고 생각한다.' },
+    { id:'A10', axis:'A', facet:'cooperation',   rev:true,  text:'일을 할 때 "좋은 게 좋은 거지"라며 두루뭉술하게 넘어가는 사람들을 보면 화가 나고, 원칙대로 짚고 넘어가야 속이 시원하다.' },
+    { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'스스로 \"꼭 해야겠다\"고 마음먹은 일도, 조금만 힘들어지면 결국 흐지부지 포기해버리는 경우가 잦다.' },
+    { id:'N8',  axis:'N', facet:'volatility', rev:true,  text:'내 감정은 언제나 잔잔한 호수처럼 평온하며, 외부의 충격이나 스트레스에도 감정이 크게 요동치지 않는다.' },
+    { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'어떤 모임이나 자리에서든 자연스럽게 분위기를 주도하거나 사람들을 연결해 주는 역할을 하게 된다.' },
+    { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'사람들이 \"쓸데없는 상상\"이라고 무시하는 \"만약에(What if)\" 질문이 오히려 가장 재밌다.' },
+    { id:'A5',  axis:'A', facet:'compassion',    rev:true,  text:'주변 사람이 힘들어하더라도, 그것이 스스로 초래한 결과라면 도와주기보다 스스로 해결하도록 두는 것이 더 올바르다고 생각한다.' },
+    { id:'C5',  axis:'C', facet:'order',           rev:false, text:'약속 시간에 늦는 것을 극도로 싫어하며, 항상 약속 시간 10~15분 전에는 미리 도착해서 기다리는 편이다.' },
+    { id:'E11', axis:'E', facet:'assertiveness', rev:false, text:'처리해야 할 문제가 생기면 남들이 나서기를 기다리기보다 "이렇게 해결해 봅시다!" 하고 앞장서서 판을 짠다.' },
+    { id:'O11', axis:'O', facet:'aesthetics',    rev:false, text:'인테리어나 옷을 고를 때, 단순히 편하고 튼튼한 것보다는 색감과 디자인이 내 마음에 쏙 드는 아름다운 것을 고른다.' },
+    { id:'A11', axis:'A', facet:'cooperation',   rev:false, text:'다른 사람과 경쟁해서 1등을 차지하는 것보다, 다 같이 협력해서 좋은 결과를 나누는 것이 훨씬 더 가치 있다고 생각한다.' },
+    { id:'C11', axis:'C', facet:'industriousness', rev:false, text:'일이든 취미든 내가 맡은 분야에서는 적당히 타협하지 않고, 스스로 만족할 때까지 완벽한 결과를 만들어 내야 직성이 풀린다.' },
+    { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'약속이나 모임이 없는 조용한 혼자만의 시간이 오히려 가장 에너지가 충전되고 기분이 좋다.' },
+    { id:'O6',  axis:'O', facet:'intellect',     rev:true,  text:'일어나지도 않은 미래의 일이나 공상 과학 같은 허무맹랑한 이야기를 상상하는 것은 시간 낭비처럼 느껴진다.' },
+    { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'중요한 결정을 내릴 때, 사람들의 감정이나 인간적인 정(情)에 이끌리기보다는 객관적인 원칙과 논리를 우선으로 따르는 것이 언제나 옳다고 생각한다.' },
+    { id:'C6',  axis:'C', facet:'order',           rev:true,  text:'집안 물건을 쓰고 나서 제자리에 바로 두기보다는, 일단 손닿는 곳에 뒀다가 나중에 한꺼번에 치우는 경우가 많다.' },
+    { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
+    { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
+    { id:'A12', axis:'A', facet:'cooperation',   rev:true,  text:'팀 작업이나 공동 프로젝트에서 "나 혼자 하는 게 더 빠르고 낫겠다"는 생각이 자주 들어, 남과 협력하거나 내 방식을 맞춰가는 것이 답답하게 느껴진다.' },
+    { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'"남들보다 더 높이 올라가자"는 야망이나 성취보다는, 그저 남들에게 피해주지 않고 지금처럼 편안하게 사는 것이 최고라고 생각한다.' }
+];
 
     // ── 2. RSE (자존감 척도) : 10문항 (시니어 맞춤) ──
     const RSE_ITEMS = [

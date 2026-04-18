@@ -2493,7 +2493,7 @@
         modal.innerHTML = `
             <div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="(function(){if(confirm('심리테스트를 종료할까요? 진행 중인 답변은 저장되지 않아요.')){document.getElementById('psych-modal').remove();document.body.style.overscrollBehavior='';}})();"
+                    <button onclick="showPsychExitConfirm(function(){ document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; });"
                         style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
@@ -3114,6 +3114,7 @@
             variant: variantProfile, variantKey, facetData, allFacets,
             pAnswers: Object.assign({}, pA),
             _elapsedSec: pA['_elapsed_sec'] || '',
+            _mode: pMode || 'full',
             info: { route: pA['info_route'], age: pA['info_age'], region: pA['info_region'] },
             date: getTodayStr(),
             _debug: {
@@ -3159,6 +3160,7 @@
 
     function showPsychResult(result){
         window._lastPsychResult = result; // 이미지 저장용 전역 보관
+        var _resultMode = result._mode || result.mode || pMode || 'full';
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
         var modal = document.getElementById('psych-modal');
         if(!modal){
@@ -3557,14 +3559,14 @@
         '</div></div>' +
         '<div style="font-size:0.83em;color:rgba(255,255,255,0.72);">' + animal.title + '</div>' +
         '<div style="margin-top:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
-        '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + (function(){
+        ((_resultMode !== 'quick') ? '<span style="background:rgba(255,255,255,0.14);color:#fff;padding:4px 12px;border-radius:20px;font-size:0.78em;">MBTI: ' + (function(){
     // ★ 정밀 MBTI 우선 (정밀테스트에서만 계산됨)
-    if(result.mbtiAccurate && pMode !== 'quick') return result.mbtiAccurate;
+    if(result.mbtiAccurate) return result.mbtiAccurate;
     if(typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti){
         return ANIMAL_FACET_MAP[animal.animal].variants[_vKey].mbti;
     }
     return animal.mbti;
-})() + '</span>' +
+})() + '</span>' : '') +
         '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</span>' +
         '</div></div>' +
 
@@ -3580,7 +3582,7 @@
         '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
             animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
         '<div style="font-size:0.9em;font-weight:900;color:#fff;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.45);">나의 가장 완벽한 짝꿍</div>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.85);text-shadow:0 1px 3px rgba(0,0,0,0.5);">나의 가장 완벽한 짝꿍</div>' +
         '</div></div>' +
         '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
         '</div>'
@@ -3589,12 +3591,12 @@
         // MBTI 연결 이유 카드 (동물별 고정)
         (function(){
             var _mr = _MBTI_REASONS[animal.animal];
-            if(!_mr) return '';
+            if(!_mr || _resultMode === 'quick') return '';
             // ★ 정밀 MBTI 우선 사용 (정밀테스트에서만 계산됨, 기존 동물유형과 독립)
-            var _displayMBTI = (result.mbtiAccurate && pMode !== 'quick')
+            var _displayMBTI = (result.mbtiAccurate && _resultMode !== 'quick')
                 ? result.mbtiAccurate
                 : _mr.mbti;
-            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && pMode !== 'quick')
+            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && _resultMode !== 'quick')
                 ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + _mr.mbti + ')과 다를 수 있어요. 정밀 페이싯 분석 결과 기준이에요.</div>'
                 : '';
             return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
@@ -3638,6 +3640,74 @@
         sec2 +
         '<div style="font-size:0.7em;color:var(--text-muted);margin-top:4px;">출처: BFI-44 (John, Donahue & Kentle, 1991) · 세계 표준 학술 검사</div>' +
         '</div>' +
+
+        // ★ 인사이트 카드: 경계선 설명 + 선택적 몰입형
+        (function(){
+            var _af = allFacets || {};
+            var _s  = scores   || {};
+            var insights = [];
+
+            // 페이싯 점수 읽기
+            var soc  = _af.sociability     != null ? _af.sociability     : _s.E;
+            var intl = _af.intellect       != null ? _af.intellect       : _s.O;
+            var comp = _af.compassion      != null ? _af.compassion      : _s.A;
+            var ord  = _af.order           != null ? _af.order           : _s.C;
+            var ind  = _af.industriousness != null ? _af.industriousness : _s.C;
+
+            // ① 선택적 몰입형 (성취지향 낮음 + 지적탐구 높음)
+            if (ind < 30 && intl > 70) {
+                insights.push('<div style="background:#E8F5E9;border-left:4px solid #1B4332;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#1B4332;margin-bottom:6px;">🔥 선택적 초집중형이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">성취지향이 낮게 나왔지만 지적 호기심이 매우 높다면, ' +
+                '관심 없는 일은 철저히 외면하지만 <b>한번 꽂히면 밥도 잊고 몰입</b>하는 패턴이에요. ' +
+                '이건 게으름이 아니라 <b>희귀한 강점</b>이에요. ' +
+                '관심 분야에서만큼은 세상 누구보다 깊이 파고들 수 있어요.</div></div>');
+            }
+
+            // ② E/I 경계선 (사교성 46~54%)
+            if (soc >= 46 && soc <= 54) {
+                insights.push('<div style="background:#EFF6FF;border-left:4px solid #3B82F6;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#1D4ED8;margin-bottom:6px;">🔍 E/I 경계선이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">사교성이 중간대예요. ' +
+                '사람들과 어울린 뒤 <b>혼자만의 시간이 꼭 필요하다면 I형</b>, ' +
+                '오히려 더 있고 싶다면 E형에 가까워요. ' +
+                '앞장서서 일을 주도하는 것과 에너지 충전 방향은 다를 수 있어요.</div></div>');
+            }
+
+            // ③ N/S 경계선 (지적탐구 46~54%)
+            if (intl >= 46 && intl <= 54) {
+                insights.push('<div style="background:#F5F3FF;border-left:4px solid #7C3AED;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#6D28D9;margin-bottom:6px;">🔍 N/S 경계선이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">직관과 현실 감각을 균형 있게 쓰는 분이에요. ' +
+                '중요한 결정 앞에서 <b>\"왜\"보다 \"어떻게\"가 먼저 떠오르면 S형</b>, ' +
+                '원리와 이유가 먼저라면 N형에 가까워요.</div></div>');
+            }
+
+            // ④ F/T 경계선 (공감능력 46~54%)
+            if (comp >= 46 && comp <= 54) {
+                insights.push('<div style="background:#FFF0F3;border-left:4px solid #EC4899;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#BE185D;margin-bottom:6px;">🔍 F/T 경계선이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">논리와 감정을 모두 쓸 줄 아는 균형형이에요. ' +
+                '중요한 결정 앞에서 <b>"옳은가"가 먼저 떠오르면 T형</b>, ' +
+                '"이 사람이 어떻게 느낄까"가 먼저라면 F형이에요. ' +
+                '사회생활로 공감을 익혔지만 결정은 늘 논리로 한다면 <b>사회화된 T형</b>일 수 있어요.</div></div>');
+            }
+
+            // ⑤ J/P 경계선 (계획성 46~54%)
+            if (ord >= 46 && ord <= 54) {
+                insights.push('<div style="background:#FFFBEB;border-left:4px solid #F59E0B;border-radius:0 10px 10px 0;padding:14px;margin-bottom:10px;">' +
+                '<div style="font-size:0.82em;font-weight:900;color:#B45309;margin-bottom:6px;">🔍 J/P 경계선이에요</div>' +
+                '<div style="font-size:0.83em;color:#333;line-height:1.8;">계획성이 중간대예요. ' +
+                '중요한 일은 철저히 계획하지만 사소한 일은 즉흥적으로 한다면 <b>선택적 계획형 P</b>예요. ' +
+                '진짜 J형은 여행 짐도 2주 전에 싸고, 메뉴도 미리 정해야 편하답니다.</div></div>');
+            }
+
+            if (insights.length === 0) return '';
+            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">💡 나에 대해 더 알아보기</div>' +
+            '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">점수 패턴에서 발견한 특별한 인사이트예요</div>' +
+            insights.join('') + '</div>';
+        })() +
 
         // SEC 3: 닮은 유명인
         (vCelebs.length > 0 ?
@@ -9943,6 +10013,29 @@ https://life2radio.github.io/affirmation/
             }
         }
 
+        // ★ 심리테스트 종료 확인 커스텀 다이얼로그
+        function showPsychExitConfirm(onConfirm) {
+            var existing = document.getElementById('psych-exit-confirm');
+            if (existing) existing.remove();
+            var box = document.createElement('div');
+            box.id = 'psych-exit-confirm';
+            box.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:999999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+            box.innerHTML = '<div style="background:#fff;border-radius:18px;padding:28px 24px;width:86%;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.18);">'
+                + '<div style="font-size:0.78em;font-weight:800;color:#1B4332;margin-bottom:10px;letter-spacing:0.5px;">🧠 인생확언앱 알림</div>'
+                + '<div style="font-size:1em;font-weight:700;color:#222;margin-bottom:6px;">심리테스트를 종료할까요?</div>'
+                + '<div style="font-size:0.85em;color:#888;margin-bottom:22px;line-height:1.6;">진행 중인 답변은 저장되지 않아요.</div>'
+                + '<div style="display:flex;gap:10px;">'
+                + '<button id="psych-exit-cancel" style="flex:1;min-height:44px;background:#f5f5f5;color:#555;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">취소</button>'
+                + '<button id="psych-exit-ok" style="flex:1;min-height:44px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">종료</button>'
+                + '</div></div>';
+            document.body.appendChild(box);
+            document.getElementById('psych-exit-cancel').addEventListener('click', function(){ box.remove(); });
+            document.getElementById('psych-exit-ok').addEventListener('click', function(){
+                box.remove();
+                if (typeof onConfirm === 'function') onConfirm();
+            });
+        }
+
         // ★ psych-modal 제거 시 overscrollBehavior 자동 복원
         (function(){
             var _psychObserver = new MutationObserver(function(mutations){
@@ -9988,6 +10081,16 @@ https://life2radio.github.io/affirmation/
             var bgmModal = document.getElementById('bgm-modal');
             if(bgmModal && bgmModal.style.display !== 'none'){
                 bgmModal.style.display = 'none';
+                return;
+            }
+
+            // ── 3.5순위: 심리테스트 모달 ──
+            var psychModal = document.getElementById('psych-modal');
+            if (psychModal) {
+                showPsychExitConfirm(function(){
+                    psychModal.remove();
+                    document.body.style.overscrollBehavior = '';
+                });
                 return;
             }
 
