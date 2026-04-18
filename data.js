@@ -505,13 +505,13 @@
         { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'처음 만난 사람이나 낯선 자리에서도 자연스럽게 먼저 말을 건네고 대화를 이어가는 편이다.' },
         { id:'E4',  axis:'E', facet:'sociability',   rev:true,  text:'처음 만나는 사람들 사이에서 먼저 말을 꺼내거나 분위기를 주도하기보다, 상대방의 반응을 살피며 조용히 관찰하는 쪽이 더 편하다.' },
         { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'어떤 모임이나 자리에서든 자연스럽게 분위기를 주도하거나 사람들을 연결해 주는 역할을 하게 된다.' },
-        { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'내 관심이 집중되거나 여러 사람 앞에서 내 이야기를 길게 해야 하는 상황은 웬만하면 피하고 싶다.' },
+        { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'약속이나 모임이 없는 조용한 혼자만의 시간이 오히려 가장 에너지가 충전되고 기분이 좋다.' },
 
         // 🔴 E (외향성) - 2. Assertiveness (주도성)
         { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'부당한 대우를 받거나 정당한 내 권리를 주장해야 할 상황이 오면, 상대방의 기분이나 체면을 신경 쓰기보다 내 입장을 확실하게 밝히는 편이다.' },
         { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'다른 사람들이 어떤 방향으로 이미 의견을 모아가고 있으면, 내 생각이 달라도 굳이 흐름을 바꾸려 하지 않고 따라가는 편이다.' },
         { id:'E9',  axis:'E', facet:'assertiveness', rev:false, text:'누군가 부당한 요구나 무리한 부탁을 해오면, 관계가 어색해지더라도 단호하게 "안 된다"고 거절한다.' },
-        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'여러 사람이 함께 결정을 내릴 때, 내 생각과 명백히 다른 방향으로 결론이 나더라도 분위기가 어색해질까 봐 주저하며 내 의견을 삼키는 편이다.' },
+        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'어떤 일의 방향이나 결론을 다른 사람이 정해주면, 내가 직접 결정해야 하는 부담이 없어서 오히려 편하다.' },
         { id:'E11', axis:'E', facet:'assertiveness', rev:false, text:'처리해야 할 문제가 생기면 남들이 나서기를 기다리기보다 "이렇게 해결해 봅시다!" 하고 앞장서서 판을 짠다.' },
         { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
 
