@@ -3586,8 +3586,8 @@
         '<div>' +
         '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
             animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
-        '<div style="font-size:0.9em;font-weight:900;color:#fff;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
-        '<div style="font-size:0.72em;color:#fff;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,0.8),0 0 8px rgba(0,0,0,0.5);">나의 가장 완벽한 짝꿍</div>' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
+
         '</div></div>' +
         '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
         '</div>'
@@ -3622,17 +3622,17 @@
         (function(){
             var _fm = (typeof ANIMAL_FACET_MAP!=='undefined' && ANIMAL_FACET_MAP[animal.animal] && ANIMAL_FACET_MAP[animal.animal].variants[_vKey]) || {};
             if(!_fm.strength) return '';
-            return '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">✨ 핵심 강점 · ⚠️ 치명적 약점 · 🌱 성장 포인트</div>' +
-            '<div style="background:#E8F5E9;border-radius:12px;padding:14px;margin-bottom:10px;">' +
-            '<div style="font-size:0.8em;font-weight:800;color:#1B4332;margin-bottom:6px;">✨ 핵심 강점</div>' +
-            '<div style="font-size:0.85em;line-height:1.8;color:#333;">' + (_fm.strength||'') + '</div></div>' +
-            '<div style="background:#FFF3E0;border-radius:12px;padding:14px;margin-bottom:10px;">' +
-            '<div style="font-size:0.8em;font-weight:800;color:#E65100;margin-bottom:6px;">⚠️ 치명적 약점</div>' +
-            '<div style="font-size:0.85em;line-height:1.8;color:#333;">' + (_fm.weakness||'') + '</div></div>' +
-            '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:12px;padding:14px;">' +
-            '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:6px;">🌱 인생 2막 성장 포인트</div>' +
-            '<div style="font-size:0.85em;line-height:1.8;color:rgba(255,255,255,0.9);">' + (_fm.growth||'') + '</div></div>' +
+            return '<div style="background:#E8F5E9;border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid #C8E6C9;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#1B4332;margin-bottom:8px;">✨ 핵심 강점</div>' +
+            '<div style="font-size:0.88em;line-height:1.9;color:#222;">' + (_fm.strength||'') + '</div>' +
+            '</div>' +
+            '<div style="background:#FFF3E0;border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid #FFE0B2;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#E65100;margin-bottom:8px;">⚠️ 치명적 약점</div>' +
+            '<div style="font-size:0.88em;line-height:1.9;color:#222;">' + (_fm.weakness||'') + '</div>' +
+            '</div>' +
+            '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:14px;">' +
+            '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:8px;">🌱 인생 2막 성장 포인트</div>' +
+            '<div style="font-size:0.88em;line-height:1.9;color:rgba(255,255,255,0.92);">' + (_fm.growth||'') + '</div>' +
             '</div>';
         })() +
 
