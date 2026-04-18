@@ -2317,15 +2317,49 @@
         showToast('📥 결과지가 저장됐어요!');
     }
     window.psychStartReal = function(mode){
-        window._psychMode = mode || 'full'; // 전역으로 저장
-        // 이전 검사 날짜 확인
+        window._psychMode = mode || 'full';
         const lastDate = safeGetItem('psych_last_date', '');
-        if(lastDate){
+        const lastMode = safeGetItem('psych_mode_backup', '') || 'full';
+
+        // ① 간편→정밀 업그레이드: 30일 제한 없음, 혜택 안내만
+        if(lastDate && mode === 'full' && lastMode === 'quick'){
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#fff;border-radius:20px;padding:28px 24px;width:90%;max-width:360px;text-align:center;">
+                    <div style="font-size:40px;margin-bottom:12px;">🔬</div>
+                    <div style="font-size:1.05em;font-weight:700;color:#1B4332;margin-bottom:10px;">정밀 테스트로 업그레이드!</div>
+                    <div style="font-size:0.88em;color:#555;line-height:1.8;margin-bottom:12px;">
+                        간편 테스트보다 훨씬 정확한<br>결과를 알 수 있어요.
+                    </div>
+                    <div style="background:#F0F7F4;border-radius:10px;padding:14px;font-size:0.83em;color:#1B4332;line-height:1.9;margin-bottom:18px;text-align:left;">
+                        🧬 <b>정밀 테스트에서만 알 수 있는 것들</b><br>
+                        ✅ 더 정확한 MBTI 유형 (페이싯 기반)<br>
+                        ✅ 10가지 세부 성향 심층 분석<br>
+                        ✅ 연애·일·소비 스타일까지<br>
+                        ✅ 자존감(RSE) + 핵심 강점(VIA) 포함
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button onclick="this.closest('div[style*=fixed]').remove();"
+                            style="flex:1;min-height:48px;background:#F0F0F0;color:#555;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                            나중에
+                        </button>
+                        <button onclick="this.closest('div[style*=fixed]').remove();window._doPsychStart('full');"
+                            style="flex:1;min-height:48px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">
+                            지금 시작하기
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            return;
+        }
+
+        // ② 같은 유형 재검사: 30일 경고
+        if(lastDate && lastMode === mode){
             const last = new Date(lastDate);
             const now = new Date();
             const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
             if(diffDays < 30){
-                // 경고 팝업
                 const modal = document.createElement('div');
                 modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
                 modal.innerHTML = `
@@ -2359,6 +2393,8 @@
                 return;
             }
         }
+
+        // ③ 제한 없음: 바로 시작
         pMode = mode || 'full';
         _doPsychStart(mode);
     }
