@@ -2364,15 +2364,15 @@
             ];
             contentHTML = `
                 <div style="margin-bottom:16px;">
-                    <div style="font-size:0.95em;color:var(--text-muted);text-align:center;margin-bottom:14px;font-weight:600;">
+                    <div style="font-size:0.88em;color:var(--text-muted);text-align:center;margin-bottom:7px;font-weight:600;">
                         ✋ 나와 얼마나 일치하는지 눌러주세요
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:9px;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
                     ${LABELS.map((lb,i) => {
                         const v = i+1;
                         const picked = sel===v;
-                        const btnFontSz = pFontSize==='large' ? '1.25em' : '1.05em';
-                        const btnH = pFontSize==='large' ? '72px' : '62px';
+                        const btnFontSz = pFontSize==='large' ? '1.15em' : '1.08em';
+                        const btnH = pFontSize==='large' ? '56px' : '48px';
                         return '<button onclick="pA[\''+key+'\']='+(v)+'; showPsychStep('+step+');"'
                             +' style="width:100%;min-height:'+btnH+';border-radius:16px;'
                             +'border:'+(picked?'4px solid #1B4332':'2px solid #e0e0e0')+';'
@@ -2380,9 +2380,9 @@
                             +'color:'+(picked?'#1B4332':'#333')+';'
                             +'font-weight:'+(picked?'900':'600')+';'
                             +'cursor:pointer;display:flex;align-items:center;'
-                            +'gap:14px;padding:0 18px;transition:all 0.15s;'
+                            +'gap:10px;padding:0 14px;transition:all 0.15s;'
                             +'box-shadow:'+(picked?'0 0 0 3px rgba(27,67,50,0.25)':'none')+';">'
-                            +'<span style="font-size:2em;min-width:40px;text-align:center;">'+(picked?'✅':lb.e)+'</span>'
+                            +'<span style="font-size:1.6em;min-width:32px;text-align:center;">'+(picked?'✅':lb.e)+'</span>'
                             +'<span style="flex:1;font-size:'+btnFontSz+';text-align:left;line-height:1.4;">'+(lb.t)+'</span>'
                             +'<span style="font-size:0.85em;opacity:'+(picked?'1':'0.45')+';min-width:28px;text-align:right;font-weight:700;color:'+(picked?'#1B4332':'#aaa')+';">'+(v)+'점</span>'
                             +'</button>';
@@ -2434,13 +2434,13 @@
                     </button>
                 </div>
             </div>
-            <div style="flex:1;padding:24px 20px 100px;">
-                <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;padding:14px 20px 80px;">
+                <div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;">
                     <span style="background:#1B4332;color:#C9A84C;border-radius:20px;padding:4px 14px;font-size:0.85em;font-weight:700;">
                         ${step+1}번 문항
                     </span>
                 </div>
-                <div style="font-size:${pFontSize==='large'?'1.5em':'1.25em'};font-weight:700;color:var(--text-color);margin-bottom:24px;line-height:1.7;">
+                <div style="font-size:${pFontSize==='large'?'1.2em':'1.0em'};font-weight:700;color:var(--text-color);margin-bottom:12px;line-height:1.55;">
                     ${data.text}
                 </div>
                 ${contentHTML}
@@ -4720,17 +4720,37 @@ https://life2radio.github.io/affirmation/?psych=1`;
         const actionDone = safeGetItem(actionDoneKey, '') === '1';
         const photoDone = safeGetItem('pt_daily_action_photo_'+getTodayStr(),'') === '1';
         const actionBtnHtml = isToday ? `
-            <div style="margin-top:14px;border-top:1px solid rgba(201,168,76,0.2);padding-top:14px;">
-                <div style="display:flex;gap:8px;">
-                    <button id="action-done-btn" onclick="toggleActionDone()" style="flex:1;min-height:48px;background:${actionDone?'var(--primary-color)':'transparent'};color:${actionDone?'#FFFFFF':'var(--accent-color)'};border:1.5px solid ${actionDone?'var(--primary-color)':'var(--accent-color)'};border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
-                        ${actionDone?'✓ 실천 완료!':'실행 완료 체크'}
-                    </button>
-                    <button onclick="openActionPhoto()" style="flex:1;min-height:48px;background:${photoDone?'#C9A84C':'rgba(201,168,76,0.15)'};color:${photoDone?'#fff':'#C9A84C'};border:1.5px solid #C9A84C;border-radius:10px;font-size:0.82em;font-weight:700;cursor:pointer;">
-                        ${photoDone?'📸 인증 완료!':'📸 사진 인증 +5PT'}
-                    </button>
-                </div>
+            <div style="padding:14px 18px 16px;border-top:1px solid rgba(201,168,76,0.15);margin-top:14px;">
+                <button id="action-done-btn" onclick="toggleActionDone()"
+                  style="width:100%;min-height:52px;border-radius:12px;
+                  background:${actionDone?'var(--primary-color)':'rgba(27,67,50,0.06)'};
+                  color:${actionDone?'#fff':'#1B4332'};
+                  border:2px solid ${actionDone?'var(--primary-color)':'rgba(27,67,50,0.25)'};
+                  font-size:0.95em;font-weight:800;cursor:pointer;
+                  display:flex;align-items:center;justify-content:center;gap:10px;
+                  margin-bottom:8px;transition:all 0.2s;">
+                  <span style="font-size:1.3em;">${actionDone?'✅':'☐'}</span>
+                  <span>${actionDone?'오늘 실천했어요!':'했어요! 체크하기'}</span>
+                </button>
+                <button onclick="openActionPhoto()"
+                  style="width:100%;min-height:40px;border-radius:10px;
+                  background:${photoDone?'#C9A84C':'transparent'};
+                  color:${photoDone?'#fff':'#C9A84C'};
+                  border:1.5px solid ${photoDone?'#C9A84C':'rgba(201,168,76,0.4)'};
+                  font-size:0.82em;font-weight:700;cursor:pointer;">
+                  ${photoDone?'📸 사진 인증 완료!':'📸 사진으로 인증하면 +5PT'}
+                </button>
             </div>` : '';
-        document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()" style="width:100%;border-radius:0;margin:0;border-left:2px solid var(--accent-color);border-right:2px solid var(--accent-color);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button><div class="action-box"><div class="action-title">오늘의 행동 지침</div><div class="action-text" id="action-text">${data.action}</div>${actionBtnHtml}</div></div>`;
+        document.getElementById('affirmation-box-wrap').innerHTML=`${overlay}<div class="${cc}" id="affirmation-blur-target"><div class="affirmation-box"><div class="theme-text" id="theme-text">"${data.theme}"</div><div class="affirmation-text" id="affirmation-text">${data.text}</div></div><button class="btn-fav" id="btn-fav-main" onclick="toggleFavorite()" style="width:100%;border-radius:0;margin:0;border-left:2px solid var(--accent-color);border-right:2px solid var(--accent-color);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-right:5px;flex-shrink:0;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>즐겨찾기 추가</button><div style="background:var(--card-bg);border-radius:0 0 12px 12px;margin-bottom:20px;border:2px solid var(--accent-color);border-top:none;overflow:hidden;">
+  <div style="background:linear-gradient(90deg,#1B4332,#2D6A4F);padding:10px 18px;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:1.15em;">☐</span>
+    <span style="font-size:0.82em;font-weight:800;color:#C9A84C;letter-spacing:0.5px;">오늘 해볼까요? · 딱 1분이면 돼요</span>
+  </div>
+  <div style="padding:16px 18px 0;">
+    <div style="font-size:1.05em;font-weight:500;color:var(--text-color);line-height:1.75;" id="action-text">${data.action}</div>
+  </div>
+  ${actionBtnHtml}
+</div></div>`;
         const ep=document.getElementById('btn-episode');
         if(data.episode&&data.episode.trim()!==''){
             ep.style.display='flex';
