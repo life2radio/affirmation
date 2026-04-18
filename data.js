@@ -502,30 +502,30 @@
         // 🔴 E (외향성) - 1. Sociability (사교성)
         { id:'E1',  axis:'E', facet:'sociability',   rev:false, text:'주말이나 쉬는 날, 혼자 조용히 쉬기보다는 모임이나 친구들을 만나 웃고 떠들어야 에너지가 충전된다.' },
         { id:'E2',  axis:'E', facet:'sociability',   rev:true,  text:'낯선 사람들이 많은 새로운 모임에 가면, 어색하고 기가 빨려서 빨리 집에 가고 싶어진다.' },
-        { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'식당이나 카페에 가면 사장님이나 종업원과 가벼운 농담이나 스몰토크를 자연스럽게 주고받는다.' },
+        { id:'E3',  axis:'E', facet:'sociability',   rev:false, text:'처음 만난 사람이나 낯선 자리에서도 자연스럽게 먼저 말을 건네고 대화를 이어가는 편이다.' },
         { id:'E4',  axis:'E', facet:'sociability',   rev:true,  text:'처음 만나는 사람들 사이에서 먼저 말을 꺼내거나 분위기를 주도하기보다, 상대방의 반응을 살피며 조용히 관찰하는 쪽이 더 편하다.' },
-        { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'동창회나 친목 모임에서 분위기를 띄우고 사람들을 연결해 주는 역할을 자주 맡는다.' },
+        { id:'E5',  axis:'E', facet:'sociability',   rev:false, text:'어떤 모임이나 자리에서든 자연스럽게 분위기를 주도하거나 사람들을 연결해 주는 역할을 하게 된다.' },
         { id:'E6',  axis:'E', facet:'sociability',   rev:true,  text:'내 관심이 집중되거나 여러 사람 앞에서 내 이야기를 길게 해야 하는 상황은 웬만하면 피하고 싶다.' },
 
         // 🔴 E (외향성) - 2. Assertiveness (주도성)
         { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'부당한 대우를 받거나 정당한 내 권리를 주장해야 할 상황이 오면, 상대방의 기분이나 체면을 신경 쓰기보다 내 입장을 확실하게 밝히는 편이다.' },
-        { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'모임에서 메뉴나 여행지를 정할 때 "난 아무거나 다 좋아"라며 남들의 결정에 따르는 편이다.' },
+        { id:'E8',  axis:'E', facet:'assertiveness', rev:true,  text:'다른 사람들이 어떤 방향으로 이미 의견을 모아가고 있으면, 내 생각이 달라도 굳이 흐름을 바꾸려 하지 않고 따라가는 편이다.' },
         { id:'E9',  axis:'E', facet:'assertiveness', rev:false, text:'누군가 부당한 요구나 무리한 부탁을 해오면, 관계가 어색해지더라도 단호하게 "안 된다"고 거절한다.' },
-        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'회의나 가족 모임에서 내 의견과 다르게 상황이 흘러가도, 굳이 나서서 반대하기보다는 묻어가는 쪽을 택한다.' },
+        { id:'E10', axis:'E', facet:'assertiveness', rev:true,  text:'여러 사람이 함께 결정을 내릴 때, 내 생각과 명백히 다른 방향으로 결론이 나더라도 분위기가 어색해질까 봐 주저하며 내 의견을 삼키는 편이다.' },
         { id:'E11', axis:'E', facet:'assertiveness', rev:false, text:'처리해야 할 문제가 생기면 남들이 나서기를 기다리기보다 "이렇게 해결해 봅시다!" 하고 앞장서서 판을 짠다.' },
         { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
 
         // 🟡 O (개방성) - 1. Intellect (지적탐구)
         { id:'O1',  axis:'O', facet:'intellect',     rev:false, text:'뉴스나 다큐멘터리를 볼 때, 겉으로 드러난 현상보다 "저 일의 진짜 원인이 뭘까?" 하고 깊이 파고드는 것을 즐긴다.' },
         { id:'O2',  axis:'O', facet:'intellect',     rev:true,  text:'복잡한 철학이나 사회 문제에 대해 토론하는 것보다, 오늘 저녁 반찬이나 가족들의 현실적인 대화가 더 가치 있다고 느낀다.' },
-        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'스마트폰의 새로운 앱이나 키오스크 같은 낯선 기술을 마주하면, 피하기보다 어떻게든 눌러보며 배우려고 한다.' },
+        { id:'O3',  axis:'O', facet:'intellect',     rev:false, text:'여행을 가거나 외식을 할 때, 검증된 단골집이나 익숙한 코스보다 실패할 위험이 있더라도 한 번도 가보지 않은 낯선 곳을 탐험해 보는 것이 즐겁다.' },
         { id:'O4',  axis:'O', facet:'intellect',     rev:true,  text:'요리나 집안일을 할 때, 새로운 방식을 시도하기보다 수십 년간 해오던 나만의 익숙한 방식을 그대로 유지한다.' },
         { id:'O5',  axis:'O', facet:'intellect',     rev:false, text:'나와 완전히 다른 정치적 성향이나 가치관을 가진 사람의 생각이라도 "왜 저렇게 생각할까?" 하고 호기심을 가지고 들어본다.' },
         { id:'O6',  axis:'O', facet:'intellect',     rev:true,  text:'일어나지도 않은 미래의 일이나 공상 과학 같은 허무맹랑한 이야기를 상상하는 것은 시간 낭비처럼 느껴진다.' },
 
         // 🟡 O (개방성) - 2. Aesthetics (예술감수성)
         { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
-        { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'미술관이나 클래식 음악회에 가면, 솔직히 깊은 감동보다는 "지루하다"거나 "어렵다"는 생각이 먼저 든다.' },
+        { id:'O8',  axis:'O', facet:'aesthetics',    rev:true,  text:'드라마를 볼 때 배우들의 감정 연기보다는 스토리 전개나 결말이 어떻게 될지가 더 궁금하다.' },
         { id:'O9',  axis:'O', facet:'aesthetics',    rev:false, text:'시 한 구절이나 책의 좋은 문장, 혹은 옛날 노래 가사를 들으며 혼자 눈시울이 붉어지거나 가슴이 먹먹해질 때가 있다.' },
         { id:'O10', axis:'O', facet:'aesthetics',    rev:true,  text:'실용성이 없는 예쁜 장식품이나 예술 작품을 돈 주고 사는 것은 별로 합리적이지 않다고 생각한다.' },
         { id:'O11', axis:'O', facet:'aesthetics',    rev:false, text:'인테리어나 옷을 고를 때, 단순히 편하고 튼튼한 것보다는 색감과 디자인이 내 마음에 쏙 드는 아름다운 것을 고른다.' },
@@ -535,8 +535,8 @@
         { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'지인이 억울한 일로 하소연을 하면, 잘잘못을 따지기 전에 나도 모르게 감정이 이입되어 같이 화를 내거나 울어준다.' },
         { id:'A2',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 실수를 반복하면 "왜 자꾸 저러지?" 하고 답답해하며, 그 사람의 숨겨진 사정을 이해해주려는 마음이 잘 안 생긴다.' },
         { id:'A3',  axis:'A', facet:'compassion',    rev:false, text:'길거리에 힘든 사람을 보거나 TV에서 안타까운 사연이 나오면, 내 일이 아님에도 며칠 동안 마음이 쓰이고 도와주고 싶다.' },
-        { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'고민 상담을 해줄 때, "많이 힘들었겠다"라는 위로보다는 "그건 네가 이렇게 대처했어야 해"라는 현실적인 조언이 먼저 나간다.' },
-        { id:'A5',  axis:'A', facet:'compassion',    rev:false, text:'나에게 큰 상처를 줬던 사람이라도, 진심으로 눈물 흘리며 사과하면 결국 마음이 약해져서 용서해 주고 만다.' },
+        { id:'A4',  axis:'A', facet:'compassion',    rev:true,  text:'누군가 힘든 일을 털어놓을 때, 따뜻하게 공감해 주는 것보다 실질적인 해결 방법을 함께 찾아주는 것이 더 도움이 된다고 생각한다.' },
+        { id:'A5',  axis:'A', facet:'compassion',    rev:true,  text:'나에게 깊은 상처를 준 사람이 진심으로 사과해도, 한번 금이 간 신뢰를 예전처럼 회복하기까지는 꽤 오랜 시간과 노력이 필요하다.' },
         { id:'A6',  axis:'A', facet:'compassion',    rev:true,  text:'다른 사람의 표정이나 말투가 약간 변해도 금방 알아채기보다는, 상대가 직접 말해주기 전까지는 기분을 잘 눈치채지 못한다.' },
 
         // 🟢 A (친화성) - 2. Cooperation (협력성)
@@ -558,7 +558,7 @@
         // 🔵 C (성실성) - 2. Industriousness (성취지향)
         { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일(운동, 다이어트, 공부 등)은 비가 오나 눈이 오나 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
         { id:'C8',  axis:'C', facet:'industriousness', rev:true,  text:'꼭 해야 할 골치 아픈 일이 생기면 "어떻게든 되겠지, 내일 하자" 하며 마감 직전까지 미루고 딴짓을 하는 습관이 있다.' },
-        { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'내 나이나 현재 상황에 안주하지 않고, "올해는 이것을 꼭 이뤄야지" 하는 목표가 항상 가슴 속에 불타오르고 있다.' },
+        { id:'C9',  axis:'C', facet:'industriousness', rev:false, text:'지금 이 순간에도 올해 안에 꼭 이루고 싶은 구체적인 목표나 계획이 선명하게 마음속에 있다.' },
         { id:'C10', axis:'C', facet:'industriousness', rev:true,  text:'무언가를 시작할 때 초반에는 의욕이 넘치지만, 조금만 힘들거나 지루해지면 금방 흥미를 잃고 포기하는 경우가 잦다.' },
         { id:'C11', axis:'C', facet:'industriousness', rev:false, text:'일이든 취미든 내가 맡은 분야에서는 적당히 타협하지 않고, 스스로 만족할 때까지 완벽한 결과를 만들어 내야 직성이 풀린다.' },
         { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'"남들보다 더 높이 올라가자"는 야망이나 성취보다는, 그저 남들에게 피해주지 않고 지금처럼 편안하게 사는 것이 최고라고 생각한다.' },
