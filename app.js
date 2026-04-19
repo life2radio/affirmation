@@ -3614,39 +3614,6 @@
         '<div style="padding:16px 16px 0;">' +
         _precCTA +
 
-        // 궁합 이유 카드
-        (compatible.reason ? (
-        '<div style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);border-radius:16px;padding:18px;margin-bottom:14px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
-        '<span style="font-size:2em;">' + compatible.animal + '</span>' +
-        '<div>' +
-        '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
-            animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
-        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
-
-        '</div></div>' +
-        '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
-        '</div>'
-        ) : '') +
-
-        // MBTI 연결 이유 카드 (동물별 고정)
-        (function(){
-            var _mr = _MBTI_REASONS[animal.animal];
-            if(!_mr || _resultMode === 'quick') return '';
-            // ★ 정밀 MBTI 우선 사용 (정밀테스트에서만 계산됨, 기존 동물유형과 독립)
-            var _displayMBTI = (result.mbtiAccurate && _resultMode !== 'quick')
-                ? result.mbtiAccurate
-                : _mr.mbti;
-            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && _resultMode !== 'quick')
-                ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + _mr.mbti + ')과 다를 수 있어요. 정밀 페이싯 분석 결과 기준이에요.</div>'
-                : '';
-            return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _displayMBTI + '일까요?</div>' +
-            '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _mr.msg + '</div>' +
-            _mbtiDiffNote +
-            '</div>';
-        })() +
-
         // SEC 1: 당신의 진짜 이야기 (facet 점수 기반 맞춤 내러티브)
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:12px;">🔬 당신의 진짜 이야기</div>' +
@@ -3673,6 +3640,39 @@
         })() +
 
         '</div>' +
+
+        // MBTI 연결 이유 카드 (동물별 고정)
+        (function(){
+            var _mr = _MBTI_REASONS[animal.animal];
+            if(!_mr || _resultMode === 'quick') return '';
+            // ★ 정밀 MBTI 우선 사용 (정밀테스트에서만 계산됨, 기존 동물유형과 독립)
+            var _displayMBTI = (result.mbtiAccurate && _resultMode !== 'quick')
+                ? result.mbtiAccurate
+                : _mr.mbti;
+            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && _resultMode !== 'quick')
+                ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + _mr.mbti + ')과 다를 수 있어요. 정밀 페이싯 분석 결과 기준이에요.</div>'
+                : '';
+            return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
+            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _displayMBTI + '일까요?</div>' +
+            '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _mr.msg + '</div>' +
+            _mbtiDiffNote +
+            '</div>';
+        })() +
+
+        // 궁합 이유 카드
+        (compatible.reason ? (
+        '<div style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);border-radius:16px;padding:18px;margin-bottom:14px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">' +
+        '<span style="font-size:2em;">' + compatible.animal + '</span>' +
+        '<div>' +
+        '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
+            animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
+
+        '</div></div>' +
+        '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
+        '</div>'
+        ) : '') +
 
         // SEC 2: Big5 Facet 심층 분석
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
