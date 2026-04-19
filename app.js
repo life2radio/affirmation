@@ -2529,7 +2529,7 @@
         modal.innerHTML = `
             <div style="background:#1B4332;padding:14px 20px;position:sticky;top:0;z-index:1;">
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="(function(){ if(typeof pA!=='undefined' && Object.keys(pA).length > 0 && typeof pStep!=='undefined' && pStep > 0){ showPsychExitConfirm(function(){ document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; }); } else { document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; } })();"
+                    <button onclick="(function(){ var _inTest = typeof pStep!=='undefined' && typeof getPTotal==='function' && pStep > 0 && pStep < getPTotal(); if(_inTest){ showPsychExitConfirm(function(){ document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; }); } else { document.getElementById('psych-modal').remove(); document.body.style.overscrollBehavior=''; } })();"
                         style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.3em;cursor:pointer;padding:0;">✕</button>
                     <div style="flex:1;">
                         <div style="display:flex;justify-content:space-between;font-size:0.75em;color:rgba(255,255,255,0.7);margin-bottom:4px;">
@@ -3897,12 +3897,21 @@
 
         // ★ 프리미엄 심층 분석 (결제 예정)
         '<div style="background:linear-gradient(135deg,#0A0A0A,#1a1a2e);border-radius:16px;padding:22px 20px;margin-bottom:14px;border:1.5px solid rgba(201,168,76,0.5);">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-        '<span>👑</span><div style="font-size:1em;font-weight:900;color:#C9A84C;">프리미엄 심층 분석 리포트</div>' +
-        '<div style="font-size:0.72em;background:#C9A84C;color:#000;padding:2px 8px;border-radius:20px;font-weight:900;margin-left:auto;">₩5,000</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        '<span>👑</span>' +
+        '<div style="font-size:1em;font-weight:900;color:#C9A84C;">프리미엄 심층 분석 리포트</div>' +
+        '<div style="font-size:0.72em;background:#C9A84C;color:#000;padding:2px 8px;border-radius:20px;font-weight:900;margin-left:auto;white-space:nowrap;">₩9,900</div>' +
         '</div>' +
-        '<div style="font-size:0.8em;color:rgba(255,255,255,0.65);line-height:1.8;margin-bottom:14px;">✅ 64유형 완전 심층 분석 (20페이지)<br>✅ 연애·직장·인간관계 맞춤 전략<br>✅ 나만의 강점 개발 로드맵<br>✅ 유형별 성장 코칭 가이드</div>' +
-        '<button onclick="window._premiumPayAlert()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8B84B);color:#000;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">👑 지금 구매하기 ₩5,000</button>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.45);margin-bottom:14px;">현재 결과지보다 5배 더 깊은 분석 · PDF 20페이지</div>' +
+        '<div style="font-size:0.82em;color:rgba(255,255,255,0.75);line-height:2.0;margin-bottom:16px;">' +
+        '💑 <b style="color:#C9A84C;">연애 스타일</b> — 사랑받는 방식·갈등 패턴·이상형<br>' +
+        '💼 <b style="color:#C9A84C;">직장 스타일</b> — 최적 역할·상사·동료 대처법<br>' +
+        '💸 <b style="color:#C9A84C;">소비·돈 스타일</b> — 충동 패턴·재정 관리 약점<br>' +
+        '😤 <b style="color:#C9A84C;">스트레스 반응</b> — 무너지는 순간·회복 전략<br>' +
+        '🧭 <b style="color:#C9A84C;">인생 2막 로드맵</b> — 이 유형에게 맞는 50대 이후 방향<br>' +
+        '🎯 <b style="color:#C9A84C;">맞춤 확언 20선</b> — 유형별 뇌과학 기반 확언 처방' +
+        '</div>' +
+        '<button onclick="window._premiumPayAlert()" style="width:100%;min-height:52px;background:linear-gradient(135deg,#C9A84C,#E8B84B);color:#000;border:none;border-radius:14px;font-size:1em;font-weight:900;cursor:pointer;">👑 지금 구매하기 ₩9,900</button>' +
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-align:center;margin-top:8px;">준비중 · 곧 오픈</div>' +
         '</div>' +
 
@@ -10139,10 +10148,16 @@ https://life2radio.github.io/affirmation/
             // ── 3.5순위: 심리테스트 모달 ──
             var psychModal = document.getElementById('psych-modal');
             if (psychModal) {
-                showPsychExitConfirm(function(){
+                var _inTest = typeof pStep!=='undefined' && typeof getPTotal==='function' && pStep > 0 && pStep < getPTotal();
+                if (_inTest) {
+                    showPsychExitConfirm(function(){
+                        psychModal.remove();
+                        document.body.style.overscrollBehavior = '';
+                    });
+                } else {
                     psychModal.remove();
                     document.body.style.overscrollBehavior = '';
-                });
+                }
                 return;
             }
 
