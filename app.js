@@ -3084,26 +3084,27 @@
 
         // 2차 허들: 75% = 5.5 (1~7점 척도에서 1 + 0.75×6 = 5.5)
         // 그룹 분류: TJ / FJ / NP / SP
-        const H2 = 5.5; // 75% 임계값 (2차 허들)
+        const H1 = 5.5; // 75% 임계값 — 동물 결정에 사용된 페이싯
+        const H2 = 4.0; // 50% 임계값 — 동물 결정에 미사용 페이싯
 
         if (['🦁','🐺','🦅','🦫'].includes(animal_emoji)) {
-            // TJ 그룹: 성취지향 × 계획성 (성실성 C의 두 페이싯)
-            const h1 = f_industriousness >= H2, h2 = f_order >= H2;
+            // TJ 그룹: 계획성(사용-J/75%) × 성취지향(미사용/50%)
+            const h1 = f_order >= H1, h2 = f_industriousness >= H2;
             variantKey = (h1 && h2) ? 'A' : (h1 && !h2) ? 'B' : (!h1 && h2) ? 'C' : 'D';
-            facetData = { l1: '성취 지향', s1: Math.round((f_industriousness-1)/6*100), l2: '계획/체계', s2: Math.round((f_order-1)/6*100) };
+            facetData = { l1: '계획/체계', s1: Math.round((f_order-1)/6*100), l2: '성취 지향', s2: Math.round((f_industriousness-1)/6*100) };
         } else if (['🐘','🐋','🦝','🐢'].includes(animal_emoji)) {
             // FJ 그룹: 공감능력 × 협력성 (친화성 A의 두 페이싯)
-            const h1 = f_compassion >= H2, h2 = f_cooperation >= H2;
+            const h1 = f_compassion >= H1, h2 = f_cooperation >= H2;
             variantKey = (h1 && h2) ? 'A' : (h1 && !h2) ? 'B' : (!h1 && h2) ? 'C' : 'D';
             facetData = { l1: '공감 능력', s1: Math.round((f_compassion-1)/6*100), l2: '협력/조율', s2: Math.round((f_cooperation-1)/6*100) };
         } else if (['🐒','🦊','🦦','🦌'].includes(animal_emoji)) {
             // NP 그룹: 지적탐구 × 예술감수성 (개방성 O의 두 페이싯)
-            const h1 = f_intellect >= H2, h2 = f_aesthetics >= H2;
+            const h1 = f_intellect >= H1, h2 = f_aesthetics >= H2;
             variantKey = (h1 && h2) ? 'A' : (h1 && !h2) ? 'B' : (!h1 && h2) ? 'C' : 'D';
             facetData = { l1: '지적 탐구', s1: Math.round((f_intellect-1)/6*100), l2: '예술 감수성', s2: Math.round((f_aesthetics-1)/6*100) };
         } else if (['🐯','🐆','🦢','🐱'].includes(animal_emoji)) {
             // SP 그룹: 사교성 × 주도성 (외향성 E의 두 페이싯)
-            const h1 = f_sociability >= H2, h2 = f_assertiveness >= H2;
+            const h1 = f_sociability >= H1, h2 = f_assertiveness >= H2;
             variantKey = (h1 && h2) ? 'A' : (h1 && !h2) ? 'B' : (!h1 && h2) ? 'C' : 'D';
             facetData = { l1: '사교성', s1: Math.round((f_sociability-1)/6*100), l2: '주도/통제', s2: Math.round((f_assertiveness-1)/6*100) };
         }
@@ -3213,19 +3214,19 @@
                     var TJ = ['🦁','🐺','🦅','🦫'], FJ = ['🐘','🐋','🦝','🐢'];
                     var NP = ['🐒','🦊','🦦','🦌'], SP = ['🐯','🐆','🦢','🐱'];
                     if (TJ.includes(_accurateEmoji)) {
-                        var h1 = f_industriousness >= H2, h2 = f_order >= H2;
+                        var h1 = f_order >= H1, h2 = f_industriousness >= H2;
                         _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
-                        _newFacetData = { l1:'성취 지향', s1:Math.round((f_industriousness-1)/6*100), l2:'계획/체계', s2:Math.round((f_order-1)/6*100) };
+                        _newFacetData = { l1:'계획/체계', s1:Math.round((f_order-1)/6*100), l2:'성취 지향', s2:Math.round((f_industriousness-1)/6*100) };
                     } else if (FJ.includes(_accurateEmoji)) {
-                        var h1 = f_compassion >= H2, h2 = f_cooperation >= H2;
+                        var h1 = f_compassion >= H1, h2 = f_cooperation >= H2;
                         _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
                         _newFacetData = { l1:'공감 능력', s1:Math.round((f_compassion-1)/6*100), l2:'협력/조율', s2:Math.round((f_cooperation-1)/6*100) };
                     } else if (NP.includes(_accurateEmoji)) {
-                        var h1 = f_intellect >= H2, h2 = f_aesthetics >= H2;
+                        var h1 = f_intellect >= H1, h2 = f_aesthetics >= H2;
                         _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
                         _newFacetData = { l1:'지적 탐구', s1:Math.round((f_intellect-1)/6*100), l2:'예술 감수성', s2:Math.round((f_aesthetics-1)/6*100) };
                     } else if (SP.includes(_accurateEmoji)) {
-                        var h1 = f_sociability >= H2, h2 = f_assertiveness >= H2;
+                        var h1 = f_sociability >= H1, h2 = f_assertiveness >= H2;
                         _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
                         _newFacetData = { l1:'사교성', s1:Math.round((f_sociability-1)/6*100), l2:'주도/통제', s2:Math.round((f_assertiveness-1)/6*100) };
                     }
@@ -3247,6 +3248,27 @@
         renderPsychPreview();
         sendPsychToSheet(result);
         showPsychResult(result);
+    }
+
+    // ── 글자 크기 조절 함수 ──
+    var _psychFontStep = 0; // -2 ~ +3 단계
+    var _psychFontSteps = [0.82, 0.91, 1.0, 1.1, 1.2, 1.32];
+    var _psychFontLabels = ['작게', '작게', '기본', '크게', '크게', '매우크게'];
+    window._psychFontUp = function() {
+        if (_psychFontStep >= _psychFontSteps.length - 1) return;
+        _psychFontStep++;
+        _applyPsychFont();
+    };
+    window._psychFontDown = function() {
+        if (_psychFontStep <= 0) return;
+        _psychFontStep--;
+        _applyPsychFont();
+    };
+    function _applyPsychFont() {
+        var content = document.getElementById('psych-result-content');
+        var label = document.getElementById('psych-font-label');
+        if (content) content.style.fontSize = _psychFontSteps[_psychFontStep] + 'em';
+        if (label) label.textContent = _psychFontLabels[_psychFontStep];
     }
 
     function showPsychResult(result){
