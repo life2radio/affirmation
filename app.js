@@ -1373,7 +1373,10 @@
             variantKey:  result.variantKey || '',
             variantLabel: (result.variant && result.variant.label) ? result.variant.label : '',
             strengths:   result.viaStrengths ? result.viaStrengths.join(',') : '',
-            compat:      compatName
+            compat:      compatName,
+            mbtiAccurate: result.mbtiAccurate || '',
+            animalFull:  (result.animal ? result.animal.name : '') + (result.variantKey ? '-' + result.variantKey : ''),
+            animalEmoji: result.animal ? result.animal.animal : ''
         }, bfiRaw, rseRaw, viaRaw, viaScores);
 
         fetch(SHEET_API_URL, {
@@ -3188,6 +3191,58 @@
             result.mbtiAccurate = _mbtiAccurate;
         }
 
+        // ★ B안: mbtiAccurate 기반으로 동물·variantKey 재결정
+        if (_mbtiAccurate && pMode !== 'quick') {
+            var MBTI_TO_ANIMAL = {
+                'ENTJ':'🦁','INTJ':'🐺','ESTJ':'🦅','ISTJ':'🦫',
+                'ENFJ':'🐘','INFJ':'🐋','ESFJ':'🦝','ISFJ':'🐢',
+                'ENTP':'🐒','INTP':'🦊','ENFP':'🦦','INFP':'🦌',
+                'ESTP':'🐯','ISTP':'🐆','ESFP':'🦢','ISFP':'🐱'
+            };
+            var _accurateEmoji = MBTI_TO_ANIMAL[_mbtiAccurate];
+            if (_accurateEmoji && _accurateEmoji !== result.animal.animal) {
+                // 새 동물 객체 찾기 (PSYCH_ANIMALS 역조회)
+                var _newAnimalData = null;
+                Object.keys(PSYCH_ANIMALS).forEach(function(k) {
+                    if (PSYCH_ANIMALS[k].animal === _accurateEmoji) _newAnimalData = PSYCH_ANIMALS[k];
+                });
+                if (_newAnimalData) {
+                    // 새 동물 그룹에 맞는 variantKey 재계산
+                    var _newVK = 'A';
+                    var _newFacetData = {};
+                    var TJ = ['🦁','🐺','🦅','🦫'], FJ = ['🐘','🐋','🦝','🐢'];
+                    var NP = ['🐒','🦊','🦦','🦌'], SP = ['🐯','🐆','🦢','🐱'];
+                    if (TJ.includes(_accurateEmoji)) {
+                        var h1 = f_industriousness >= H2, h2 = f_order >= H2;
+                        _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
+                        _newFacetData = { l1:'성취 지향', s1:Math.round((f_industriousness-1)/6*100), l2:'계획/체계', s2:Math.round((f_order-1)/6*100) };
+                    } else if (FJ.includes(_accurateEmoji)) {
+                        var h1 = f_compassion >= H2, h2 = f_cooperation >= H2;
+                        _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
+                        _newFacetData = { l1:'공감 능력', s1:Math.round((f_compassion-1)/6*100), l2:'협력/조율', s2:Math.round((f_cooperation-1)/6*100) };
+                    } else if (NP.includes(_accurateEmoji)) {
+                        var h1 = f_intellect >= H2, h2 = f_aesthetics >= H2;
+                        _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
+                        _newFacetData = { l1:'지적 탐구', s1:Math.round((f_intellect-1)/6*100), l2:'예술 감수성', s2:Math.round((f_aesthetics-1)/6*100) };
+                    } else if (SP.includes(_accurateEmoji)) {
+                        var h1 = f_sociability >= H2, h2 = f_assertiveness >= H2;
+                        _newVK = (h1&&h2)?'A':(h1)?'B':(!h1&&h2)?'C':'D';
+                        _newFacetData = { l1:'사교성', s1:Math.round((f_sociability-1)/6*100), l2:'주도/통제', s2:Math.round((f_assertiveness-1)/6*100) };
+                    }
+                    // 새 variantProfile
+                    var _newVariantProfile = (typeof window.getVariantDescription === 'function')
+                        ? window.getVariantDescription(_accurateEmoji, _newVK)
+                        : { label: _newAnimalData.name, narrative: '', strengths: [], cautions: [], celebrities: [] };
+                    // result 업데이트
+                    result.animal         = _newAnimalData;
+                    result.variantKey     = _newVK;
+                    result.facetData      = _newFacetData;
+                    result.variant        = _newVariantProfile;
+                    result._originalTypeKey = result.typeKey; // 원본 보존
+                }
+            }
+        }
+
         safeSetItem('psych_result_v2', JSON.stringify(result));
         renderPsychPreview();
         sendPsychToSheet(result);
@@ -3212,7 +3267,19 @@
         }
 
         // ── [1] 데이터 추출 ──
-        const { animal, scores, viaStrengths, variant, allFacets } = result;
+        const { scores, viaStrengths, variant, allFacets } = result;
+
+        // ★ B안: mbtiAccurate 기반으로 동물 재결정 (동물↔MBTI 일관성)
+        var animal = result.animal || {};
+        if (result.mbtiAccurate && _resultMode !== 'quick') {
+            var _MBTI_TO_EMOJI = {'ENTJ':'🦁','INTJ':'🐺','ESTJ':'🦅','ISTJ':'🦫','ENFJ':'🐘','INFJ':'🐋','ESFJ':'🦝','ISFJ':'🐢','ENTP':'🐒','INTP':'🦊','ENFP':'🦦','INFP':'🦌','ESTP':'🐯','ISTP':'🐆','ESFP':'🦢','ISFP':'🐱'};
+            var _targetEmoji = _MBTI_TO_EMOJI[result.mbtiAccurate];
+            if (_targetEmoji && _targetEmoji !== animal.animal) {
+                Object.keys(PSYCH_ANIMALS).forEach(function(tk) {
+                    if (PSYCH_ANIMALS[tk].animal === _targetEmoji) animal = PSYCH_ANIMALS[tk];
+                });
+            }
+        }
         // pAnswers 있으면 facet 재계산 (정확한 점수)
         var _recalcFacets = {};
         if (result.pAnswers && typeof BFI_ITEMS !== 'undefined') {
@@ -3641,20 +3708,32 @@
 
         '</div>' +
 
-        // MBTI 연결 이유 카드 (동물별 고정)
+        // MBTI 연결 이유 카드 (정밀 MBTI 우선, 동물 MBTI 폴백)
         (function(){
-            var _mr = _MBTI_REASONS[animal.animal];
-            if(!_mr || _resultMode === 'quick') return '';
-            // ★ 정밀 MBTI 우선 사용 (정밀테스트에서만 계산됨, 기존 동물유형과 독립)
-            var _displayMBTI = (result.mbtiAccurate && _resultMode !== 'quick')
-                ? result.mbtiAccurate
-                : _mr.mbti;
-            var _mbtiDiffNote = (result.mbtiAccurate && result.mbtiAccurate !== _mr.mbti && _resultMode !== 'quick')
-                ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + _mr.mbti + ')과 다를 수 있어요. 정밀 페이싯 분석 결과 기준이에요.</div>'
+            if(_resultMode === 'quick') return '';
+            // ★ mbtiAccurate 있으면 해당 MBTI 설명 우선 사용
+            var _displayMBTI = (result.mbtiAccurate) ? result.mbtiAccurate : null;
+            var _animalMR = _MBTI_REASONS[animal.animal];
+            if(!_displayMBTI && !_animalMR) return '';
+            // 표시할 MBTI 결정
+            var _finalMBTI = _displayMBTI || (_animalMR && _animalMR.mbti);
+            // 해당 MBTI의 설명 찾기 (동물 이모지→MBTI 역매핑)
+            var _msgToUse = '';
+            if(_displayMBTI) {
+                // mbtiAccurate에 맞는 동물 이모지 찾아서 설명 가져오기
+                var MBTI_TO_ANIMAL = {'ENTJ':'🦁','INTJ':'🐺','ESTJ':'🦅','ISTJ':'🦫','ENFJ':'🐘','INFJ':'🐋','ESFJ':'🦝','ISFJ':'🐢','ENTP':'🐒','INTP':'🦊','ENFP':'🦦','INFP':'🦌','ESTP':'🐯','ISTP':'🐆','ESFP':'🦢','ISFP':'🐱'};
+                var _accurateAnimal = MBTI_TO_ANIMAL[_displayMBTI];
+                var _accurateMR = _accurateAnimal ? _MBTI_REASONS[_accurateAnimal] : null;
+                _msgToUse = _accurateMR ? _accurateMR.msg : (_animalMR ? _animalMR.msg : '');
+            } else {
+                _msgToUse = _animalMR ? _animalMR.msg : '';
+            }
+            var _mbtiDiffNote = (_displayMBTI && _animalMR && _displayMBTI !== _animalMR.mbti)
+                ? '<div style="font-size:0.75em;color:#888;margin-top:6px;line-height:1.6;">* 동물 유형(' + animal.name + ')의 기본 MBTI(' + _animalMR.mbti + ')와 다른 결과예요. 페이싯 정밀 분석 기준이에요.</div>'
                 : '';
             return '<div style="background:var(--card-bg);border-radius:14px;padding:16px;margin-bottom:14px;border:1px solid var(--border-color);">' +
-            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _displayMBTI + '일까요?</div>' +
-            '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _mr.msg + '</div>' +
+            '<div style="font-size:0.78em;color:#C9A84C;font-weight:800;margin-bottom:8px;">🧬 나는 왜 ' + _finalMBTI + '일까요?</div>' +
+            '<div style="font-size:0.86em;color:var(--text-color);line-height:1.9;word-break:keep-all;">' + _msgToUse + '</div>' +
             _mbtiDiffNote +
             '</div>';
         })() +
@@ -3677,7 +3756,23 @@
         // SEC 2: Big5 Facet 심층 분석
         '<div style="background:var(--card-bg);border-radius:16px;padding:20px;margin-bottom:14px;border:1px solid var(--border-color);">' +
         '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:4px;">📊 Big 5 성격 심층 분석</div>' +
-        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:14px;">각 성격 요인을 구성하는 두 가지 세부 성향까지 분석했어요</div>' +
+        '<div style="font-size:0.73em;color:var(--text-muted);margin-bottom:6px;">각 성격 요인을 구성하는 두 가지 세부 성향까지 분석했어요</div>' +
+        (function(){
+            // MBTI 4개 축 페이싯 판별 안내 (B안: 동물도 mbtiAccurate 기준으로 변경됨)
+            if(!result.mbtiAccurate || _resultMode === 'quick') return '';
+            return '<div style="font-size:0.72em;color:#C9A84C;background:rgba(201,168,76,0.1);border-radius:8px;padding:10px 12px;margin-bottom:12px;line-height:1.9;">' +
+            '💡 <b>MBTI 4개 축 페이싯 정밀 판별 안내</b><br>' +
+            'Big5 전체 축 점수와 MBTI가 다르게 나올 수 있어요. 각 MBTI 차원은 아래 페이싯으로만 판별해요.<br>' +
+            '• <b>E/I</b> — 외향성(E) 전체가 아닌 <b>사교성 페이싯</b>만으로 판별해요.<br>' +
+            '&nbsp;&nbsp;주도성이 높아도 사교성이 낮으면 I형으로 나올 수 있어요.<br>' +
+            '• <b>N/S</b> — 개방성(O) 전체가 아닌 <b>지적탐구 페이싯</b>만으로 판별해요.<br>' +
+            '&nbsp;&nbsp;예술감수성이 높아도 지적탐구가 낮으면 S형으로 나올 수 있어요.<br>' +
+            '• <b>F/T</b> — 친화성(A) 전체가 아닌 <b>공감능력 페이싯</b>만으로 판별해요.<br>' +
+            '&nbsp;&nbsp;협력성이 높아도 공감능력이 낮으면 T형으로 나올 수 있어요.<br>' +
+            '• <b>J/P</b> — 성실성(C) 전체가 아닌 <b>계획성 페이싯</b>만으로 판별해요.<br>' +
+            '&nbsp;&nbsp;성취지향이 높아도 계획성이 낮으면 P형으로 나올 수 있어요.' +
+            '</div>';
+        })() +
         sec2 +
         '<div style="font-size:0.7em;color:var(--text-muted);margin-top:4px;">출처: BFI-44 (John, Donahue & Kentle, 1991) · 세계 표준 학술 검사</div>' +
         '</div>' +
