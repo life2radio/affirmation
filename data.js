@@ -504,7 +504,7 @@
     { id:'A1',  axis:'A', facet:'compassion',    rev:false, text:'지인이 억울한 일로 하소연을 하면, 잘잘못을 따지기 전에 나도 모르게 감정이 이입되어 같이 화를 내거나 울어준다.' },
     { id:'C1',  axis:'C', facet:'order',           rev:false, text:'여행이나 중요한 일정이 생기면, 시간·동선·준비물을 미리 정리해두어야 마음이 편하다.' },
     { id:'N1',  axis:'N', facet:'anxiety',    rev:false, text:'건강 문제, 노후 자금, 자녀 문제 등 아직 일어나지도 않은 불확실한 미래를 상상하며 미리 가슴을 졸일 때가 많다.' },
-    { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'부당한 대우를 받거나 정당한 내 권리를 주장해야 할 상황이 오면, 상대방의 기분이나 체면을 신경 쓰기보다 내 입장을 확실하게 밝히는 편이다.' },
+    { id:'E7',  axis:'E', facet:'assertiveness', rev:false, text:'의견이 다르거나 부당하다고 느낄 때, 내 입장을 분명히 말하는 편이다.' },
     { id:'O7',  axis:'O', facet:'aesthetics',    rev:false, text:'길을 걷다 노을이 지는 하늘이나 예쁘게 핀 꽃을 보면, 발걸음을 멈추고 한참을 쳐다보며 감동을 느낀다.' },
     { id:'A7',  axis:'A', facet:'cooperation',   rev:false, text:'단체 모임이나 가족 여행에서 내 계획과 다르게 일정이 바뀌더라도, 분위기를 깨기 싫어서 흔쾌히 사람들에게 맞춰준다.' },
     { id:'C7',  axis:'C', facet:'industriousness', rev:false, text:'한번 마음먹고 결심한 일은, 하고 싶지 않은 날이 생겨도 어떤 핑계도 대지 않고 끝까지 밀어붙여 해낸다.' },
@@ -553,7 +553,7 @@
     { id:'C6',  axis:'C', facet:'order',           rev:true,  text:'집안 물건을 쓰고 나서 제자리에 바로 두기보다는, 일단 손닿는 곳에 뒀다가 나중에 한꺼번에 치우는 경우가 많다.' },
     { id:'E12', axis:'E', facet:'assertiveness', rev:true,  text:'리더를 맡아서 사람들을 지휘하고 책임지는 자리보다는, 뒤에서 조용히 돕는 참모 역할이 훨씬 마음 편하다.' },
     { id:'O12', axis:'O', facet:'aesthetics',    rev:true,  text:'여행을 가면 아름다운 풍경을 여유롭게 감상하기보다는, 유명한 명소에서 인증 사진을 남기고 다음 코스로 이동하기 바쁘다.' },
-    { id:'A12', axis:'A', facet:'cooperation',   rev:true,  text:'팀 작업이나 공동 프로젝트에서 "나 혼자 하는 게 더 빠르고 낫겠다"는 생각이 자주 들어, 남과 협력하거나 내 방식을 맞춰가는 것이 답답하게 느껴진다.' },
+    { id:'A12', axis:'A', facet:'cooperation',   rev:true,  text:'팀 작업에서는 남과 협력하며 방식을 맞춰가는 과정이 답답하게 느껴지는 편이다.' },
     { id:'C12', axis:'C', facet:'industriousness', rev:true,  text:'특별히 더 잘하거나 높이 올라가야겠다는 욕심보다, 지금 하는 일을 그냥 무난하게 유지하는 쪽이 더 편하다.' }
 ];
 
