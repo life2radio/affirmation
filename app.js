@@ -3651,7 +3651,7 @@
             _compatInfo = ANIMAL_FACET_MAP[animal.animal].variants[_vKey].compatible;
         }
         var compatible = _compatInfo
-            ? { animal: _compatInfo.emoji, name: _compatInfo.name, variantLabel: _compatInfo.label, reason: _compatInfo.reason || '' }
+            ? { animal: _compatInfo.emoji, name: _compatInfo.name, variant: _compatInfo.variant || '', variantLabel: _compatInfo.label, reason: _compatInfo.reason || '' }
             : { animal:'🦁', name:'사자형', variantLabel:'', reason:'' };
 
         // ── [13] 이메일 등록 여부 ──
@@ -3697,7 +3697,7 @@
     }
     return animal.mbti;
 })() + '</span>' : '') +
-        '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</span>' +
+        '<span style="background:rgba(201,168,76,0.22);color:#C9A84C;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;">💑 궁합: ' + compatible.animal + ' ' + compatible.name + (compatible.variant ? '-'+compatible.variant : '') + (compatible.variantLabel ? ' · '+compatible.variantLabel : '') + '</span>' +
         '</div></div>' +
 
         '<div style="padding:16px 16px 0;">' +
@@ -3768,7 +3768,7 @@
         '<div>' +
         '<div style="font-size:0.8em;font-weight:900;color:#C9A84C;margin-bottom:2px;">' +
             animal.name + '-' + _vKey + ' · ' + vLabel + ' 와 최고의 궁합</div>' +
-        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin:4px 0;">💑 ' + compatible.name + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
+        '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin:4px 0;">💑 ' + compatible.name + (compatible.variant ? '-'+compatible.variant : '') + (compatible.variantLabel ? ' · ' + compatible.variantLabel : '') + '</div>' +
 
         '</div></div>' +
         '<div style="font-size:0.86em;line-height:1.95;color:var(--text-color);word-break:keep-all;">' + compatible.reason + '</div>' +
