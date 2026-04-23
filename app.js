@@ -12,7 +12,7 @@
             const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
             const data = await res.json();
 
-            // ① 시크릿 코드
+            // ① 시크릿 코드 (고정 코드 방식 — 단어가 키)
             if(data.secretCodes) Object.assign(SECRET_CODES, data.secretCodes);
 
             // ② Shorts 영상
@@ -4577,6 +4577,42 @@ https://life2radio.github.io/affirmation/?psych=1`;
         loadSheetData();
         setTimeout(renderPsychPreview, 500);
 
+        // ★ 시크릿 코드 UI 패치 — 단어 입력 방식으로 변경 (index.html 수정 없이)
+        setTimeout(function(){
+            // 입력창
+            var inp = document.getElementById('secret-code-input');
+            if(inp){
+                inp.type        = 'text';
+                inp.maxLength   = 20;
+                inp.placeholder = '영상 속 단어를 입력하세요';
+                inp.inputMode   = 'text';
+                inp.style.letterSpacing = 'normal';
+                inp.style.textAlign     = 'left';
+                inp.style.fontSize      = '1em';
+            }
+            // 안내 문구 (label 또는 상단 설명 텍스트)
+            // secret-code-input 주변 노드를 순회하며 "4자리" 텍스트 교체
+            if(inp && inp.parentNode){
+                inp.parentNode.childNodes.forEach(function(node){
+                    if(node.nodeType === 3 && node.textContent.includes('4자리')){
+                        node.textContent = node.textContent.replace(/4자리/g, '단어 코드');
+                    }
+                    if(node.nodeType === 1){
+                        if(node.innerHTML && node.innerHTML.includes('4자리')){
+                            node.innerHTML = node.innerHTML.replace(/4자리/g,'단어 코드');
+                        }
+                    }
+                });
+            }
+            // 페이지 전체에서 "4자리 코드" 라벨 텍스트 교체 (시크릿 탭 안에 있을 경우)
+            var allEls = document.querySelectorAll('[id*=secret], [class*=secret]');
+            allEls.forEach(function(el){
+                if(el.innerHTML && el.innerHTML.includes('4자리')){
+                    el.innerHTML = el.innerHTML.replace(/4자리 코드/g,'시크릿 단어').replace(/4자리/g,'단어 코드');
+                }
+            });
+        }, 800);
+
         // ★ OAuth 리디렉션 후 복귀 처리 (oauth_in_progress 플래그로도 감지)
         const _oauthInProgress = safeGetItem('oauth_in_progress','') === '1';
         if(_oauthInProgress){ safeSetItem('oauth_in_progress',''); }
@@ -7380,60 +7416,69 @@ https://life2radio.github.io/affirmation/
     }
     // ★ 매주 Shorts 영상 올릴 때 이 목록에 날짜:코드 추가하세요
     // 형식: 'YYYY-M-D': '코드4자리'
-    const SECRET_CODES = {
-        // 예시 (실제 영상 올린 후 채워넣으세요)
-        // '2026-4-10': '1234',
-        // '2026-4-17': '5678',
-    };
+    // ★ 고정 코드 방식 — 날짜 무관, 90일 재사용 가능
+    // 구글 스프레드시트 '시크릿코드' 탭에서 관리
+    // 형식: { '봄비': { label:'EP.02', content:'오늘 나에게 건넨 말이 있나요?' } }
+    const SECRET_CODES = {};
+    // 재사용 대기 기간 (일)
+    const SECRET_REUSE_DAYS = 90;
 
     window.checkSecretCode = function(){
         const input  = document.getElementById('secret-code-input').value.trim();
         const result = document.getElementById('secret-code-result');
-        if(input.length !== 4){ result.textContent = '4자리 코드를 입력해주세요'; return; }
+        if(!input){ result.textContent = '코드를 입력해주세요'; return; }
 
-        const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
-        const correct = SECRET_CODES[today];
-        // ★ 오늘 날짜+코드 조합으로 중복 체크 (날짜별로 다른 코드면 여러 번 가능)
-        const usedKey = `secret_used_${today}_${input}`;
+        // ★ 고정 코드 확인 (날짜 무관)
+        const codeKey = input.toLowerCase(); // 대소문자 무관
+        const matched = SECRET_CODES[codeKey] || SECRET_CODES[input];
 
-        if(safeGetItem(usedKey, null)){
-            result.textContent = '✅ 이 코드는 이미 입력하셨어요!'; return;
+        if(!matched){
+            result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!'; return;
         }
-        if(!correct){
-            result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
+
+        // ★ 90일 재사용 제한 체크
+        const usedTimeKey = `secret_used_time_${codeKey}`;
+        const lastUsed = parseInt(safeGetItem(usedTimeKey, '0')) || 0;
+        const now = Date.now();
+        const diffDays = Math.floor((now - lastUsed) / (1000 * 60 * 60 * 24));
+
+        if(lastUsed > 0 && diffDays < SECRET_REUSE_DAYS){
+            const remaining = SECRET_REUSE_DAYS - diffDays;
+            result.textContent = `✅ 이미 사용한 코드예요! ${remaining}일 후에 다시 사용 가능해요 😊`;
+            return;
         }
-        if(input === correct){
-            safeSetItem(usedKey, '1');
-            // 패자부활: 결석 1일 삭제
-            var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
-            // 누적 코드 카운트 증가
-            const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
-            safeSetItem('total_secret_codes', String(totalCodes));
+        // ★ 사용 시각 기록 (90일 타이머 시작)
+        safeSetItem(usedTimeKey, String(now));
 
-            // 배지 저장
-            let earned = safeGetJSON('earned_badges',[]);
-            const badgeId = `secret_${today}`;
-            if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
+        // 패자부활: 결석 1일 삭제
+        var ab = parseInt(safeGetItem('revival_absent_days','0'))||0;
+        if(ab > 0){ safeSetItem('revival_absent_days', String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
-            result.textContent = '';
-            document.getElementById('secret-code-input').value = '';
-            launchConfetti();
+        // 누적 코드 카운트 증가
+        const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
+        safeSetItem('total_secret_codes', String(totalCodes));
 
-            // ★ 코드 포인트 지급
-            addPoint(10, '시크릿코드', `secret_pt_${today}`);
-            // 누적 보너스
-            if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
-            if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
-            if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
+        // 배지 저장
+        let earned = safeGetJSON('earned_badges',[]);
+        const badgeId = `secret_code_${codeKey}`;
+        if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
 
-            // 오늘의 특별 콘텐츠 가져오기
-            const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
-            showSecretSuccess(totalCodes, todayContent);
-            checkLevelRecovery(); // 등급 하락 상태면 회복
-        } else {
-            result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
-        }
+        result.textContent = '';
+        document.getElementById('secret-code-input').value = '';
+        launchConfetti();
+
+        // ★ 코드 포인트 지급
+        addPoint(10, '시크릿코드', `secret_pt_${codeKey}_${Math.floor(now/(1000*60*60*24*90))}`);
+        // 누적 보너스
+        if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
+        if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
+        if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
+
+        // 코드 특별 콘텐츠 (시트에서 설정한 내용)
+        const codeContent = matched.content ? { text: matched.content, type: matched.type || '메시지' } : null;
+        showSecretSuccess(totalCodes, codeContent);
+        checkLevelRecovery();
     }
 
     // PDF 해금 정보 (구글 스프레드시트 앱설정에서 URL 관리)
