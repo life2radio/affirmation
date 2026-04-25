@@ -12,7 +12,7 @@
             const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
             const data = await res.json();
 
-            // ① 시크릿 코드 (고정 코드 방식 — 단어가 키)
+            // ① 시크릿 코드
             if(data.secretCodes) Object.assign(SECRET_CODES, data.secretCodes);
 
             // ② Shorts 영상
@@ -814,7 +814,7 @@
         window._currentView = viewName;
         document.querySelectorAll('.view-section').forEach(el=>el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-        const titles={home:'오늘의 확언',calendar:'달력 및 통계',favorites:'내 최애 확언 ⭐',memo:'메모장',story:'사연 보내기',settings:'앱 설정',shorts:'오늘의 실천 📣',completion:'완주 축하합니다!'};
+        const titles={home:'오늘의 확언',calendar:'달력 및 통계',favorites:'내 최애 확언 ⭐',memo:'메모장',story:'나의 다짐 🎯',settings:'앱 설정',shorts:'오늘의 실천 📣',completion:'완주 축하합니다!'};
         document.getElementById('main-header-title').innerText=titles[viewName]||'오늘의 확언';
         if(viewName==='home'){
             document.getElementById('view-home').classList.add('active');
@@ -846,10 +846,19 @@
             const navPsych = document.getElementById('nav-psych');
             if(navPsych) navPsych.classList.add('active');
         } else if(viewName==='story'){
-            setTimeout(initStoryKakaoUI, 100);
             document.getElementById('view-story').classList.add('active');
             document.getElementById('nav-story').classList.add('active');
-            initStoryView();
+            // 네비 아이콘/텍스트 동적 변경
+            var _navStory = document.getElementById('nav-story');
+            if (_navStory) {
+                var _navSvg = _navStory.querySelector('.nav-svg');
+                if (_navSvg) _navSvg.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+                var _navTxt = _navStory.querySelector('.nav-text');
+                if (_navTxt) _navTxt.textContent = '다짐';
+            }
+            initDaejimView();
+            initVowNavAndView();
+            renderVowView();
         } else if(viewName==='shorts'){
             document.getElementById('view-shorts').classList.add('active');
             document.getElementById('nav-shorts').classList.add('active');
@@ -1399,42 +1408,54 @@
         return '매우 낮음';
     }
 
-    function getOverallDesc(s, animal){
-        // 외향성 해석
-        const E = s.E >= 75 ? '극도로 사교적이고 자극을 갈망해요. 혼자 있는 시간이 길어지면 에너지가 고갈되는 느낌을 받아요.'
-            : s.E >= 55 ? '사람들과 함께할 때 에너지가 충전돼요. 대화와 만남을 즐기지만 가끔 혼자만의 시간도 필요해요.'
-            : s.E >= 40 ? '상황에 따라 사교적이기도 하고 혼자이기도 한 양방향 성향이에요. 선택적으로 에너지를 씁니다.'
-            : s.E >= 25 ? '조용하고 내성적인 편이에요. 소수의 깊은 관계를 선호하고 혼자만의 시간에서 힘을 얻어요.'
-            : '깊은 내향성을 가졌어요. 사회적 자극보다 혼자 생각하고 처리하는 데서 진짜 에너지를 얻어요.';
+    function getOverallDesc(s, animal, af){
+        af = af || {};
+        var soc  = af.sociability    != null ? af.sociability    : s.E;
+        var ast  = af.assertiveness  != null ? af.assertiveness  : s.E;
+        var itl  = af.intellect      != null ? af.intellect      : s.O;
+        var aes  = af.aesthetics     != null ? af.aesthetics     : s.O;
+        var cmp  = af.compassion     != null ? af.compassion     : s.A;
+        var coo  = af.cooperation    != null ? af.cooperation    : s.A;
+        var ord  = af.order          != null ? af.order          : s.C;
+        var ind  = af.industriousness!= null ? af.industriousness: s.C;
+        var anx  = af.anxiety        != null ? af.anxiety        : (100-s.N);
+        var vol  = af.volatility     != null ? af.volatility     : (100-s.N);
 
-        // 개방성 해석
-        const O = s.O >= 75 ? '지적 호기심이 넘치고 새로운 아이디어, 예술, 추상적 사고를 즐겨요. 창의성과 상상력이 남다릅니다.'
-            : s.O >= 55 ? '새로운 경험에 열려 있고 학습을 즐겨요. 창의적이면서도 실용성을 놓치지 않아요.'
-            : s.O >= 40 ? '새로운 것도 익숙한 것도 균형 있게 받아들여요. 상황에 따라 유연하게 접근합니다.'
-            : s.O >= 25 ? '검증된 방법과 안정된 환경을 선호해요. 변화보다는 신뢰할 수 있는 루틴에서 최고의 결과를 냅니다.'
-            : '전통적이고 실용적인 접근을 선호해요. 추상적 이론보다 구체적이고 현실적인 것에서 가치를 찾아요.';
+        // E축: 사교성 × 주도성
+        var socH = soc >= 50, astH = ast >= 50;
+        var E = (socH && astH)  ? '사람들과 함께할 때 에너지가 올라오고, 자연스럽게 분위기를 이끄는 편이에요. 새로운 사람을 만나는 것도 두렵지 않고, 필요한 순간엔 먼저 나서서 방향을 제시해요.'
+              : (socH && !astH) ? '사람들과 어울리는 걸 즐기고 모임에서 에너지를 얻어요. 다만 지휘하거나 앞장서기보다 함께 만들어가는 방식을 더 편하게 느껴요.'
+              : (!socH && astH) ? '많은 사람과 어울리는 자리보다 한두 명과 깊이 나누는 대화에서 편안함을 느껴요. 그런데 정작 중요한 순간엔 망설이지 않고 의견을 분명하게 말하고 방향을 제시하는 편이에요. 조용해 보이지만 필요할 때는 앞에 서는 사람이에요.'
+              :                   '혼자만의 시간에서 진짜 에너지를 얻어요. 앞에 나서기보다 깊이 생각하고 필요한 것만 조용히 실행하는 스타일이에요.';
 
-        // 친화성 해석
-        const A = s.A >= 75 ? '타인에 대한 배려와 공감 능력이 탁월해요. 조화를 중시하고 갈등을 피하려는 경향이 강합니다.'
-            : s.A >= 55 ? '사람을 배려하면서도 자신의 의견을 말할 줄 알아요. 협력적이고 따뜻한 관계를 만들어나가요.'
-            : s.A >= 40 ? '협력과 독립 사이에서 균형을 잘 잡아요. 상황에 따라 맞춰가면서도 자신을 잃지 않아요.'
-            : s.A >= 25 ? '독립적이고 자신의 기준이 명확해요. 솔직한 의견 표현을 중요하게 여기고 불필요한 양보를 잘 안 해요.'
-            : '경쟁적이고 자기주장이 강해요. 타인의 기분보다 사실과 결과를 우선시하는 경향이 있습니다.';
+        // O축: 지적탐구 × 예술감수성
+        var itlH = itl >= 50, aesH = aes >= 50;
+        var O = (itlH && aesH)  ? '새로운 아이디어와 이론을 탐구하는 걸 즐기면서, 아름다운 것에도 깊이 감동받아요. 논리와 감성이 함께 작동하는 드문 조합이에요.'
+              : (itlH && !aesH) ? '복잡한 개념과 원리를 파고드는 것을 즐겨요. 아이디어의 구조와 논리에 끌리는 편이고, 분석적인 방식으로 세상을 이해해요.'
+              : (!itlH && aesH) ? '이론보다는 감각과 감성으로 세상을 받아들여요. 아름다운 것에 민감하게 반응하고, 예술적 자극에서 깊은 울림을 느껴요.'
+              :                   '검증된 방법과 익숙한 환경에서 안정감을 느껴요. 추상적인 이론보다 구체적이고 실용적인 것에서 가치를 찾아요.';
 
-        // 성실성 해석
-        const C = s.C >= 75 ? '매우 체계적이고 목표 지향적이에요. 자기절제력이 강하고, 시작한 일은 반드시 끝내는 책임감이 있어요.'
-            : s.C >= 55 ? '계획적이고 꼼꼼한 편이에요. 중요한 일에서는 체계를 갖추고, 마감을 지키는 신뢰로운 사람이에요.'
-            : s.C >= 40 ? '상황에 따라 계획적이기도 즉흥적이기도 해요. 완벽한 체계보다 유연한 실행을 선호하는 편이에요.'
-            : s.C >= 25 ? '즉흥적이고 유연하게 상황에 대응해요. 엄격한 루틴보다 창의적이고 자유로운 방식에서 실력이 나와요.'
-            : '매우 유연하고 자유로운 영혼이에요. 체계와 규칙에 얽매이지 않고, 직관적으로 움직이는 타입입니다.';
+        // A축: 공감능력 × 협력성
+        var cmpH = cmp >= 50, cooH = coo >= 50;
+        var A = (cmpH && cooH)  ? '상대의 감정을 빠르게 알아차리고, 함께 맞춰가는 과정을 자연스럽게 즐겨요. 사람을 배려하는 것이 부담이 아니라 자연스러운 방식이에요.'
+              : (cmpH && !cooH) ? '상대의 마음을 잘 읽고 깊이 공감하는 편이에요. 다만 팀 안에서 내 방식을 고집하는 경향이 있고, 협력보다 독립적으로 움직이는 게 더 편할 때도 있어요.'
+              : (!cmpH && cooH) ? '감정보다 결과와 효율을 먼저 생각하는 편이에요. 그렇지만 팀 안에서 맡은 역할은 확실히 해내고, 공동의 목표를 위해 기꺼이 맞춰가요.'
+              :                   '독립적이고 자신의 기준이 명확해요. 감정보다 사실을, 화합보다 솔직함을 중요하게 여기는 편이에요.';
 
-        // 신경증(안정성) 해석
-        const stab = 100 - s.N;
-        const N = stab >= 75 ? '정서적으로 매우 안정적이에요. 스트레스 상황에서도 냉정함을 유지하고, 주변에 심리적 안전감을 줘요.'
-            : stab >= 55 ? '전반적으로 안정적이고 회복력이 있어요. 가끔 흔들리더라도 비교적 빠르게 자리를 잡아요.'
-            : stab >= 40 ? '감정의 기복이 있는 편이에요. 상황에 따라 불안하거나 걱정되는 경험을 자주 하지만 그만큼 공감력도 높아요.'
-            : stab >= 25 ? '감수성이 풍부하고 감정을 깊이 느껴요. 스트레스에 민감하지만, 그만큼 예술적 감각과 공감 능력이 탁월해요.'
-            : '정서적 민감도가 매우 높아요. 작은 자극에도 강하게 반응하지만, 그 깊이가 당신만의 고유한 강점이기도 해요.';
+        // C축: 계획성 × 성취지향
+        var ordH = ord >= 50, indH = ind >= 50;
+        var C = (ordH && indH)  ? '목표를 세우고 체계적으로 실행하는 데 강해요. 시작한 일은 끝까지 해내는 책임감이 있고, 높은 기준을 스스로에게 요구해요.'
+              : (ordH && !indH) ? '계획적으로 움직이고 루틴을 지키는 걸 중요하게 여겨요. 큰 야망보다는 지금 하는 일을 안정적으로 잘 해내는 것에서 만족을 느껴요.'
+              : (!ordH && indH) ? '즉흥적이고 유연하게 움직이는 편이지만, 하고자 하는 일에 대한 욕심과 의지는 강해요. 루틴보다 열정이 먼저예요.'
+              :                   '즉흥적이고 자유로운 방식에서 실력이 나와요. 엄격한 계획보다 흐름에 맞게 움직이고, 창의적으로 문제를 해결해요.';
+
+        // N축: 불안(낮을수록 안정) × 감정기복(낮을수록 안정)
+        // anxiety/volatility 점수가 낮을수록 안정적
+        var anxH = anx < 50, volH = vol < 50; // 낮으면 안정(HIGH안정)
+        var N = (anxH && volH)  ? '정서적으로 매우 안정적이에요. 스트레스 상황에서도 냉정함을 유지하고, 주변에 심리적 안전감을 줘요.'
+              : (anxH && !volH) ? '큰 걱정 없이 낙천적인 편이에요. 다만 감정이 한번 흔들리면 기복이 크게 올 수 있어요. 전반적으로는 긍정적인 에너지가 강해요.'
+              : (!anxH && volH) ? '미래에 대한 걱정이 많은 편이지만, 감정 자체는 비교적 안정적으로 유지해요. 불안을 준비와 계획으로 다스리는 편이에요.'
+              :                   '감수성이 풍부하고 감정을 깊이 느껴요. 걱정도 많고 감정 기복도 있지만, 그만큼 세상을 섬세하게 이해하고 공감 능력이 탁월해요.';
 
         return `<b>${animal.name}</b>인 당신에 대해 BFI-44가 알려주는 이야기예요.<br><br>` +
             `<b>🌊 에너지의 방향:</b> ${E}<br><br>` +
@@ -1678,7 +1699,7 @@
         const money  = getMoneyStyle(s);
         const rse    = getRseStyle(s.RSE);
         const via    = getViaStyle(r.viaStrengths);
-        const overall = getOverallDesc(s, r.animal);
+        const overall = getOverallDesc(s, r.animal, r.allFacets);
         const nick   = safeGetItem('my_nickname','') || '나';
         const today  = getTodayStr();
 
@@ -2895,13 +2916,29 @@
         '<div style="background:#E8F5E9;border-radius:14px;padding:18px;margin-bottom:14px;border:2px solid #1B4332;">' +
         '<div style="font-size:0.9em;font-weight:900;color:#1B4332;margin-bottom:10px;">🐾 STEP 2 · 동물 결정 과정</div>' +
         '<div style="font-size:0.85em;line-height:2.2;color:#333;">' +
-        '<div>E=' + (s.E||0) + '% → <b>' + (td.E_symbol||'?') + '</b> (' + (td.E_label||'-') + ')</div>' +
-        '<div>O=' + (s.O||0) + '% → <b>' + (td.O_symbol||'?') + '</b> (' + (td.O_label||'-') + ')</div>' +
-        '<div>A=' + (s.A||0) + '% → <b>' + (td.A_symbol||'?') + '</b> (' + (td.A_label||'-') + ')</div>' +
-        '<div>C=' + (s.C||0) + '% → <b>' + (td.C_symbol||'?') + '</b> (' + (td.C_label||'-') + ')</div>' +
-        '<div style="border-top:1px solid #1B4332;margin-top:8px;padding-top:8px;">' +
-        'typeKey = <b style="font-size:1.2em;letter-spacing:2px;">' + (td.typeKey||'?') + '</b></div>' +
-        '<div style="font-size:1.1em;font-weight:900;color:#1B4332;margin-top:4px;">→ ' + (r.animal ? r.animal.animal + ' ' + r.animal.name : '-') + '</div>' +
+
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:4px;">① 1차: Big5 축 점수 기반 (초기 분류)</div>' +
+        '<div style="padding-left:8px;">E=' + (s.E||0) + '% → <b>' + (td.E_symbol||'?') + '</b> (' + (td.E_label||'-') + ')</div>' +
+        '<div style="padding-left:8px;">O=' + (s.O||0) + '% → <b>' + (td.O_symbol||'?') + '</b> (' + (td.O_label||'-') + ')</div>' +
+        '<div style="padding-left:8px;">A=' + (s.A||0) + '% → <b>' + (td.A_symbol||'?') + '</b> (' + (td.A_label||'-') + ')</div>' +
+        '<div style="padding-left:8px;">C=' + (s.C||0) + '% → <b>' + (td.C_symbol||'?') + '</b> (' + (td.C_label||'-') + ')</div>' +
+        '<div style="padding-left:8px;border-top:1px dashed #aaa;margin-top:4px;padding-top:4px;">' +
+        '1차 typeKey = <b>' + (td.typeKey||'?') + '</b> → ' + (td.animal||'?') + '</div>' +
+
+        (r.mbtiAccurate && r.mbtiAccurate !== (function(){var m={'ENTJ':'🦁','INTJ':'🐺','ESTJ':'🦅','ISTJ':'🦫','ENFJ':'🐘','INFJ':'🐋','ESFJ':'🦝','ISFJ':'🐢','ENTP':'🐒','INTP':'🦊','ENFP':'🦦','INFP':'🦌','ESTP':'🐯','ISTP':'🐆','ESFP':'🦢','ISFP':'🐱'}; var mbtiMap={'🦁':'ENTJ','🐺':'INTJ','🦅':'ESTJ','🦫':'ISTJ','🐘':'ENFJ','🐋':'INFJ','🦝':'ESFJ','🐢':'ISFJ','🐒':'ENTP','🦊':'INTP','🦦':'ENFP','🦌':'INFP','🐯':'ESTP','🐆':'ISTP','🦢':'ESFP','🐱':'ISFP'}; return mbtiMap[r.animal&&r.animal.animal]||''; }()) ?
+        '<div style="background:#fff3cd;border-radius:8px;padding:8px;margin-top:8px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#856404;margin-bottom:4px;">② 2차: 페이싯 정밀 MBTI로 교체됨 ⚡</div>' +
+        '<div style="padding-left:8px;">사교성=' + (fs10['사교성']||0) + '% → E/I 재판별</div>' +
+        '<div style="padding-left:8px;">지적호기심=' + (fs10['지적호기심']||0) + '% → N/S 재판별</div>' +
+        '<div style="padding-left:8px;">공감능력=' + (fs10['공감능력']||0) + '% → F/T 재판별</div>' +
+        '<div style="padding-left:8px;">계획성=' + (fs10['계획성']||0) + '% → J/P 재판별</div>' +
+        '<div style="padding-left:8px;border-top:1px dashed #C9A84C;margin-top:4px;padding-top:4px;">' +
+        '정밀 MBTI = <b>' + r.mbtiAccurate + '</b></div>' +
+        '</div>'
+        : '<div style="font-size:0.78em;color:#888;margin-top:4px;padding-left:8px;">② 페이싯 결과와 동일 — 교체 없음</div>') +
+
+        '<div style="background:#C8E6C9;border-radius:8px;padding:8px;margin-top:8px;font-size:1.05em;font-weight:900;color:#1B4332;">' +
+        '최종 동물: ' + (r.animal ? r.animal.animal + ' ' + r.animal.name : '-') + '</div>' +
         '</div></div>' +
 
         // ── STEP 3: 10개 세부 facet ──
@@ -3663,7 +3700,7 @@
         // ── [14] 전체 모달 렌더링 ──
         try {
         modal.innerHTML =
-        '<div style="background:var(--bg-color);min-height:100vh;padding-bottom:120px;">' +
+        '<div style="background:var(--bg-color);min-height:100vh;padding-bottom:180px;">' +
 
         // ── 글자 크기 조절 바 ──
         '<div style="position:sticky;top:0;z-index:100;background:rgba(27,67,50,0.95);padding:7px 16px;display:flex;align-items:center;justify-content:flex-end;gap:8px;border-bottom:1px solid rgba(201,168,76,0.2);">' +
@@ -4576,42 +4613,6 @@ https://life2radio.github.io/affirmation/?psych=1`;
         initSolidarity();
         loadSheetData();
         setTimeout(renderPsychPreview, 500);
-
-        // ★ 시크릿 코드 UI 패치 — 단어 입력 방식으로 변경 (index.html 수정 없이)
-        setTimeout(function(){
-            // 입력창
-            var inp = document.getElementById('secret-code-input');
-            if(inp){
-                inp.type        = 'text';
-                inp.maxLength   = 20;
-                inp.placeholder = '영상 속 단어를 입력하세요';
-                inp.inputMode   = 'text';
-                inp.style.letterSpacing = 'normal';
-                inp.style.textAlign     = 'left';
-                inp.style.fontSize      = '1em';
-            }
-            // 안내 문구 (label 또는 상단 설명 텍스트)
-            // secret-code-input 주변 노드를 순회하며 "4자리" 텍스트 교체
-            if(inp && inp.parentNode){
-                inp.parentNode.childNodes.forEach(function(node){
-                    if(node.nodeType === 3 && node.textContent.includes('4자리')){
-                        node.textContent = node.textContent.replace(/4자리/g, '단어 코드');
-                    }
-                    if(node.nodeType === 1){
-                        if(node.innerHTML && node.innerHTML.includes('4자리')){
-                            node.innerHTML = node.innerHTML.replace(/4자리/g,'단어 코드');
-                        }
-                    }
-                });
-            }
-            // 페이지 전체에서 "4자리 코드" 라벨 텍스트 교체 (시크릿 탭 안에 있을 경우)
-            var allEls = document.querySelectorAll('[id*=secret], [class*=secret]');
-            allEls.forEach(function(el){
-                if(el.innerHTML && el.innerHTML.includes('4자리')){
-                    el.innerHTML = el.innerHTML.replace(/4자리 코드/g,'시크릿 단어').replace(/4자리/g,'단어 코드');
-                }
-            });
-        }, 800);
 
         // ★ OAuth 리디렉션 후 복귀 처리 (oauth_in_progress 플래그로도 감지)
         const _oauthInProgress = safeGetItem('oauth_in_progress','') === '1';
@@ -7416,69 +7417,60 @@ https://life2radio.github.io/affirmation/
     }
     // ★ 매주 Shorts 영상 올릴 때 이 목록에 날짜:코드 추가하세요
     // 형식: 'YYYY-M-D': '코드4자리'
-    // ★ 고정 코드 방식 — 날짜 무관, 90일 재사용 가능
-    // 구글 스프레드시트 '시크릿코드' 탭에서 관리
-    // 형식: { '봄비': { label:'EP.02', content:'오늘 나에게 건넨 말이 있나요?' } }
-    const SECRET_CODES = {};
-    // 재사용 대기 기간 (일)
-    const SECRET_REUSE_DAYS = 90;
+    const SECRET_CODES = {
+        // 예시 (실제 영상 올린 후 채워넣으세요)
+        // '2026-4-10': '1234',
+        // '2026-4-17': '5678',
+    };
 
     window.checkSecretCode = function(){
         const input  = document.getElementById('secret-code-input').value.trim();
         const result = document.getElementById('secret-code-result');
-        if(!input){ result.textContent = '코드를 입력해주세요'; return; }
+        if(input.length !== 4){ result.textContent = '4자리 코드를 입력해주세요'; return; }
 
-        // ★ 고정 코드 확인 (날짜 무관)
-        const codeKey = input.toLowerCase(); // 대소문자 무관
-        const matched = SECRET_CODES[codeKey] || SECRET_CODES[input];
+        const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
+        const correct = SECRET_CODES[today];
+        // ★ 오늘 날짜+코드 조합으로 중복 체크 (날짜별로 다른 코드면 여러 번 가능)
+        const usedKey = `secret_used_${today}_${input}`;
 
-        if(!matched){
-            result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!'; return;
+        if(safeGetItem(usedKey, null)){
+            result.textContent = '✅ 이 코드는 이미 입력하셨어요!'; return;
         }
-
-        // ★ 90일 재사용 제한 체크
-        const usedTimeKey = `secret_used_time_${codeKey}`;
-        const lastUsed = parseInt(safeGetItem(usedTimeKey, '0')) || 0;
-        const now = Date.now();
-        const diffDays = Math.floor((now - lastUsed) / (1000 * 60 * 60 * 24));
-
-        if(lastUsed > 0 && diffDays < SECRET_REUSE_DAYS){
-            const remaining = SECRET_REUSE_DAYS - diffDays;
-            result.textContent = `✅ 이미 사용한 코드예요! ${remaining}일 후에 다시 사용 가능해요 😊`;
-            return;
+        if(!correct){
+            result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
         }
+        if(input === correct){
+            safeSetItem(usedKey, '1');
+            // 패자부활: 결석 1일 삭제
+            var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
-        // ★ 사용 시각 기록 (90일 타이머 시작)
-        safeSetItem(usedTimeKey, String(now));
+            // 누적 코드 카운트 증가
+            const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
+            safeSetItem('total_secret_codes', String(totalCodes));
 
-        // 패자부활: 결석 1일 삭제
-        var ab = parseInt(safeGetItem('revival_absent_days','0'))||0;
-        if(ab > 0){ safeSetItem('revival_absent_days', String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
+            // 배지 저장
+            let earned = safeGetJSON('earned_badges',[]);
+            const badgeId = `secret_${today}`;
+            if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
 
-        // 누적 코드 카운트 증가
-        const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
-        safeSetItem('total_secret_codes', String(totalCodes));
+            result.textContent = '';
+            document.getElementById('secret-code-input').value = '';
+            launchConfetti();
 
-        // 배지 저장
-        let earned = safeGetJSON('earned_badges',[]);
-        const badgeId = `secret_code_${codeKey}`;
-        if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
+            // ★ 코드 포인트 지급
+            addPoint(10, '시크릿코드', `secret_pt_${today}`);
+            // 누적 보너스
+            if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
+            if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
+            if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
 
-        result.textContent = '';
-        document.getElementById('secret-code-input').value = '';
-        launchConfetti();
-
-        // ★ 코드 포인트 지급
-        addPoint(10, '시크릿코드', `secret_pt_${codeKey}_${Math.floor(now/(1000*60*60*24*90))}`);
-        // 누적 보너스
-        if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
-        if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
-        if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
-
-        // 코드 특별 콘텐츠 (시트에서 설정한 내용)
-        const codeContent = matched.content ? { text: matched.content, type: matched.type || '메시지' } : null;
-        showSecretSuccess(totalCodes, codeContent);
-        checkLevelRecovery();
+            // 오늘의 특별 콘텐츠 가져오기
+            const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
+            showSecretSuccess(totalCodes, todayContent);
+            checkLevelRecovery(); // 등급 하락 상태면 회복
+        } else {
+            result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
+        }
     }
 
     // PDF 해금 정보 (구글 스프레드시트 앱설정에서 URL 관리)
@@ -10575,4 +10567,932 @@ function _fallbackDownload(dataUrl, r, _vKey) {
         showToast('📸 이미지를 길게 눌러 저장하세요!');
     }
 }
+
+
+// ════════════════════════════════════════════════════
+// 🎯 다짐 기능 (VOW SYSTEM)
+// ════════════════════════════════════════════════════
+
+// ── nav·뷰 동적 초기화 (index.html 무수정) ──
+function initVowNavAndView() {
+    // 1. 네비 텍스트 + 아이콘 + 배지 교체
+    var navBtn = document.getElementById('nav-story');
+    if (navBtn && !navBtn.dataset.vowInited) {
+        navBtn.dataset.vowInited = '1';
+        navBtn.style.position = 'relative';
+        // 아이콘 교체
+        var svg = navBtn.querySelector('svg');
+        if (svg) svg.innerHTML = '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>';
+        // 텍스트 교체
+        var span = navBtn.querySelector('.nav-text');
+        if (span) span.textContent = '다짐';
+        // 배지 추가
+        if (!document.getElementById('vow-badge')) {
+            var badge = document.createElement('span');
+            badge.id = 'vow-badge';
+            badge.style.cssText = 'display:none;position:absolute;top:2px;right:6px;width:8px;height:8px;background:#E53E3E;border-radius:50%;';
+            navBtn.appendChild(badge);
+        }
+    }
+
+    // 2. view-story 안에 vow-main-wrap 주입
+    var viewStory = document.getElementById('view-story');
+    if (viewStory && !document.getElementById('vow-main-wrap')) {
+        viewStory.innerHTML = '<div id="vow-main-wrap"></div>';
+    }
+}
+
+function renderVowView() {
+    var wrap = document.getElementById('vow-main-wrap');
+    if (!wrap) return;
+    var vow = safeGetJSON('vow_data', null);
+    if (!vow || !vow.confirmed) {
+        renderVowSetup(wrap);
+    } else {
+        renderVowMain(wrap, vow);
+    }
+    updateVowBadge();
+}
+
+// ── 스텝 트래킹 ──
+var _vowStep = 1;
+var _vowDraft = {};
+
+// ── STEP 1~2: 세팅 화면 ──
+function renderVowSetup(wrap) {
+    wrap.innerHTML =
+        '<div style="padding:0 0 80px;">' +
+
+        // 뇌과학 섹션 (접기/펼치기)
+        '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:20px;margin-bottom:20px;">' +
+        '<div style="font-size:1.15em;font-weight:900;color:#fff;margin-bottom:6px;">🎯 매일 다짐하면 뇌가 바뀐다</div>' +
+        '<div style="font-size:0.82em;color:rgba(255,255,255,0.8);line-height:1.6;margin-bottom:12px;">록펠러·나폴레온 힐이 공통으로 했던 단 하나의 습관</div>' +
+        '<button onclick="toggleVowScience()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:0.8em;cursor:pointer;" id="vow-science-btn">📖 뇌과학 근거 보기 ▼</button>' +
+        '<div id="vow-science-body" style="display:none;margin-top:14px;font-size:0.82em;color:rgba(255,255,255,0.9);line-height:1.8;">' +
+        '<b>🧠 망상활성계(RAS) 원리</b><br>뇌간 위쪽에 있는 망상활성계는 "내가 중요하다고 선언한 것"을 자동으로 탐지합니다. 매일 목표를 소리 내어 읽으면 RAS가 활성화되어, 일상 속에서 목표에 필요한 정보·기회·사람을 무의식이 자동으로 걸러 냅니다.<br><br>' +
+        '<b>📚 구현 의도 연구 (Gollwitzer, 1999)</b><br>뉴욕대 심리학과 Peter Gollwitzer 교수 연구: "언제, 어디서, 무엇을"을 구체적으로 선언한 그룹이 그렇지 않은 그룹보다 목표 달성률이 2~3배 높았습니다.<br><br>' +
+        '<b>🎙 생성 효과 (MacLeod et al., 2010)</b><br>소리 내어 읽으면 눈으로만 읽을 때보다 기억 정착률이 약 10% 높습니다. 매일 두 번, 소리 내어 읽는 것이 핵심입니다.<br><br>' +
+        '<b>🏆 유명인 사례</b><br>' +
+        '• 존 D. 록펠러: 매일 아침 자신의 재정 목표를 소리 내어 읽었습니다<br>' +
+        '• 짐 캐리: 무명 시절 "5년 뒤 내 출연료는 1,000만 달러"라고 쓴 수표를 지갑에 넣고 매일 읽었습니다<br>' +
+        '• 무하마드 알리: 경기 전 "나는 세상에서 가장 위대하다"를 반복 선언했습니다<br>' +
+        '• 오프라 윈프리: 매일 아침 감사 일기 + 목표 선언을 30년간 지속했습니다<br><br>' +
+        '<a href="https://youtube.com/@SecondActRadio" target="_blank" style="display:inline-block;background:rgba(255,255,255,0.2);border-radius:8px;padding:8px 14px;color:#fff;text-decoration:none;font-size:0.85em;">🎬 영상으로 보기 →</a>' +
+        '</div></div>' +
+
+        // 세팅 카드
+        '<div style="background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">' +
+        '<div style="font-size:1em;font-weight:900;color:#1B4332;margin-bottom:18px;">✍️ 나의 다짐 만들기</div>' +
+
+        // 닉네임
+        '<div style="margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">이름 또는 닉네임</div>' +
+        '<input id="vow-name" type="text" placeholder="예: 드림" maxlength="10" style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.92em;box-sizing:border-box;">' +
+        '</div>' +
+
+        // 목표 금액
+        '<div style="margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">목표 금액</div>' +
+        '<input id="vow-amount" type="text" placeholder="예: 1억원" maxlength="20" style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.92em;box-sizing:border-box;">' +
+        '</div>' +
+
+        // 목표 날짜
+        '<div style="margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">목표 날짜</div>' +
+        '<input id="vow-target-date" type="date" style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.92em;box-sizing:border-box;">' +
+        '</div>' +
+
+        // 내가 줄 가치
+        '<div style="margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">그 대가로 내가 줄 것 (어떤 가치로?)</div>' +
+        '<textarea id="vow-value" placeholder="예: 유튜브, 앱, 책, 강의를 통해 40대 분들에게 인생2막을 여는 방법을 전합니다" rows="3" maxlength="100" style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:none;"></textarea>' +
+        '</div>' +
+
+        // 시작일
+        '<div style="margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">시작일</div>' +
+        '<input id="vow-start-date" type="date" style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.92em;box-sizing:border-box;">' +
+        '</div>' +
+
+        // 수행 횟수
+        '<div style="margin-bottom:20px;">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:8px;">하루 수행 횟수</div>' +
+        '<div style="display:flex;gap:10px;">' +
+        '<button onclick="selectVowCount(1)" id="vow-count-1" style="flex:1;padding:12px;border:2px solid #ddd;border-radius:10px;background:#fff;font-size:0.88em;cursor:pointer;">☀️ 하루 1회</button>' +
+        '<button onclick="selectVowCount(2)" id="vow-count-2" style="flex:1;padding:12px;border:2px solid #ddd;border-radius:10px;background:#fff;font-size:0.88em;cursor:pointer;">☀️🌙 하루 2회</button>' +
+        '</div></div>' +
+
+        '<button onclick="generateVowSentences()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1B4332,#2D6A4F);border:none;border-radius:12px;color:#fff;font-size:0.95em;font-weight:700;cursor:pointer;">✨ 나의 다짐 문장 만들기</button>' +
+        '</div>' +
+
+        // 선택 영역 (숨김)
+        '<div id="vow-sentence-wrap" style="display:none;margin-top:20px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.07);">' +
+        '<div style="font-size:0.95em;font-weight:900;color:#1B4332;margin-bottom:14px;">📝 다짐 문장을 선택해주세요</div>' +
+        '<div id="vow-sentence-list"></div>' +
+        '<div id="vow-edit-wrap" style="display:none;margin-top:12px;">' +
+        '<div style="font-size:0.78em;color:#888;margin-bottom:6px;">직접 수정 (확정 전에만 가능)</div>' +
+        '<textarea id="vow-custom-text" rows="4" style="width:100%;padding:11px 14px;border:1.5px solid #C9A84C;border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:none;"></textarea>' +
+        '</div>' +
+        '<button onclick="confirmVow()" id="vow-confirm-btn" style="display:none;width:100%;padding:14px;background:linear-gradient(135deg,#C9A84C,#D4A843);border:none;border-radius:12px;color:#fff;font-size:0.95em;font-weight:700;cursor:pointer;margin-top:14px;">🎯 이 문장으로 다짐 시작하기</button>' +
+        '</div>' +
+
+        '</div>';
+
+    // 오늘 날짜 기본값
+    var today = new Date();
+    var yy = today.getFullYear();
+    var mm = String(today.getMonth()+1).padStart(2,'0');
+    var dd = String(today.getDate()).padStart(2,'0');
+    var todayStr = yy+'-'+mm+'-'+dd;
+    var el = document.getElementById('vow-start-date');
+    if(el) el.value = todayStr;
+
+    _vowDraft.count = 1;
+    selectVowCount(1);
+}
+
+window.toggleVowScience = function() {
+    var body = document.getElementById('vow-science-body');
+    var btn = document.getElementById('vow-science-btn');
+    if (!body) return;
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if(btn) btn.textContent = '📖 뇌과학 근거 접기 ▲';
+    } else {
+        body.style.display = 'none';
+        if(btn) btn.textContent = '📖 뇌과학 근거 보기 ▼';
+    }
+};
+
+window.selectVowCount = function(n) {
+    _vowDraft.count = n;
+    var b1 = document.getElementById('vow-count-1');
+    var b2 = document.getElementById('vow-count-2');
+    if(b1) b1.style.border = n===1 ? '2px solid #1B4332' : '2px solid #ddd';
+    if(b1) b1.style.background = n===1 ? '#E8F5E9' : '#fff';
+    if(b2) b2.style.border = n===2 ? '2px solid #1B4332' : '2px solid #ddd';
+    if(b2) b2.style.background = n===2 ? '#E8F5E9' : '#fff';
+};
+
+window.generateVowSentences = function() {
+    var name = (document.getElementById('vow-name')||{}).value.trim();
+    var amount = (document.getElementById('vow-amount')||{}).value.trim();
+    var targetDate = (document.getElementById('vow-target-date')||{}).value;
+    var value = (document.getElementById('vow-value')||{}).value.trim();
+    var startDate = (document.getElementById('vow-start-date')||{}).value;
+
+    if(!name||!amount||!targetDate||!value||!startDate) {
+        showToast('모든 항목을 입력해주세요!'); return;
+    }
+
+    _vowDraft = { name, amount, targetDate, value, startDate, count: _vowDraft.count||1 };
+
+    // 날짜 표시용
+    var d = new Date(targetDate);
+    var dateStr = d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일';
+
+    var sentences = [
+        // A: 정체성 선언형
+        dateStr+', 나 '+name+'은(는) '+amount+'을(를) 이뤄낸 사람이다.\n나는 '+value+'.',
+        // B: 직설적 단언형
+        '나 '+name+'은(는) '+dateStr+'까지 '+amount+'을(를) 손에 쥔다.\n그 대가로, '+value+'.',
+        // C: 짧고 강한형
+        dateStr+'. 나 '+name+', '+amount+'을(를) 가진다.\n'+value+'.'
+    ];
+
+    _vowDraft.sentences = sentences;
+
+    var wrap = document.getElementById('vow-sentence-wrap');
+    var list = document.getElementById('vow-sentence-list');
+    if(!wrap||!list) return;
+
+    list.innerHTML = '';
+    sentences.forEach(function(s, i) {
+        var label = ['A. 정체성 선언형','B. 직설적 단언형','C. 짧고 강한형'][i];
+        list.innerHTML +=
+            '<div onclick="selectVowSentence('+i+')" id="vow-s-'+i+'" style="border:2px solid #ddd;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;">' +
+            '<div style="font-size:0.72em;font-weight:700;color:#888;margin-bottom:6px;">'+label+'</div>' +
+            '<div style="font-size:0.88em;line-height:1.8;color:#333;white-space:pre-line;">'+s+'</div>' +
+            '</div>';
+    });
+
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({behavior:'smooth'});
+};
+
+window.selectVowSentence = function(i) {
+    _vowDraft.selectedIdx = i;
+    _vowDraft.sentences.forEach(function(_, j) {
+        var el = document.getElementById('vow-s-'+j);
+        if(el) { el.style.border = j===i ? '2px solid #1B4332' : '2px solid #ddd'; el.style.background = j===i ? '#E8F5E9' : '#fff'; }
+    });
+    var editWrap = document.getElementById('vow-edit-wrap');
+    var ta = document.getElementById('vow-custom-text');
+    var confirmBtn = document.getElementById('vow-confirm-btn');
+    if(editWrap) editWrap.style.display = 'block';
+    if(ta) ta.value = _vowDraft.sentences[i];
+    if(confirmBtn) confirmBtn.style.display = 'block';
+};
+
+window.confirmVow = function() {
+    var ta = document.getElementById('vow-custom-text');
+    var finalText = ta ? ta.value.trim() : _vowDraft.sentences[_vowDraft.selectedIdx];
+    if(!finalText) { showToast('문장을 선택해주세요!'); return; }
+
+    var vow = {
+        confirmed: true,
+        name: _vowDraft.name,
+        amount: _vowDraft.amount,
+        targetDate: _vowDraft.targetDate,
+        startDate: _vowDraft.startDate,
+        value: _vowDraft.value,
+        count: _vowDraft.count,
+        text: finalText,
+        checks: {}
+    };
+    safeSetJSON('vow_data', vow);
+    showToast('🎯 다짐이 시작됐어요!');
+    var wrap = document.getElementById('vow-main-wrap');
+    if(wrap) renderVowMain(wrap, vow);
+};
+
+// ── STEP 3: 메인 다짐 화면 ──
+function renderVowMain(wrap, vow) {
+    var today = getFormatDate(new Date());
+    var checks = vow.checks || {};
+    var todayCheck = checks[today] || 0;
+    var maxCount = vow.count || 1;
+
+    // D-Day 계산
+    var now = new Date(); now.setHours(0,0,0,0);
+    var target = new Date(vow.targetDate); target.setHours(0,0,0,0);
+    var start = new Date(vow.startDate); start.setHours(0,0,0,0);
+    var dday = Math.ceil((target - now) / 86400000);
+    var ddayText = dday > 0 ? 'D-' + dday : dday === 0 ? 'D-DAY' : 'D+' + Math.abs(dday);
+
+    // 총 일수 & 진행일
+    var totalDays = Math.ceil((target - start) / 86400000);
+    var elapsedDays = Math.ceil((now - start) / 86400000);
+    if(elapsedDays < 0) elapsedDays = 0;
+
+    // 수행 체크 표시
+    var checkHTML = '';
+    if(maxCount === 1) {
+        checkHTML = todayCheck >= 1
+            ? '<span style="font-size:2em;">●</span><span style="font-size:0.82em;color:#1B4332;font-weight:700;margin-left:6px;">오늘 완료!</span>'
+            : '<span style="font-size:2em;color:#ccc;">○</span><span style="font-size:0.82em;color:#aaa;margin-left:6px;">오늘 미수행</span>';
+    } else {
+        var c1 = todayCheck >= 1 ? '●' : '○';
+        var c2 = todayCheck >= 2 ? '●' : '○';
+        var c1col = todayCheck >= 1 ? '#1B4332' : '#ccc';
+        var c2col = todayCheck >= 2 ? '#1B4332' : '#ccc';
+        checkHTML = '<span style="font-size:1.8em;color:'+c1col+';">'+c1+'</span>' +
+            '<span style="font-size:0.72em;color:#888;margin:0 4px;">아침</span>' +
+            '<span style="font-size:1.8em;color:'+c2col+';">'+c2+'</span>' +
+            '<span style="font-size:0.72em;color:#888;margin-left:4px;">저녁</span>';
+    }
+
+    // 달력 (시작일 ~ 오늘)
+    var calHTML = renderVowCalendar(vow);
+
+    wrap.innerHTML =
+        '<div style="padding:0 0 80px;">' +
+
+        // D-Day 카드
+        '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:28px 20px;text-align:center;margin-bottom:16px;">' +
+        '<div style="font-size:3.5em;font-weight:900;color:#C9A84C;letter-spacing:-1px;">'+ddayText+'</div>' +
+        '<div style="font-size:0.82em;color:rgba(255,255,255,0.7);margin-top:4px;">'+vow.targetDate+' 까지 · 총 '+totalDays+'일 중 '+elapsedDays+'일째</div>' +
+        '</div>' +
+
+        // 선언문 카드
+        '<div style="background:#FFFDF5;border:1.5px solid #C9A84C33;border-radius:16px;padding:20px;margin-bottom:16px;">' +
+        '<div style="font-size:0.75em;font-weight:700;color:#C9A84C;margin-bottom:10px;">🎯 나의 다짐</div>' +
+        '<div style="font-size:0.95em;line-height:1.9;color:#333;white-space:pre-line;font-weight:600;">'+vow.text+'</div>' +
+        '</div>' +
+
+        // 오늘 수행
+        '<div style="background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
+        '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:12px;">오늘 수행 현황</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">'+checkHTML+'</div>' +
+
+        // 따라해보세요 버튼
+        '<button onclick="vowTTS()" style="width:100%;padding:13px;background:#E8F5E9;border:1.5px solid #1B4332;border-radius:12px;color:#1B4332;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:10px;">🔊 따라해보세요</button>' +
+
+        // 소리내어 읽기 (STT)
+        '<button onclick="startVowSTT()" id="vow-stt-btn" style="width:100%;padding:13px;background:#fff;border:1.5px solid #C9A84C;border-radius:12px;color:#C9A84C;font-size:0.9em;font-weight:700;cursor:pointer;">🎙 소리내어 읽기</button>' +
+        '<div id="vow-stt-status" style="font-size:0.78em;color:#aaa;text-align:center;margin-top:6px;min-height:18px;"></div>' +
+        '</div>' +
+
+        // 카카오 알림 유도
+        '<div style="background:linear-gradient(135deg,#FEE500,#FDD835);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">' +
+        '<div style="font-size:1.8em;">💛</div>' +
+        '<div>' +
+        '<div style="font-size:0.85em;font-weight:900;color:#3C1E1E;margin-bottom:2px;">매일 아침·저녁 다짐 알림 받기</div>' +
+        '<div style="font-size:0.75em;color:#5C3E1E;line-height:1.5;">카카오톡 오픈채팅에 참여하시면<br>매일 다짐 시간에 알림을 보내드려요 🌿</div>' +
+        '<a href="https://open.kakao.com/o/sYJzT2pi" target="_blank" style="display:inline-block;margin-top:8px;background:#3C1E1E;color:#FEE500;padding:7px 16px;border-radius:20px;font-size:0.78em;font-weight:700;text-decoration:none;">오픈채팅 참여하기 →</a>' +
+        '</div></div>' +
+
+        // 달력
+        '<div style="background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+        '<div style="font-size:0.85em;font-weight:900;color:#1B4332;">📅 수행 기록</div>' +
+        '<div style="font-size:0.78em;color:#888;">시작일부터 오늘까지</div>' +
+        '</div>' +
+        calHTML +
+        '</div>' +
+
+        // 새로 시작하기
+        '<div style="text-align:center;padding-top:8px;">' +
+        '<button onclick="resetVow()" style="background:none;border:none;color:#bbb;font-size:0.78em;cursor:pointer;text-decoration:underline;">새로운 다짐으로 다시 시작하기</button>' +
+        '</div>' +
+
+        // 사연 보내기 (하단)
+        '<div style="margin-top:24px;background:#F9F9F9;border-radius:14px;padding:16px 18px;border:1px solid #eee;">' +
+        '<div style="font-size:0.82em;color:#888;margin-bottom:8px;">다짐을 이루는 과정의 이야기를 들려주세요</div>' +
+        '<button onclick="showStorySendModal()" style="background:#1B4332;border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:0.85em;font-weight:700;cursor:pointer;">💌 인생2막라디오에 사연 보내기</button>' +
+        '</div>' +
+
+        '</div>';
+}
+
+// ── 달력 렌더링 ──
+function renderVowCalendar(vow) {
+    var checks = vow.checks || {};
+    var start = new Date(vow.startDate); start.setHours(0,0,0,0);
+    var today = new Date(); today.setHours(0,0,0,0);
+    var maxCount = vow.count || 1;
+
+    var days = [];
+    var cur = new Date(start);
+    while(cur <= today) {
+        days.push(new Date(cur));
+        cur.setDate(cur.getDate()+1);
+    }
+    if(days.length === 0) return '<div style="color:#aaa;font-size:0.82em;text-align:center;padding:12px;">아직 기록이 없어요</div>';
+
+    // 요일 헤더
+    var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;">';
+    ['일','월','화','수','목','금','토'].forEach(function(d) {
+        html += '<div style="font-size:0.68em;color:#aaa;padding-bottom:4px;">'+d+'</div>';
+    });
+
+    // 첫날 요일 맞추기
+    var firstDow = days[0].getDay();
+    for(var i=0; i<firstDow; i++) {
+        html += '<div></div>';
+    }
+
+    days.forEach(function(d) {
+        var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        var check = checks[key] || 0;
+        var isToday = key === getFormatDate(new Date());
+        var full = check >= maxCount;
+        var half = check > 0 && check < maxCount;
+        var bg = full ? '#1B4332' : half ? '#A8D5B5' : '#f5f5f5';
+        var color = full ? '#fff' : half ? '#1B4332' : '#ccc';
+        var border = isToday ? '2px solid #C9A84C' : '2px solid transparent';
+        html += '<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;background:'+bg+';color:'+color+';font-size:0.72em;font-weight:700;border:'+border+';">'+d.getDate()+'</div>';
+    });
+
+    html += '</div>';
+    return html;
+}
+
+// ── TTS (따라해보세요) ──
+window.vowTTS = function() {
+    var vow = safeGetJSON('vow_data', null);
+    if(!vow) return;
+    if(window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        var utt = new SpeechSynthesisUtterance(vow.text);
+        utt.lang = 'ko-KR';
+        utt.rate = 0.85;
+        utt.onend = function() { vowMarkCheck(); };
+        window.speechSynthesis.speak(utt);
+        showToast('🔊 함께 소리내어 읽어보세요!');
+    }
+};
+
+// ── STT (소리내어 읽기) ──
+var _vowRecognition = null;
+window.startVowSTT = function() {
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecognition) { showToast('이 브라우저는 음성 인식을 지원하지 않아요'); return; }
+    var btn = document.getElementById('vow-stt-btn');
+    var status = document.getElementById('vow-stt-status');
+    if(_vowRecognition) { _vowRecognition.stop(); _vowRecognition = null; if(btn) btn.textContent='🎙 소리내어 읽기'; if(status) status.textContent=''; return; }
+    _vowRecognition = new SpeechRecognition();
+    _vowRecognition.lang = 'ko-KR';
+    _vowRecognition.continuous = false;
+    _vowRecognition.interimResults = true;
+    _vowRecognition.onstart = function() { if(btn) btn.textContent='⏹ 읽기 중지'; if(status) status.textContent='🎙 듣고 있어요...'; };
+    _vowRecognition.onresult = function(e) { var t=''; for(var i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; if(status) status.textContent=t; };
+    _vowRecognition.onend = function() { _vowRecognition=null; if(btn) btn.textContent='🎙 소리내어 읽기'; if(status) status.textContent='✅ 완료! 수행 체크됐어요'; vowMarkCheck(); setTimeout(function(){if(status)status.textContent='';},2000); };
+    _vowRecognition.onerror = function() { _vowRecognition=null; if(btn) btn.textContent='🎙 소리내어 읽기'; };
+    _vowRecognition.start();
+};
+
+// ── 수행 체크 ──
+function vowMarkCheck() {
+    var vow = safeGetJSON('vow_data', null);
+    if(!vow) return;
+    var today = getFormatDate(new Date());
+    vow.checks = vow.checks || {};
+    var cur = vow.checks[today] || 0;
+    var maxCount = vow.count || 1;
+    if(cur < maxCount) { vow.checks[today] = cur + 1; }
+    safeSetJSON('vow_data', vow);
+    updateVowBadge();
+    var wrap = document.getElementById('vow-main-wrap');
+    if(wrap) renderVowMain(wrap, vow);
+}
+
+// ── 리셋 ──
+window.resetVow = function() {
+    if(!confirm('다짐을 초기화하고 새로 시작할까요?')) return;
+    safeSetItem('vow_data', null);
+    var wrap = document.getElementById('vow-main-wrap');
+    if(wrap) renderVowView();
+};
+
+// ── 배지 업데이트 ──
+function updateVowBadge() {
+    var badge = document.getElementById('vow-badge');
+    if(!badge) return;
+    var vow = safeGetJSON('vow_data', null);
+    if(!vow || !vow.confirmed) { badge.style.display='none'; return; }
+    var today = getFormatDate(new Date());
+    var check = (vow.checks||{})[today] || 0;
+    badge.style.display = check < (vow.count||1) ? 'block' : 'none';
+}
+
+// ── 사연 보내기 모달 ──
+window.showStorySendModal = function() {
+    showToast('사연 보내기 준비 중이에요 💌');
+};
+
+// 앱 초기화 시 배지 업데이트 (nav 초기화 후)
+// 배지는 탭 진입 시 initVowNavAndView 후 updateVowBadge 호출로 처리
+
+    // ════════════════════════════════════════
+    // 🎯 다짐 기능 (Daejim)
+    // ════════════════════════════════════════
+
+    var _daejimCount = 1; // 1회 or 2회
+
+    // 도입 섹션 접기/펼치기
+    window.toggleDaejimIntro = function() {
+        var el = document.getElementById('daejim-intro-content');
+        var arrow = document.getElementById('daejim-intro-arrow');
+        if (!el) return;
+        if (el.style.display === 'none') {
+            el.style.display = 'block';
+            arrow.style.transform = 'rotate(180deg)';
+        } else {
+            el.style.display = 'none';
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    };
+
+    // 수행 횟수 선택
+    window.selectDaejimCount = function(n) {
+        _daejimCount = n;
+        var b1 = document.getElementById('daejim-count-1');
+        var b2 = document.getElementById('daejim-count-2');
+        if (n === 1) {
+            b1.style.background = '#1B4332'; b1.style.color = '#fff'; b1.style.borderColor = '#1B4332';
+            b2.style.background = 'transparent'; b2.style.color = 'var(--text-color)'; b2.style.borderColor = 'var(--border-color)';
+        } else {
+            b2.style.background = '#1B4332'; b2.style.color = '#fff'; b2.style.borderColor = '#1B4332';
+            b1.style.background = 'transparent'; b1.style.color = 'var(--text-color)'; b1.style.borderColor = 'var(--border-color)';
+        }
+        safeSetItem('daejim_count', n);
+    };
+
+    // STEP 이동
+    window.showDaejimStep = function(n) {
+        [1,2,3].forEach(function(i) {
+            var el = document.getElementById('daejim-step' + i);
+            if (el) el.style.display = (i === n) ? 'block' : 'none';
+            var ind = document.getElementById('dstep-' + i);
+            if (ind) ind.style.background = (i <= n) ? '#1B4332' : '#E8E5E0';
+        });
+        if (n === 3) renderDaejimMain();
+    };
+
+    // 문장 생성
+    window.generateDaejimSentences = function() {
+        var amount  = (document.getElementById('daejim-amount')      || {}).value || '';
+        var date    = (document.getElementById('daejim-target-date') || {}).value || '';
+        var value   = (document.getElementById('daejim-value')       || {}).value || '';
+        var nick    = (document.getElementById('daejim-nickname')     || {}).value || '나';
+        var start   = (document.getElementById('daejim-start-date')  || {}).value || '';
+
+        if (!amount || !date || !value || !nick) {
+            showToast('모든 항목을 입력해주세요 🙏'); return;
+        }
+
+        // 저장
+        safeSetItem('daejim_amount', amount);
+        safeSetItem('daejim_target_date', date);
+        safeSetItem('daejim_value', value);
+        safeSetItem('daejim_nickname', nick);
+        safeSetItem('daejim_start_date', start || getFormatDate(new Date()));
+        safeSetItem('daejim_count', _daejimCount);
+
+        // 날짜 포맷
+        var d = new Date(date);
+        var ymd = (d.getFullYear()) + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일';
+
+        // 3가지 문장 템플릿
+        var sentences = [
+            ymd + ', 나 ' + nick + '은 ' + amount + '을 이뤄낸 사람이다. 나는 ' + value + '을 통해 많은 분들께 진심 어린 가치를 전하는 작가이자 크리에이터다.',
+            ymd + '까지 나 ' + nick + '은 ' + amount + '을 손에 쥔다. 그 대가로 나는 ' + value + '로 세상에 가치를 펼쳐 보인다.',
+            nick + '. ' + amount + '. ' + ymd + '. ' + value + '로 많은 이들의 삶을 바꾼다. 나는 이미 그 길 위에 있다.'
+        ];
+
+        var labels = ['✨ 정체성 선언형', '💪 직설적 단언형', '⚡ 짧고 강한형'];
+        var html = '';
+        sentences.forEach(function(s, i) {
+            html += '<div onclick="selectDaejimSentence(' + i + ')" id="ds-card-' + i + '" ' +
+                'style="border:2px solid ' + (i===0?'#1B4332':'var(--border-color)') + ';border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;background:' + (i===0?'#f0faf4':'var(--bg-color)') + ';">' +
+                '<div style="font-size:0.75em;font-weight:700;color:#1B4332;margin-bottom:6px;">' + labels[i] + '</div>' +
+                '<div style="font-size:0.85em;line-height:1.8;color:var(--text-color);white-space:pre-line;">' + s + '</div>' +
+                '</div>';
+        });
+        document.getElementById('daejim-sentences').innerHTML = html;
+        document.getElementById('daejim-custom-text').value = sentences[0];
+        showDaejimStep(2);
+    };
+
+    window.selectDaejimSentence = function(i) {
+        var cards = [0,1,2];
+        cards.forEach(function(j) {
+            var c = document.getElementById('ds-card-' + j);
+            if (!c) return;
+            c.style.borderColor = (i===j) ? '#1B4332' : 'var(--border-color)';
+            c.style.background  = (i===j) ? '#f0faf4' : 'var(--bg-color)';
+        });
+        // 해당 문장을 textarea에 복사
+        var amount  = safeGetItem('daejim_amount','');
+        var date    = safeGetItem('daejim_target_date','');
+        var value   = safeGetItem('daejim_value','');
+        var nick    = safeGetItem('daejim_nickname','나');
+        var d = new Date(date);
+        var ymd = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일';
+        var sentences = [
+            ymd + ', 나 ' + nick + '은 ' + amount + '을 이뤄낸 사람이다. 나는 ' + value + '을 통해 많은 분들께 진심 어린 가치를 전하는 작가이자 크리에이터다.',
+            ymd + '까지 나 ' + nick + '은 ' + amount + '을 손에 쥔다. 그 대가로 나는 ' + value + '로 세상에 가치를 펼쳐 보인다.',
+            nick + '. ' + amount + '. ' + ymd + '. ' + value + '로 많은 이들의 삶을 바꾼다. 나는 이미 그 길 위에 있다.'
+        ];
+        document.getElementById('daejim-custom-text').value = sentences[i];
+    };
+
+    window.confirmDaejimSentence = function() {
+        var text = (document.getElementById('daejim-custom-text') || {}).value || '';
+        if (!text.trim()) { showToast('선언문을 입력해주세요'); return; }
+        safeSetItem('daejim_text', text);
+        safeSetItem('daejim_confirmed', '1');
+        showDaejimStep(3);
+    };
+
+    // 메인 화면 렌더링
+    function renderDaejimMain() {
+        var text       = safeGetItem('daejim_text','');
+        var targetDate = safeGetItem('daejim_target_date','');
+        var startDate  = safeGetItem('daejim_start_date', getFormatDate(new Date()));
+        var count      = parseInt(safeGetItem('daejim_count','1'));
+        var records    = safeGetJSON('daejim_records', {});
+
+        // 선언문
+        var mainText = document.getElementById('daejim-main-text');
+        if (mainText) mainText.innerText = text;
+
+        // D-Day
+        var ddayEl = document.getElementById('daejim-dday');
+        var labelEl = document.getElementById('daejim-target-label');
+        if (ddayEl && targetDate) {
+            var today = new Date(); today.setHours(0,0,0,0);
+            var target = new Date(targetDate); target.setHours(0,0,0,0);
+            var diff = Math.ceil((target - today) / (1000*60*60*24));
+            if (diff > 0) {
+                ddayEl.textContent = 'D-' + diff;
+                ddayEl.style.color = '#fff';
+            } else if (diff === 0) {
+                ddayEl.textContent = 'D-Day';
+                ddayEl.style.color = '#C9A84C';
+            } else {
+                ddayEl.textContent = 'D+' + Math.abs(diff);
+                ddayEl.style.color = '#A8D5BA';
+                checkDaejimGoal();
+            }
+            var td = new Date(targetDate);
+            if (labelEl) labelEl.textContent = td.getFullYear() + '년 ' + (td.getMonth()+1) + '월 ' + td.getDate() + '일 목표';
+        }
+
+        // 체크 도트
+        renderDaejimDots(count, records);
+
+        // 스트릭/총일수/달성률
+        renderDaejimStats(records, startDate, targetDate);
+
+        // 달력
+        renderDaejimCalendar(records, startDate);
+    }
+
+    function renderDaejimDots(count, records) {
+        var today = getFormatDate(new Date());
+        var rec = records[today] || 0;
+        var el = document.getElementById('daejim-check-dots');
+        if (!el) return;
+        var html = '';
+        for (var i = 1; i <= count; i++) {
+            var done = rec >= i;
+            html += '<div style="width:40px;height:40px;border-radius:50%;background:' +
+                (done ? '#1B4332' : '#E8E5E0') + ';display:flex;align-items:center;justify-content:center;font-size:1.4em;">' +
+                (done ? '✅' : '○') + '</div>';
+        }
+        el.innerHTML = html;
+    }
+
+    function renderDaejimStats(records, startDate, targetDate) {
+        var start = new Date(startDate); start.setHours(0,0,0,0);
+        var end   = new Date(targetDate); end.setHours(0,0,0,0);
+        var today = new Date(); today.setHours(0,0,0,0);
+        var totalDays = Math.ceil((end - start) / (1000*60*60*24));
+        var passedDays = Math.ceil((today - start) / (1000*60*60*24));
+        var pct = totalDays > 0 ? Math.min(100, Math.round(passedDays / totalDays * 100)) : 0;
+
+        // 총 수행일
+        var doneDays = Object.keys(records).filter(function(k) { return records[k] > 0; }).length;
+        // 연속 스트릭
+        var streak = 0;
+        var cur = new Date(); cur.setHours(0,0,0,0);
+        while (true) {
+            var key = getFormatDate(cur);
+            if (records[key] && records[key] > 0) { streak++; cur.setDate(cur.getDate()-1); }
+            else break;
+        }
+
+        var el1 = document.getElementById('daejim-streak');
+        var el2 = document.getElementById('daejim-total');
+        var el3 = document.getElementById('daejim-progress-pct');
+        if (el1) el1.textContent = streak;
+        if (el2) el2.textContent = doneDays;
+        if (el3) el3.textContent = pct + '%';
+    }
+
+    function renderDaejimCalendar(records, startDate) {
+        var el = document.getElementById('daejim-calendar');
+        if (!el) return;
+        var today = new Date(); today.setHours(0,0,0,0);
+        var start = new Date(startDate); start.setHours(0,0,0,0);
+        // 이번 달 표시
+        var y = today.getFullYear(), m = today.getMonth();
+        var firstDay = new Date(y, m, 1);
+        var lastDay  = new Date(y, m+1, 0);
+        var html = '';
+        // 요일 헤더
+        ['일','월','화','수','목','금','토'].forEach(function(d) {
+            html += '<div style="font-weight:700;color:#888;padding:2px 0;">' + d + '</div>';
+        });
+        // 빈칸
+        for (var i = 0; i < firstDay.getDay(); i++) {
+            html += '<div></div>';
+        }
+        // 날짜
+        for (var d2 = 1; d2 <= lastDay.getDate(); d2++) {
+            var dt = new Date(y, m, d2); dt.setHours(0,0,0,0);
+            var key = getFormatDate(dt);
+            var rec = records[key] || 0;
+            var isToday = dt.getTime() === today.getTime();
+            var isFuture = dt > today;
+            var inRange = dt >= start;
+            var bg = '#F5F5F5', color = '#ccc';
+            if (inRange && !isFuture) {
+                if (rec > 0) { bg = '#1B4332'; color = '#fff'; }
+                else { bg = '#FFE0E0'; color = '#e57373'; }
+            }
+            if (isToday) { bg = rec > 0 ? '#1B4332' : '#C9A84C'; color = '#fff'; }
+            html += '<div style="border-radius:50%;width:28px;height:28px;margin:2px auto;display:flex;align-items:center;justify-content:center;background:' + bg + ';color:' + color + ';font-size:0.75em;font-weight:' + (isToday?'900':'400') + ';">' + d2 + '</div>';
+        }
+        el.innerHTML = html;
+    }
+
+    // TTS + 자동 체크
+    window.doTTS_daejim = function() {
+        var text = safeGetItem('daejim_text','');
+        if (!text) { showToast('선언문이 없어요'); return; }
+        var count = parseInt(safeGetItem('daejim_count','1'));
+        var records = safeGetJSON('daejim_records', {});
+        var today = getFormatDate(new Date());
+        var rec = records[today] || 0;
+
+        if (rec >= count) { showToast('오늘 수행을 모두 완료했어요! 🎉'); return; }
+
+        if (typeof speechSynthesis !== 'undefined') {
+            var utt = new SpeechSynthesisUtterance(text.replace(/[\r\n]/g,' '));
+            utt.lang = 'ko-KR'; utt.rate = 0.9;
+            utt.onend = function() {
+                records[today] = rec + 1;
+                safeSetJSON('daejim_records', records);
+                renderDaejimDots(count, records);
+                renderDaejimStats(records, safeGetItem('daejim_start_date', today), safeGetItem('daejim_target_date',''));
+                renderDaejimCalendar(records, safeGetItem('daejim_start_date', today));
+                if (records[today] >= count) {
+                    showToast('오늘 다짐 완료! 🎉 대단해요!');
+                    addPoint(5, '다짐수행', 'daejim_' + today + '_' + records[today]);
+                } else {
+                    showToast('1회 완료! 저녁에 한 번 더 해주세요 🌙');
+                }
+            };
+            speechSynthesis.speak(utt);
+            showToast('소리내어 따라 읽어보세요 🗣️');
+        } else {
+            showToast('이 기기는 음성 기능을 지원하지 않아요');
+        }
+    };
+
+    // 목표 달성 체크
+    function checkDaejimGoal() {
+        var shown = safeGetItem('daejim_goal_shown','');
+        if (shown === '1') return;
+        safeSetItem('daejim_goal_shown','1');
+        setTimeout(function() {
+            if (confirm('🎉 목표 날짜가 됐어요! 이뤄내셨나요? 인증서를 받으시겠어요?')) {
+                showToast('인증서 기능은 곧 오픈됩니다! 💚');
+                // 사연 탭으로 연결
+                if (confirm('이뤄낸 이야기를 많은 분들께 나눠주세요 💌 사연 보내기로 이동할까요?')) {
+                    openStoryModal && openStoryModal();
+                }
+            }
+        }, 800);
+    }
+
+    // 뷰 진입 시 초기화
+
+    // ════════════════════════════════════════
+    // 🎯 다짐 탭 HTML 동적 주입
+    // ════════════════════════════════════════
+    function injectDaejimHTML() {
+        var el = document.getElementById('view-story');
+        if (!el || el.getAttribute('data-daejim-injected')) return;
+        el.setAttribute('data-daejim-injected', '1');
+        el.innerHTML = [
+            '<div style="padding:16px 16px 120px;">',
+
+            // 도입 섹션
+            '<div style="background:#1B4332;border-radius:18px;padding:20px;margin-bottom:18px;">',
+            '<div onclick="toggleDaejimIntro()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">',
+            '<div>',
+            '<div style="font-size:0.75em;color:#A8D5BA;font-weight:700;letter-spacing:1px;margin-bottom:4px;">록펠러의 습관</div>',
+            '<div style="font-size:1.05em;font-weight:900;color:#fff;">🧠 왜 매일 소리내어 읽어야 할까?</div>',
+            '</div>',
+            '<div id="daejim-intro-arrow" style="font-size:1.4em;color:#A8D5BA;transition:transform 0.3s;">▼</div>',
+            '</div>',
+            '<div id="daejim-intro-content" style="display:none;margin-top:16px;">',
+
+            // 뇌과학
+            '<div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">',
+            '<div style="font-size:0.85em;font-weight:800;color:#C9A84C;margin-bottom:10px;">🔬 뇌과학이 말하는 이유</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;margin-bottom:10px;"><b style="color:#fff;">① 망상활성계(RAS) 활성화</b><br>뇌에는 수백만 개의 정보 중 중요한 것만 걸러내는 필터가 있어요. 목표를 매일 소리내어 읽으면, 뇌가 그것을 중요한 것으로 등록하고 하루 종일 관련 기회와 정보를 자동으로 포착하기 시작합니다.</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;margin-bottom:10px;"><b style="color:#fff;">② 구현 의도 효과</b><br>심리학자 피터 골비처(Peter Gollwitzer) 연구에 따르면, 목표를 언제, 무엇을처럼 구체적으로 선언할수록 실행률이 2~3배 상승합니다.</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;"><b style="color:#fff;">③ 소리내어 읽기 (생성 효과)</b><br>눈으로만 읽는 것보다 소리내어 읽으면 기억 정착률이 훨씬 높아집니다. 입으로 말하고 귀로 듣는 이중 자극이 무의식에 더 깊이 새겨지기 때문이에요.</div>',
+            '</div>',
+
+            // 유명인
+            '<div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">',
+            '<div style="font-size:0.85em;font-weight:800;color:#C9A84C;margin-bottom:10px;">👑 그들도 이렇게 했습니다</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;margin-bottom:10px;"><b style="color:#fff;">존 D. 록펠러</b><br>매일 아침 자신의 재정 목표를 소리내어 선언했습니다. 500명의 백만장자를 연구한 나폴레온 힐은 이것이 그들의 공통된 하나의 습관이었다고 밝혔어요.</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;margin-bottom:10px;"><b style="color:#fff;">짐 캐리</b><br>무명 시절, 자신에게 1,000만 달러짜리 수표를 써서 매일 지갑에 넣고 다녔습니다. 5년 후 영화 한 편으로 정확히 그 금액을 받았습니다.</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:1.9;"><b style="color:#fff;">오프라 윈프리</b><br>나는 이미 성공한 사람이다를 매일 선언했습니다. 이것이 자신의 삶을 바꾼 핵심 습관이라고 여러 인터뷰에서 밝혔어요.</div>',
+            '</div>',
+
+            // 룰
+            '<div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:16px;">',
+            '<div style="font-size:0.85em;font-weight:800;color:#C9A84C;margin-bottom:10px;">📌 두 가지 룰 (반드시 지켜주세요)</div>',
+            '<div style="font-size:0.83em;color:#E8F5E9;line-height:2;"><b style="color:#fff;">룰 1.</b> 반드시 소리내어 읽으세요. 속으로만 읽으면 효과가 절반 이하입니다.<br><br><b style="color:#fff;">룰 2.</b> 읽을 때 그 장면을 머릿속으로 그리세요. 통장에 찍힌 숫자, 책이 서점에 진열된 모습, 강의장에서 박수받는 순간. 감정까지 끌어오세요.</div>',
+            '</div>',
+
+            // 유튜브 버튼
+            '<button id="daejim-shorts-btn" onclick="window.open(\'\',\'_blank\')" style="width:100%;padding:14px;background:rgba(255,0,0,0.15);border:1px solid rgba(255,80,80,0.4);border-radius:12px;color:#fff;font-size:0.88em;font-weight:700;cursor:pointer;margin-bottom:10px;">▶ 영상으로 보기 (유튜브 쇼츠)</button>',
+
+            // 카카오
+            '<button onclick="window.open(\'https://open.kakao.com/o/gr3RC2pi\',\'_blank\')" style="width:100%;padding:14px;background:#FEE500;border:none;border-radius:12px;color:#391B1B;font-size:0.88em;font-weight:800;cursor:pointer;">💬 다짐 알림 카카오채널 입장하기</button>',
+            '<div style="font-size:0.75em;color:#A8D5BA;text-align:center;margin-top:6px;">매일 아침·저녁 다짐 시간을 알려드려요</div>',
+            '</div></div>',
+
+            // STEP 영역
+            '<div id="daejim-setup-area">',
+            '<div id="daejim-step-indicator" style="display:flex;gap:8px;margin-bottom:16px;">',
+            '<div id="dstep-1" style="flex:1;height:4px;border-radius:2px;background:#1B4332;"></div>',
+            '<div id="dstep-2" style="flex:1;height:4px;border-radius:2px;background:#E8E5E0;"></div>',
+            '<div id="dstep-3" style="flex:1;height:4px;border-radius:2px;background:#E8E5E0;"></div>',
+            '</div>',
+
+            // STEP 1
+            '<div id="daejim-step1">',
+            '<div style="font-size:1em;font-weight:900;color:var(--primary-color);margin-bottom:16px;">✏️ 나의 다짐 설정</div>',
+            _inputField('daejim-amount','목표 금액','예: 1억원, 5천만원','text'),
+            _inputField('daejim-target-date','목표 날짜','','date'),
+            _inputField('daejim-value','내가 줄 가치 (어떤 방법으로?)','예: 유튜브, 앱, 책, 강의','text'),
+            _inputField('daejim-nickname','닉네임 또는 이름','예: 드림, 영희','text'),
+            '<div style="background:#fff;border-radius:14px;padding:18px;border:1px solid var(--border-color);margin-bottom:12px;">',
+            '<label style="font-size:0.8em;font-weight:700;color:#888;display:block;margin-bottom:10px;">하루 수행 횟수</label>',
+            '<div style="display:flex;gap:10px;">',
+            '<button onclick="selectDaejimCount(1)" id="daejim-count-1" style="flex:1;padding:12px;border:2px solid #1B4332;border-radius:10px;background:#1B4332;color:#fff;font-size:0.88em;font-weight:700;cursor:pointer;">하루 1회</button>',
+            '<button onclick="selectDaejimCount(2)" id="daejim-count-2" style="flex:1;padding:12px;border:2px solid var(--border-color);border-radius:10px;background:transparent;color:var(--text-color);font-size:0.88em;font-weight:700;cursor:pointer;">아침 + 저녁 2회</button>',
+            '</div></div>',
+            _inputField('daejim-start-date','시작일','','date'),
+            '<button onclick="generateDaejimSentences()" style="width:100%;padding:16px;background:#1B4332;color:#fff;border:none;border-radius:14px;font-size:1em;font-weight:800;cursor:pointer;">나의 선언문 만들기 →</button>',
+            '</div>',
+
+            // STEP 2
+            '<div id="daejim-step2" style="display:none;">',
+            '<div style="font-size:1em;font-weight:900;color:var(--primary-color);margin-bottom:6px;">✨ 선언문을 선택하세요</div>',
+            '<div style="font-size:0.8em;color:#888;margin-bottom:16px;">마음에 드는 것을 고르고, 직접 수정도 가능해요</div>',
+            '<div id="daejim-sentences"></div>',
+            '<div style="margin-top:14px;"><div style="font-size:0.8em;font-weight:700;color:#888;margin-bottom:6px;">✏️ 직접 수정</div>',
+            '<textarea id="daejim-custom-text" rows="4" style="width:100%;padding:12px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.9em;background:var(--bg-color);color:var(--text-color);outline:none;resize:none;box-sizing:border-box;line-height:1.7;"></textarea></div>',
+            '<div style="display:flex;gap:10px;margin-top:14px;">',
+            '<button onclick="showDaejimStep(1)" style="flex:1;padding:14px;background:transparent;border:1.5px solid var(--border-color);border-radius:12px;color:var(--text-color);font-size:0.9em;cursor:pointer;">← 다시 입력</button>',
+            '<button onclick="confirmDaejimSentence()" style="flex:2;padding:14px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:800;cursor:pointer;">이 문장으로 확정 →</button>',
+            '</div></div>',
+
+            // STEP 3
+            '<div id="daejim-step3" style="display:none;">',
+            '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:24px;text-align:center;margin-bottom:16px;">',
+            '<div style="font-size:0.78em;color:#A8D5BA;font-weight:700;margin-bottom:4px;">목표까지</div>',
+            '<div id="daejim-dday" style="font-size:3em;font-weight:900;color:#fff;letter-spacing:-1px;">D-???</div>',
+            '<div id="daejim-target-label" style="font-size:0.78em;color:#A8D5BA;margin-top:4px;"></div>',
+            '</div>',
+            '<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid var(--border-color);margin-bottom:16px;">',
+            '<div style="font-size:0.75em;font-weight:700;color:#888;margin-bottom:10px;">📜 나의 선언문</div>',
+            '<div id="daejim-main-text" style="font-size:0.95em;line-height:1.9;color:var(--text-color);font-weight:600;word-break:keep-all;"></div>',
+            '</div>',
+            '<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid var(--border-color);margin-bottom:16px;">',
+            '<div style="font-size:0.78em;font-weight:700;color:#888;margin-bottom:12px;">오늘의 수행</div>',
+            '<div id="daejim-check-dots" style="display:flex;gap:12px;justify-content:center;margin-bottom:16px;"></div>',
+            '<button onclick="doTTS_daejim()" style="width:100%;padding:14px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">🔊 따라 읽기 (소리내어)</button>',
+            '</div>',
+            '<div style="background:#fff;border-radius:16px;padding:16px;border:1px solid var(--border-color);margin-bottom:16px;display:flex;gap:16px;justify-content:center;text-align:center;">',
+            '<div><div id="daejim-streak" style="font-size:1.8em;font-weight:900;color:#1B4332;">0</div><div style="font-size:0.75em;color:#888;">연속 일수</div></div>',
+            '<div style="width:1px;background:#eee;"></div>',
+            '<div><div id="daejim-total" style="font-size:1.8em;font-weight:900;color:#1B4332;">0</div><div style="font-size:0.75em;color:#888;">총 수행일</div></div>',
+            '<div style="width:1px;background:#eee;"></div>',
+            '<div><div id="daejim-progress-pct" style="font-size:1.8em;font-weight:900;color:#C9A84C;">0%</div><div style="font-size:0.75em;color:#888;">달성률</div></div>',
+            '</div>',
+            '<div style="background:#fff;border-radius:16px;padding:18px;border:1px solid var(--border-color);margin-bottom:16px;">',
+            '<div style="font-size:0.78em;font-weight:700;color:#888;margin-bottom:12px;">📅 수행 기록</div>',
+            '<div id="daejim-calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:0.7em;"></div>',
+            '</div>',
+            '<button onclick="showDaejimStep(1)" style="width:100%;padding:13px;background:transparent;border:1.5px solid var(--border-color);border-radius:12px;color:#888;font-size:0.85em;cursor:pointer;margin-bottom:10px;">🔄 새 다짐 시작하기</button>',
+            '</div></div>',
+
+            // 구분선 + 사연보내기
+            '<div style="height:1px;background:var(--border-color);margin:24px 0;"></div>',
+            '<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid var(--border-color);">',
+            '<div style="font-size:0.95em;font-weight:800;color:var(--primary-color);margin-bottom:6px;">✉️ 사연 보내기</div>',
+            '<div style="font-size:0.82em;color:#888;line-height:1.7;margin-bottom:16px;">다짐을 이뤄낸 이야기, 확언으로 변화된 삶, 힘든 마음을 나눠주세요.</div>',
+            '<button onclick="openStoryModal && openStoryModal()" style="width:100%;padding:14px;background:var(--primary-color);color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">💌 사연 보내기</button>',
+            '</div>',
+
+            '</div>'
+        ].join('');
+    }
+
+    function _inputField(id, label, placeholder, type) {
+        return '<div style="background:#fff;border-radius:14px;padding:18px;border:1px solid var(--border-color);margin-bottom:12px;">' +
+            '<label style="font-size:0.8em;font-weight:700;color:#888;display:block;margin-bottom:6px;">' + label + '</label>' +
+            '<input id="' + id + '" type="' + type + '" placeholder="' + placeholder + '" ' +
+            'style="width:100%;padding:12px;border:1.5px solid var(--border-color);border-radius:10px;font-size:0.95em;background:var(--bg-color);color:var(--text-color);outline:none;box-sizing:border-box;">' +
+            '</div>';
+    }
+
+    function initDaejimView() {
+        injectDaejimHTML();
+        var confirmed = safeGetItem('daejim_confirmed','');
+        if (confirmed === '1') {
+            showDaejimStep(3);
+        } else {
+            showDaejimStep(1);
+            // 오늘 날짜를 시작일 기본값으로
+            var startInput = document.getElementById('daejim-start-date');
+            if (startInput) startInput.value = getFormatDate(new Date());
+            // 저장된 값 복원
+            var fields = {
+                'daejim-amount': 'daejim_amount',
+                'daejim-target-date': 'daejim_target_date',
+                'daejim-value': 'daejim_value',
+                'daejim-nickname': 'daejim_nickname',
+            };
+            Object.keys(fields).forEach(function(id) {
+                var el = document.getElementById(id);
+                var val = safeGetItem(fields[id],'');
+                if (el && val) el.value = val;
+            });
+            var cnt = parseInt(safeGetItem('daejim_count','1'));
+            selectDaejimCount(cnt);
+        }
+    }
 
