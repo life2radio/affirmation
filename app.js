@@ -848,15 +848,6 @@
         } else if(viewName==='story'){
             document.getElementById('view-story').classList.add('active');
             document.getElementById('nav-story').classList.add('active');
-            // 네비 아이콘/텍스트 동적 변경
-            var _navStory = document.getElementById('nav-story');
-            if (_navStory) {
-                var _navSvg = _navStory.querySelector('.nav-svg');
-                if (_navSvg) _navSvg.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
-                var _navTxt = _navStory.querySelector('.nav-text');
-                if (_navTxt) _navTxt.textContent = '다짐';
-            }
-            initDaejimView();
             initVowNavAndView();
             renderVowView();
         } else if(viewName==='shorts'){
@@ -9626,6 +9617,17 @@ https://life2radio.github.io/affirmation/
         const bgmAuto = safeGetItem('setting_bgm_auto','off')==='on';
         updateBgmAutoToggle(bgmAuto);
         initNotifSettings();
+        // 설정탭 사연 보내기 버튼 동적 추가
+        if (!document.getElementById('settings-story-btn-wrap')) {
+            var shareSection = document.querySelector('#view-settings [onclick="shareApp()"]');
+            if (shareSection) {
+                var storyBtnWrap = document.createElement('div');
+                storyBtnWrap.id = 'settings-story-btn-wrap';
+                storyBtnWrap.style.cssText = 'margin-top:10px;';
+                storyBtnWrap.innerHTML = '<button onclick="openStoryModal&&openStoryModal()" style="width:100%;min-height:48px;background:transparent;border:1.5px solid var(--primary-color);border-radius:12px;font-size:0.9em;font-weight:700;color:var(--primary-color);cursor:pointer;">💌 사연 보내기</button>';
+                shareSection.parentNode.appendChild(storyBtnWrap);
+            }
+        }
     }
 
     window.setFontSize = function(size){
@@ -10909,7 +10911,7 @@ function renderVowMain(wrap, vow) {
         // 사연 보내기 (하단)
         '<div style="margin-top:24px;background:#F9F9F9;border-radius:14px;padding:16px 18px;border:1px solid #eee;">' +
         '<div style="font-size:0.82em;color:#888;margin-bottom:8px;">다짐을 이루는 과정의 이야기를 들려주세요</div>' +
-        '<button onclick="showStorySendModal()" style="background:#1B4332;border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:0.85em;font-weight:700;cursor:pointer;">💌 인생2막라디오에 사연 보내기</button>' +
+        '<button onclick="openStoryModal && openStoryModal()" style="background:#1B4332;border:none;border-radius:10px;padding:10px 20px;color:#fff;font-size:0.85em;font-weight:700;cursor:pointer;">💌 인생2막라디오에 사연 보내기</button>' +
         '</div>' +
 
         '</div>';
