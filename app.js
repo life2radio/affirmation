@@ -10773,6 +10773,13 @@ function renderVowSetup(wrap) {
         '<button onclick="confirmVow()" id="vow-confirm-btn" style="display:none;width:100%;padding:14px;background:linear-gradient(135deg,#C9A84C,#D4A843);border:none;border-radius:12px;color:#fff;font-size:0.95em;font-weight:700;cursor:pointer;margin-top:14px;">🎯 이 문장으로 다짐 시작하기</button>' +
         '</div>' +
 
+        '<div style="margin-top:20px;height:1px;background:#eee;"></div>' +
+        '<div style="margin-top:20px;padding:18px;background:#F9F9F9;border-radius:14px;border:1px solid #eee;">' +
+        '<div style="font-size:0.88em;font-weight:800;color:#1B4332;margin-bottom:6px;">💌 사연 보내기</div>' +
+        '<div style="font-size:0.8em;color:#888;line-height:1.7;margin-bottom:12px;">확언으로 변화된 삶, 힘든 마음, 이루어가는 이야기를 나눠주세요.<br>많은 분들께 위로와 용기가 됩니다 🌿</div>' +
+        '<button onclick="openStoryModal && openStoryModal()" style="width:100%;padding:13px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.9em;font-weight:700;cursor:pointer;">💌 사연 보내기</button>' +
+        '</div>' +
+
         '</div>';
 
     // 오늘 날짜 기본값
