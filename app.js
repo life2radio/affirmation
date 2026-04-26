@@ -9497,6 +9497,11 @@ https://life2radio.github.io/affirmation/
             '<input id="som-name" type="text" placeholder="닉네임 또는 이름" maxlength="20" ' +
             'style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">' +
             '</div>' +
+            '<div style="margin-bottom:12px;">' +
+            '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">이메일 (선택 · 답장 원하시면 입력)</div>' +
+            '<input id="som-email" type="email" placeholder="example@email.com" ' +
+            'style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">' +
+            '</div>' +
             '<div style="margin-bottom:20px;">' +
             '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">사연 내용</div>' +
             '<textarea id="som-body" rows="6" placeholder="나의 이야기를 자유롭게 써주세요" maxlength="1000" ' +
@@ -9515,22 +9520,52 @@ https://life2radio.github.io/affirmation/
     window.sendStoryOverlay = async function() {
         var title = (document.getElementById('som-title')||{}).value || '';
         var name  = (document.getElementById('som-name')||{}).value  || '';
+        var email = (document.getElementById('som-email')||{}).value || '';
         var body  = (document.getElementById('som-body')||{}).value  || '';
         if(!title.trim()) { showToast('제목을 입력해주세요'); return; }
         if(!body.trim())  { showToast('사연 내용을 입력해주세요'); return; }
 
         var emailBody = name ? '[이름] ' + name + '\n\n' + body : body;
+
+        // 오늘의 확언 포함
+        var ae = document.getElementById('affirmation-text');
+        var de = document.getElementById('day-label');
+        if(ae && de) emailBody += '\n\n——\n오늘의 확언 (' + de.innerText + ')\n"' + ae.innerText + '"';
+
         var FORMSPREE_ID = 'xqewzqqg';
         try {
             var res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
                 method:'POST',
                 headers:{'Content-Type':'application/json','Accept':'application/json'},
-                body: JSON.stringify({이름: name||'익명', 제목: title, 사연: emailBody})
+                body: JSON.stringify({
+                    이름: name||'익명',
+                    제목: title,
+                    사연: emailBody,
+                    이메일: email
+                })
             });
             if(res.ok) {
-                showToast('💌 사연이 전송됐어요! 감사해요 🌿');
-                addPoint && addPoint(10,'사연보내기','story_overlay_' + getFormatDate(new Date()));
-                document.getElementById('story-overlay-modal').style.display = 'none';
+                showToast('💌 사연이 전송됐어요! +10PT 적립됐어요 😊');
+                addPoint && addPoint(10, '사연보내기', 'story_send_' + getFormatDate(new Date()));
+                window._sendStoryLog && window._sendStoryLog();
+                // 패자부활
+                var t = new Date();
+                var revKey = 'revival_story_' + t.getFullYear() + '_' + (t.getMonth()+1);
+                if(!safeGetItem(revKey,'')) {
+                    var ab = parseInt(safeGetItem('revival_absent_days','0'))||0;
+                    if(ab > 0) {
+                        var del = Math.min(ab, 7);
+                        safeSetItem('revival_absent_days', String(ab-del));
+                        safeSetItem(revKey, '1');
+                        showToast('🎉 패자부활! 결석 ' + del + '일이 삭제됐어요!');
+                    }
+                }
+                // 입력창 초기화
+                ['som-title','som-name','som-email','som-body'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if(el) el.value = '';
+                });
+                closeStoryOverlay();
             } else throw new Error();
         } catch(e) {
             window.location.href = 'mailto:life2radio@gmail.com?subject=' +
