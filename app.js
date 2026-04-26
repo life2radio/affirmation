@@ -11072,6 +11072,9 @@ function renderVowMain(wrap, vow) {
         // 소리내어 읽기 (STT)
         '<button onclick="startVowSTT()" id="vow-stt-btn" style="width:100%;padding:13px;background:#fff;border:1.5px solid #C9A84C;border-radius:12px;color:#C9A84C;font-size:0.9em;font-weight:700;cursor:pointer;">🎙 소리내어 읽기</button>' +
         '<div id="vow-stt-status" style="font-size:0.78em;color:#aaa;text-align:center;margin-top:6px;min-height:18px;"></div>' +
+        '<div style="text-align:right;margin-top:8px;">' +
+        '<button onclick="resetTodayVow()" style="background:none;border:none;font-size:0.72em;color:#ccc;cursor:pointer;text-decoration:underline;">오늘 기록 초기화</button>' +
+        '</div>' +
         '</div>' +
 
         // 카카오 알림 유도
@@ -11283,6 +11286,39 @@ window.resetVow = function() {
     safeSetItem('vow_data', null);
     var wrap = document.getElementById('vow-main-wrap');
     if(wrap) renderVowView();
+};
+
+// ── 오늘 수행 기록만 리셋 (잘못된 데이터 수정용) ──
+window.resetTodayVow = function() {
+    var vow = safeGetJSON('vow_data', null);
+    if(!vow) return;
+    var today = getFormatDate(new Date());
+    vow.checks = vow.checks || {};
+    vow.checks[today] = {morning: false, evening: false};
+    safeSetJSON('vow_data', vow);
+    showToast('오늘 수행 기록이 초기화됐어요');
+    var wrap = document.getElementById('vow-main-wrap');
+    if(wrap) renderVowMain(wrap, vow);
+};
+
+// ── 전체 checks 데이터 마이그레이션 (숫자→객체) ──
+window.migrateVowChecks = function() {
+    var vow = safeGetJSON('vow_data', null);
+    if(!vow || !vow.checks) return;
+    var changed = false;
+    Object.keys(vow.checks).forEach(function(key) {
+        var v = vow.checks[key];
+        if(typeof v === 'number') {
+            vow.checks[key] = {morning: v >= 1, evening: false};
+            changed = true;
+        }
+    });
+    if(changed) {
+        safeSetJSON('vow_data', vow);
+        showToast('✅ 데이터 마이그레이션 완료');
+        var wrap = document.getElementById('vow-main-wrap');
+        if(wrap) renderVowMain(wrap, vow);
+    }
 };
 
 // ── 배지 업데이트 ──
@@ -11768,6 +11804,25 @@ window.showStorySendModal = function() {
             selectDaejimCount(cnt);
         }
     }
+
+// ★ vow checks 자동 마이그레이션 (숫자→객체 형식)
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        try {
+            var vow = safeGetJSON('vow_data', null);
+            if(!vow || !vow.checks) return;
+            var changed = false;
+            Object.keys(vow.checks).forEach(function(key) {
+                var v = vow.checks[key];
+                if(typeof v === 'number') {
+                    vow.checks[key] = {morning: v >= 1, evening: false};
+                    changed = true;
+                }
+            });
+            if(changed) safeSetJSON('vow_data', vow);
+        } catch(e) {}
+    }, 500);
+});
 
 // ★ 사연 탭 → 다짐 탭 이름 변경 (DOM 완전 로드 후)
 document.addEventListener('DOMContentLoaded', function() {
