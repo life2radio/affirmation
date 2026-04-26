@@ -11089,10 +11089,20 @@ function renderVowCalendar(vow) {
 
     days.forEach(function(d) {
         var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-        var check = checks[key] || 0;
+        var raw = checks[key] || 0;
         var isToday = key === getFormatDate(new Date());
-        var full = check >= maxCount;
-        var half = check > 0 && check < maxCount;
+
+        // 새 구조({morning,evening}) / 구 구조(숫자) 모두 지원
+        var doneCount = 0;
+        if(typeof raw === 'object' && raw !== null) {
+            if(raw.morning) doneCount++;
+            if(raw.evening) doneCount++;
+        } else {
+            doneCount = raw;
+        }
+
+        var full = doneCount >= maxCount;
+        var half = doneCount > 0 && !full;
         var bg = full ? '#1B4332' : half ? '#A8D5B5' : '#f5f5f5';
         var color = full ? '#fff' : half ? '#1B4332' : '#ccc';
         var border = isToday ? '2px solid #C9A84C' : '2px solid transparent';
