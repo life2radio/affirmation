@@ -4577,6 +4577,16 @@ https://life2radio.github.io/affirmation/?psych=1`;
     window.initApp = function(){
         applyStoredSettings();
 
+        // ★ 사연 탭 → 다짐 탭으로 즉시 변경
+        (function() {
+            var navBtn = document.getElementById('nav-story');
+            if(!navBtn) return;
+            var txt = navBtn.querySelector('.nav-text');
+            if(txt) txt.textContent = '다짐';
+            var svg = navBtn.querySelector('svg');
+            if(svg) svg.innerHTML = '<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>';
+        })();
+
         // ★ ?r= 결과 공유 링크 처리
         if(window._sharedResult){
             const fakeResult = window._sharedResult;
