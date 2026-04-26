@@ -10967,7 +10967,9 @@ function renderVowMain(wrap, vow) {
     // 시간대 기반 체크 데이터 파싱
     var todayData = checks[today] || {morning:false, evening:false};
     if(typeof todayData === 'number') {
-        todayData = {morning: todayData >= 1, evening: todayData >= 2};
+        // 구버전 숫자 → 새 형식으로 마이그레이션
+        // evening은 시간대를 알 수 없으므로 false로 처리
+        todayData = {morning: todayData >= 1, evening: false};
     }
     var morningDone = todayData.morning || false;
     var eveningDone = todayData.evening || false;
@@ -11232,8 +11234,9 @@ function vowMarkCheck() {
     vow.checks = vow.checks || {};
     var todayData = vow.checks[today] || {morning:false, evening:false};
     if(typeof todayData === 'number') {
-        // 구버전 데이터 마이그레이션
-        todayData = {morning: todayData >= 1, evening: todayData >= 2};
+        // 구버전 숫자 → 새 형식으로 마이그레이션
+        // evening은 시간대를 알 수 없으므로 false로 처리
+        todayData = {morning: todayData >= 1, evening: false};
     }
     var slot = getVowSlot();
     var maxCount = vow.count || 1;
@@ -11290,7 +11293,7 @@ function updateVowBadge() {
     if(!vow || !vow.confirmed) { badge.style.display='none'; return; }
     var today = getFormatDate(new Date());
     var todayRaw = (vow.checks||{})[today] || {morning:false, evening:false};
-    if(typeof todayRaw === 'number') todayRaw = {morning: todayRaw>=1, evening: todayRaw>=2};
+    if(typeof todayRaw === 'number') todayRaw = {morning: todayRaw>=1, evening: false};
     var maxC = vow.count || 1;
     var done = maxC === 1 ? todayRaw.morning : (todayRaw.morning && todayRaw.evening);
     badge.style.display = done ? 'none' : 'block';
