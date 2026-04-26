@@ -10822,7 +10822,7 @@ window.confirmVow = function() {
 function renderVowMain(wrap, vow) {
     var today = getFormatDate(new Date());
     var checks = vow.checks || {};
-    var todayCheck = checks[today] || 0;
+    // todayCheck는 시간대 기반으로 대체됨
     var maxCount = vow.count || 1;
 
     // D-Day 계산
@@ -10838,20 +10838,33 @@ function renderVowMain(wrap, vow) {
     if(elapsedDays < 0) elapsedDays = 0;
 
     // 수행 체크 표시
+    // 시간대 기반 체크 데이터 파싱
+    var todayData = checks[today] || {morning:false, evening:false};
+    if(typeof todayData === 'number') {
+        todayData = {morning: todayData >= 1, evening: todayData >= 2};
+    }
+    var morningDone = todayData.morning || false;
+    var eveningDone = todayData.evening || false;
+
     var checkHTML = '';
     if(maxCount === 1) {
-        checkHTML = todayCheck >= 1
-            ? '<span style="font-size:2em;">●</span><span style="font-size:0.82em;color:#1B4332;font-weight:700;margin-left:6px;">오늘 완료!</span>'
-            : '<span style="font-size:2em;color:#ccc;">○</span><span style="font-size:0.82em;color:#aaa;margin-left:6px;">오늘 미수행</span>';
+        checkHTML = morningDone
+            ? '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:2em;">☀️</span><span style="font-size:1.6em;color:#1B4332;">●</span><span style="font-size:0.85em;color:#1B4332;font-weight:700;">오늘 완료!</span></div>'
+            : '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:2em;">☀️</span><span style="font-size:1.6em;color:#ccc;">○</span><span style="font-size:0.85em;color:#aaa;">아직 안 읽었어요</span></div>';
     } else {
-        var c1 = todayCheck >= 1 ? '●' : '○';
-        var c2 = todayCheck >= 2 ? '●' : '○';
-        var c1col = todayCheck >= 1 ? '#1B4332' : '#ccc';
-        var c2col = todayCheck >= 2 ? '#1B4332' : '#ccc';
-        checkHTML = '<span style="font-size:1.8em;color:'+c1col+';">'+c1+'</span>' +
-            '<span style="font-size:0.72em;color:#888;margin:0 4px;">아침</span>' +
-            '<span style="font-size:1.8em;color:'+c2col+';">'+c2+'</span>' +
-            '<span style="font-size:0.72em;color:#888;margin-left:4px;">저녁</span>';
+        var mDot = morningDone ? '<span style="font-size:1.6em;color:#F59E0B;">●</span>' : '<span style="font-size:1.6em;color:#ccc;">○</span>';
+        var eDot = eveningDone ? '<span style="font-size:1.6em;color:#1B4332;">●</span>' : '<span style="font-size:1.6em;color:#ccc;">○</span>';
+        checkHTML =
+            '<div style="display:flex;gap:20px;align-items:center;">' +
+            '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<span style="font-size:1.6em;">☀️</span>' + mDot +
+            '<span style="font-size:0.72em;color:#888;font-weight:700;">아침</span>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<span style="font-size:1.6em;">🌙</span>' + eDot +
+            '<span style="font-size:0.72em;color:#888;font-weight:700;">저녁</span>' +
+            '</div>' +
+            '</div>';
     }
 
     // 달력 (시작일 ~ 오늘)
@@ -10859,6 +10872,45 @@ function renderVowMain(wrap, vow) {
 
     wrap.innerHTML =
         '<div style="padding:0 0 80px;">' +
+
+        // ── 항상 보이는 두 가지 약속 ──
+        '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:16px;padding:18px 20px;margin-bottom:14px;">' +
+        '<div style="font-size:0.78em;font-weight:800;color:#A8D5BA;letter-spacing:1px;margin-bottom:10px;">📌 매일 두 가지 약속</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div style="display:flex;gap:12px;align-items:flex-start;">' +
+        '<div style="min-width:24px;height:24px;background:#C9A84C;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72em;font-weight:900;color:#fff;flex-shrink:0;margin-top:1px;">1</div>' +
+        '<div style="font-size:0.88em;color:#fff;line-height:1.7;font-weight:600;">눈뜨자마자 한 번, 잠들기 직전 한 번<br><span style="color:#A8D5BA;font-weight:400;">반드시 소리내어 읽는다</span></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:12px;align-items:flex-start;">' +
+        '<div style="min-width:24px;height:24px;background:#C9A84C;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72em;font-weight:900;color:#fff;flex-shrink:0;margin-top:1px;">2</div>' +
+        '<div style="font-size:0.88em;color:#fff;line-height:1.7;font-weight:600;">읽을 때 그 장면이 이루어진 모습을<br><span style="color:#A8D5BA;font-weight:400;">머릿속에 또렷이 그린다</span></div>' +
+        '</div>' +
+        '</div></div>' +
+
+        // ── 펼쳐보기: 이유 + 성공 사례 ──
+        '<div style="background:#fff;border-radius:16px;border:1px solid #E8E5E0;margin-bottom:14px;overflow:hidden;">' +
+        '<div onclick="toggleVowWhy()" style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;cursor:pointer;">' +
+        '<div style="font-size:0.88em;font-weight:800;color:#1B4332;">🧠 왜 이걸 매일 해야 할까?</div>' +
+        '<div id="vow-why-arrow" style="font-size:1em;color:#888;transition:transform 0.3s;">▼</div>' +
+        '</div>' +
+        '<div id="vow-why-body" style="display:none;padding:0 18px 18px;">' +
+
+        // 뇌과학
+        '<div style="background:#F0FAF4;border-radius:12px;padding:14px;margin-bottom:12px;">' +
+        '<div style="font-size:0.8em;font-weight:800;color:#1B4332;margin-bottom:8px;">🔬 뇌과학이 말하는 이유</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;margin-bottom:8px;"><b>① 망상활성계(RAS)</b><br>뇌에는 수백만 개의 정보 중 중요한 것만 걸러내는 필터가 있어요. 목표를 매일 선언하면 뇌가 그것을 중요한 것으로 등록하고, 하루 종일 관련 기회·정보·사람을 자동으로 포착합니다.</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;margin-bottom:8px;"><b>② 구현 의도 효과 (Gollwitzer, 1999)</b><br>목표를 구체적으로 선언한 그룹이 그렇지 않은 그룹보다 달성률이 2~3배 높았습니다.</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;"><b>③ 소리내어 읽기 (생성 효과)</b><br>눈으로만 읽는 것보다 소리내어 읽으면 기억 정착률이 훨씬 높아집니다. 입으로 말하고 귀로 듣는 이중 자극이 무의식에 더 깊이 새겨져요.</div>' +
+        '</div>' +
+
+        // 성공 사례
+        '<div style="background:#FFFDF5;border-radius:12px;padding:14px;border:1px solid #C9A84C22;">' +
+        '<div style="font-size:0.8em;font-weight:800;color:#C9A84C;margin-bottom:10px;">👑 매일 했더니 달라진 사람들</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;margin-bottom:8px;"><b>존 D. 록펠러</b><br>매일 아침 재정 목표를 소리내어 읽었습니다. 500명의 백만장자를 연구한 나폴레온 힐은 이것이 그들의 공통된 단 하나의 습관이었다고 밝혔어요.</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;margin-bottom:8px;"><b>짐 캐리</b><br>무명 시절 자신에게 1,000만 달러짜리 수표를 써서 매일 지갑에 넣고 읽었습니다. 5년 후 정확히 그 금액을 받았어요.</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;margin-bottom:8px;"><b>무하마드 알리</b><br>경기 전 나는 세상에서 가장 위대하다를 반복 선언했습니다. 그는 이것이 실제 경기력에 영향을 준다고 믿었어요.</div>' +
+        '<div style="font-size:0.82em;color:#444;line-height:1.8;"><b>오프라 윈프리</b><br>매일 아침 목표 선언을 30년간 지속했습니다. 그녀는 이것이 자신의 삶을 바꾼 가장 중요한 습관이라고 했어요.</div>' +
+        '</div></div></div>' +
 
         // D-Day 카드
         '<div style="background:linear-gradient(135deg,#1B4332,#2D6A4F);border-radius:20px;padding:28px 20px;text-align:center;margin-bottom:16px;">' +
@@ -10994,21 +11046,63 @@ window.startVowSTT = function() {
     _vowRecognition.start();
 };
 
-// ── 수행 체크 ──
+// ── 수행 체크 (시간대 기반: 오전5시~오후4시=아침, 오후4시~자정=저녁) ──
+function getVowSlot() {
+    var h = new Date().getHours();
+    // 아침: 5~15시 / 저녁: 16~23시 및 0~4시
+    if(h >= 5 && h < 16) return 'morning';
+    return 'evening';
+}
+
 function vowMarkCheck() {
     var vow = safeGetJSON('vow_data', null);
     if(!vow) return;
     var today = getFormatDate(new Date());
     vow.checks = vow.checks || {};
-    var cur = vow.checks[today] || 0;
+    var todayData = vow.checks[today] || {morning:false, evening:false};
+    if(typeof todayData === 'number') {
+        // 구버전 데이터 마이그레이션
+        todayData = {morning: todayData >= 1, evening: todayData >= 2};
+    }
+    var slot = getVowSlot();
     var maxCount = vow.count || 1;
-    if(cur < maxCount) { vow.checks[today] = cur + 1; }
+
+    // 1회 설정: 슬롯 무관하게 morning만 사용
+    if(maxCount === 1) {
+        todayData.morning = true;
+    } else {
+        // 2회 설정: 시간대 기반 체크
+        todayData[slot] = true;
+    }
+
+    vow.checks[today] = todayData;
     safeSetJSON('vow_data', vow);
     updateVowBadge();
     var wrap = document.getElementById('vow-main-wrap');
     if(wrap) renderVowMain(wrap, vow);
+
+    // 완료 토스트
+    if(maxCount === 1 && todayData.morning) {
+        showToast('오늘 다짐 완료! 🎉 내일도 함께해요');
+    } else if(maxCount === 2) {
+        if(slot === 'morning') showToast('아침 다짐 완료! ☀️ 저녁에 한 번 더!');
+        else showToast('저녁 다짐 완료! 🌙 오늘 하루 수고했어요!');
+    }
 }
 
+
+window.toggleVowWhy = function() {
+    var body = document.getElementById('vow-why-body');
+    var arrow = document.getElementById('vow-why-arrow');
+    if(!body) return;
+    if(body.style.display === 'none') {
+        body.style.display = 'block';
+        if(arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        body.style.display = 'none';
+        if(arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+};
 // ── 리셋 ──
 window.resetVow = function() {
     if(!confirm('다짐을 초기화하고 새로 시작할까요?')) return;
@@ -11024,8 +11118,11 @@ function updateVowBadge() {
     var vow = safeGetJSON('vow_data', null);
     if(!vow || !vow.confirmed) { badge.style.display='none'; return; }
     var today = getFormatDate(new Date());
-    var check = (vow.checks||{})[today] || 0;
-    badge.style.display = check < (vow.count||1) ? 'block' : 'none';
+    var todayRaw = (vow.checks||{})[today] || {morning:false, evening:false};
+    if(typeof todayRaw === 'number') todayRaw = {morning: todayRaw>=1, evening: todayRaw>=2};
+    var maxC = vow.count || 1;
+    var done = maxC === 1 ? todayRaw.morning : (todayRaw.morning && todayRaw.evening);
+    badge.style.display = done ? 'none' : 'block';
 }
 
 // ── 사연 보내기 모달 ──
