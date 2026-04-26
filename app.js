@@ -4577,15 +4577,7 @@ https://life2radio.github.io/affirmation/?psych=1`;
     window.initApp = function(){
         applyStoredSettings();
 
-        // ★ 사연 탭 → 다짐 탭으로 즉시 변경
-        (function() {
-            var navBtn = document.getElementById('nav-story');
-            if(!navBtn) return;
-            var txt = navBtn.querySelector('.nav-text');
-            if(txt) txt.textContent = '다짐';
-            var svg = navBtn.querySelector('svg');
-            if(svg) svg.innerHTML = '<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>';
-        })();
+
 
         // ★ ?r= 결과 공유 링크 처리
         if(window._sharedResult){
@@ -4658,7 +4650,13 @@ https://life2radio.github.io/affirmation/?psych=1`;
         updateBgmUI();
         initBanner();
         renderPointBar();
-        switchView('home');
+        // ★ URL 파라미터로 탭 직접 이동
+        if(typeof _tabParam !== 'undefined' && (_tabParam==='story' || _tabParam==='daejim')) {
+            switchView('story');
+            history.replaceState(null, '', location.pathname);
+        } else {
+            switchView('home');
+        }
         // ★ 기존 등록 완료 사용자: 첫 방문 포인트 미지급 시 지급
         if(safeGetItem('onboarding_done','') === '1'){
             setTimeout(function(){ checkFirstVisit(); }, 1500);
@@ -10215,6 +10213,7 @@ https://life2radio.github.io/affirmation/
         const _urlParams = new URLSearchParams(window.location.search);
         const _hasPsychParam = _urlParams.get('psych')==='1' || window.location.hash === '#psych';
         const _rParam = _urlParams.get('r');  // ★ 결과 공유 링크
+        const _tabParam = _urlParams.get('tab') || window.location.hash.replace('#','');  // ★ 탭 직접 이동
         const _isKakao = /KAKAOTALK/i.test(navigator.userAgent);
         const _isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -11712,4 +11711,24 @@ window.showStorySendModal = function() {
             selectDaejimCount(cnt);
         }
     }
+
+// ★ 사연 탭 → 다짐 탭 이름 변경 (DOM 완전 로드 후)
+document.addEventListener('DOMContentLoaded', function() {
+    function changeSayeonToDAejim() {
+        var navBtn = document.getElementById('nav-story');
+        if (!navBtn) return;
+        var txt = navBtn.querySelector('.nav-text');
+        if (txt) txt.textContent = '다짐';
+        var svg = navBtn.querySelector('svg');
+        if (svg) {
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.innerHTML = '<path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z"/>';
+        }
+    }
+    // 즉시 시도
+    changeSayeonToDAejim();
+    // 혹시 늦게 렌더링되면 재시도
+    setTimeout(changeSayeonToDAejim, 300);
+    setTimeout(changeSayeonToDAejim, 800);
+});
 
