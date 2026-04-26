@@ -9459,6 +9459,81 @@ https://life2radio.github.io/affirmation/
         }, 30000);
     }
 
+
+    // ════════════════════════════════════════
+    // 💌 사연 보내기 모달 (전역 접근 가능)
+    // ════════════════════════════════════════
+
+    window.closeStoryOverlay = function() { var m=document.getElementById('story-overlay-modal'); if(m)m.style.display='none'; };
+    window.openStoryModal = function() {
+        var existing = document.getElementById('story-overlay-modal');
+        if(existing) { existing.style.display = 'flex'; return; }
+
+        var overlay = document.createElement('div');
+        overlay.id = 'story-overlay-modal';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+        overlay.innerHTML =
+            '<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px 20px 40px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+            '<div style="font-size:1.1em;font-weight:900;color:#1B4332;">💌 사연 보내기</div>' +
+            '<button onclick="closeStoryOverlay()" style="background:none;border:none;font-size:1.4em;cursor:pointer;color:#888;">✕</button>' +
+            '</div>' +
+            '<div style="font-size:0.82em;color:#888;margin-bottom:16px;line-height:1.7;">다짐을 이뤄가는 이야기, 확언으로 변화된 삶을 나눠주세요.<br>많은 분들께 위로와 용기가 됩니다 🌿</div>' +
+            '<div style="margin-bottom:12px;">' +
+            '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">제목</div>' +
+            '<input id="som-title" type="text" placeholder="제목을 입력해주세요" maxlength="50" ' +
+            'style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">' +
+            '</div>' +
+            '<div style="margin-bottom:12px;">' +
+            '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">이름 (선택)</div>' +
+            '<input id="som-name" type="text" placeholder="닉네임 또는 이름" maxlength="20" ' +
+            'style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.9em;box-sizing:border-box;">' +
+            '</div>' +
+            '<div style="margin-bottom:20px;">' +
+            '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:6px;">사연 내용</div>' +
+            '<textarea id="som-body" rows="6" placeholder="나의 이야기를 자유롭게 써주세요" maxlength="1000" ' +
+            'style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:none;"></textarea>' +
+            '</div>' +
+            '<button onclick="sendStoryOverlay()" ' +
+            'style="width:100%;padding:15px;background:#1B4332;color:#fff;border:none;border-radius:12px;font-size:0.95em;font-weight:700;cursor:pointer;">💌 사연 보내기</button>' +
+            '</div>';
+
+        overlay.addEventListener('click', function(e) {
+            if(e.target === overlay) overlay.style.display = 'none';
+        });
+        document.body.appendChild(overlay);
+    };
+
+    window.sendStoryOverlay = async function() {
+        var title = (document.getElementById('som-title')||{}).value || '';
+        var name  = (document.getElementById('som-name')||{}).value  || '';
+        var body  = (document.getElementById('som-body')||{}).value  || '';
+        if(!title.trim()) { showToast('제목을 입력해주세요'); return; }
+        if(!body.trim())  { showToast('사연 내용을 입력해주세요'); return; }
+
+        var emailBody = name ? '[이름] ' + name + '\n\n' + body : body;
+        var FORMSPREE_ID = 'xqewzqqg';
+        try {
+            var res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Accept':'application/json'},
+                body: JSON.stringify({이름: name||'익명', 제목: title, 사연: emailBody})
+            });
+            if(res.ok) {
+                showToast('💌 사연이 전송됐어요! 감사해요 🌿');
+                addPoint && addPoint(10,'사연보내기','story_overlay_' + getFormatDate(new Date()));
+                document.getElementById('story-overlay-modal').style.display = 'none';
+            } else throw new Error();
+        } catch(e) {
+            window.location.href = 'mailto:life2radio@gmail.com?subject=' +
+                encodeURIComponent('[인생2막라디오 사연] ' + title) +
+                '&body=' + encodeURIComponent(emailBody);
+        }
+    };
+
+    // showStorySendModal도 openStoryModal로 연결
+    window.showStorySendModal = window.openStoryModal;
+
     /* ===== ③ Formspree 사연 전송 ===== */
     // ★ https://formspree.io 에서 무료 폼 생성 후 ID 교체
     const FORMSPREE_ID = 'xqewzqqg';
@@ -10579,7 +10654,7 @@ function _fallbackDownload(dataUrl, r, _vKey) {
 function initVowNavAndView() {
     // 1. 네비 텍스트 + 아이콘 + 배지 교체
     var navBtn = document.getElementById('nav-story');
-    if (navBtn && !navBtn.dataset.vowInited) {
+    if (navBtn) {
         navBtn.dataset.vowInited = '1';
         navBtn.style.position = 'relative';
         // 아이콘 교체
@@ -10930,7 +11005,7 @@ function renderVowMain(wrap, vow) {
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">'+checkHTML+'</div>' +
 
         // 따라해보세요 버튼
-        '<button onclick="vowTTS()" style="width:100%;padding:13px;background:#E8F5E9;border:1.5px solid #1B4332;border-radius:12px;color:#1B4332;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:10px;">🔊 따라해보세요</button>' +
+        '<button id="vow-tts-btn" onclick="vowTTS()" style="width:100%;padding:13px;background:#E8F5E9;border:1.5px solid #1B4332;border-radius:12px;color:#1B4332;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:10px;">🔊 따라해보세요</button>' +
 
         // 소리내어 읽기 (STT)
         '<button onclick="startVowSTT()" id="vow-stt-btn" style="width:100%;padding:13px;background:#fff;border:1.5px solid #C9A84C;border-radius:12px;color:#C9A84C;font-size:0.9em;font-weight:700;cursor:pointer;">🎙 소리내어 읽기</button>' +
@@ -10943,7 +11018,7 @@ function renderVowMain(wrap, vow) {
         '<div>' +
         '<div style="font-size:0.85em;font-weight:900;color:#3C1E1E;margin-bottom:2px;">매일 아침·저녁 다짐 알림 받기</div>' +
         '<div style="font-size:0.75em;color:#5C3E1E;line-height:1.5;">카카오톡 오픈채팅에 참여하시면<br>매일 다짐 시간에 알림을 보내드려요 🌿</div>' +
-        '<a href="https://open.kakao.com/o/sYJzT2pi" target="_blank" style="display:inline-block;margin-top:8px;background:#3C1E1E;color:#FEE500;padding:7px 16px;border-radius:20px;font-size:0.78em;font-weight:700;text-decoration:none;">오픈채팅 참여하기 →</a>' +
+        '<a href="https://open.kakao.com/o/gr3RC2pi" target="_blank" style="display:inline-block;margin-top:8px;background:#3C1E1E;color:#FEE500;padding:7px 16px;border-radius:20px;font-size:0.78em;font-weight:700;text-decoration:none;">오픈채팅 참여하기 →</a>' +
         '</div></div>' +
 
         // 달력
@@ -11013,18 +11088,44 @@ function renderVowCalendar(vow) {
 }
 
 // ── TTS (따라해보세요) ──
+var _vowTTSPlaying = false;
 window.vowTTS = function() {
     var vow = safeGetJSON('vow_data', null);
     if(!vow) return;
-    if(window.speechSynthesis) {
+    if(!window.speechSynthesis) { showToast('음성 기능을 지원하지 않아요'); return; }
+
+    // 재생 중이면 정지
+    if(_vowTTSPlaying) {
         window.speechSynthesis.cancel();
-        var utt = new SpeechSynthesisUtterance(vow.text);
-        utt.lang = 'ko-KR';
-        utt.rate = 0.85;
-        utt.onend = function() { vowMarkCheck(); };
-        window.speechSynthesis.speak(utt);
-        showToast('🔊 함께 소리내어 읽어보세요!');
+        _vowTTSPlaying = false;
+        var btn = document.getElementById('vow-tts-btn');
+        if(btn) btn.textContent = '🔊 따라해보세요';
+        return;
     }
+
+    // 재생 시작
+    window.speechSynthesis.cancel();
+    var utt = new SpeechSynthesisUtterance(vow.text);
+    utt.lang = 'ko-KR';
+    utt.rate = 0.85;
+    utt.onstart = function() {
+        _vowTTSPlaying = true;
+        var btn = document.getElementById('vow-tts-btn');
+        if(btn) btn.textContent = '⏹ 정지하기';
+    };
+    utt.onend = function() {
+        _vowTTSPlaying = false;
+        var btn = document.getElementById('vow-tts-btn');
+        if(btn) btn.textContent = '🔊 따라해보세요';
+        vowMarkCheck();
+    };
+    utt.onerror = function() {
+        _vowTTSPlaying = false;
+        var btn = document.getElementById('vow-tts-btn');
+        if(btn) btn.textContent = '🔊 따라해보세요';
+    };
+    window.speechSynthesis.speak(utt);
+    showToast('🔊 함께 소리내어 읽어보세요!');
 };
 
 // ── STT (소리내어 읽기) ──
