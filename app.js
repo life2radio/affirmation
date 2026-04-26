@@ -10937,24 +10937,33 @@ function renderVowMain(wrap, vow) {
     var morningDone = todayData.morning || false;
     var eveningDone = todayData.evening || false;
 
+    // ── 수행 카드 디자인 ──
+    function makeCheckCard(done, emoji, label, doneBg, doneBorder) {
+        if(done) {
+            return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:'+doneBg+';border:2px solid '+doneBorder+';border-radius:16px;padding:14px 22px;">' +
+                '<span style="font-size:2em;">'+emoji+'</span>' +
+                '<span style="font-size:1.2em;">✅</span>' +
+                '<span style="font-size:0.72em;font-weight:800;color:'+doneBorder+';">'+label+' 완료</span>' +
+                '</div>';
+        } else {
+            return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:#F5F5F5;border:2px dashed #ddd;border-radius:16px;padding:14px 22px;">' +
+                '<span style="font-size:2em;filter:grayscale(0.6);opacity:0.5;">'+emoji+'</span>' +
+                '<span style="font-size:1.2em;color:#ddd;">○</span>' +
+                '<span style="font-size:0.72em;font-weight:700;color:#bbb;">'+label+' 미완료</span>' +
+                '</div>';
+        }
+    }
+
     var checkHTML = '';
     if(maxCount === 1) {
-        checkHTML = morningDone
-            ? '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:2em;">☀️</span><span style="font-size:1.6em;color:#1B4332;">●</span><span style="font-size:0.85em;color:#1B4332;font-weight:700;">오늘 완료!</span></div>'
-            : '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:2em;">☀️</span><span style="font-size:1.6em;color:#ccc;">○</span><span style="font-size:0.85em;color:#aaa;">아직 안 읽었어요</span></div>';
+        checkHTML = '<div style="display:flex;justify-content:center;">' +
+            makeCheckCard(morningDone, '☀️', '오늘', '#F0FAF4', '#1B4332') +
+            '</div>';
     } else {
-        var mDot = morningDone ? '<span style="font-size:1.6em;color:#F59E0B;">●</span>' : '<span style="font-size:1.6em;color:#ccc;">○</span>';
-        var eDot = eveningDone ? '<span style="font-size:1.6em;color:#1B4332;">●</span>' : '<span style="font-size:1.6em;color:#ccc;">○</span>';
         checkHTML =
-            '<div style="display:flex;gap:20px;align-items:center;">' +
-            '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
-            '<span style="font-size:1.6em;">☀️</span>' + mDot +
-            '<span style="font-size:0.72em;color:#888;font-weight:700;">아침</span>' +
-            '</div>' +
-            '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
-            '<span style="font-size:1.6em;">🌙</span>' + eDot +
-            '<span style="font-size:0.72em;color:#888;font-weight:700;">저녁</span>' +
-            '</div>' +
+            '<div style="display:flex;gap:14px;justify-content:center;">' +
+            makeCheckCard(morningDone, '☀️', '아침', '#FFFBEA', '#F59E0B') +
+            makeCheckCard(eveningDone, '🌙', '저녁', '#F0FAF4', '#1B4332') +
             '</div>';
     }
 
@@ -11018,7 +11027,7 @@ function renderVowMain(wrap, vow) {
         // 오늘 수행
         '<div style="background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
         '<div style="font-size:0.78em;font-weight:700;color:#555;margin-bottom:12px;">오늘 수행 현황</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">'+checkHTML+'</div>' +
+        '<div style="margin-bottom:16px;">'+checkHTML+'</div>' +
 
         // 따라해보세요 버튼
         '<button id="vow-tts-btn" onclick="vowTTS()" style="width:100%;padding:13px;background:#E8F5E9;border:1.5px solid #1B4332;border-radius:12px;color:#1B4332;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:10px;">🔊 따라해보세요</button>' +
