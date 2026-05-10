@@ -2,18 +2,19 @@
        ★ 새 에피소드 업로드 시 아래 3개만 수정하세요
        title을 빈 문자열로 두면 배너가 자동으로 숨겨집니다
        ========================================================= */
-    // ★★★ 구글 스프레드시트 연동 설정 ★★★
-    // 스프레드시트 배포 후 아래 URL을 교체하세요
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwaacDnfTuhiO_QCpHzPmex_ZFkr1RGsX1_Nmprp3CzIRjBINfa8tmC7gsCZkQNniz9/exec';
+    // ★★★ 구글 스프레드시트 연동 설정 (보안 강화판 v2) ★★★
+    // 새 배포 시 SHEET_API_URL과 APP_SECRET 모두 교체 필요
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxxFZ_BA7u37G4UTHYYdi_KCKqdXicNUWpWqfOdTpCjH3O0wOaDIeJAKpfKb1mRwB8eWQ/exec';
+    const APP_SECRET    = 'QSwbSAijYX6VHwd78ko68aQ6sk3gg5Nd';
 
     async function loadSheetData(){
         if(SHEET_API_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') return;
         try{
-            const res  = await fetch(SHEET_API_URL + '?t=' + Date.now());
+            const res  = await fetch(SHEET_API_URL + '?token=' + encodeURIComponent(APP_SECRET) + '&t=' + Date.now());
             const data = await res.json();
 
-            // ① 시크릿 코드
-            if(data.secretCodes) Object.assign(SECRET_CODES, data.secretCodes);
+            // ① 시크릿 코드 — 보안 강화: 입력 시 단어 단위로 서버 조회로 변경됨
+            //    (전체 코드 목록을 클라이언트에 내려보내지 않음)
 
             // ② Shorts 영상
             if(data.shorts){
@@ -55,10 +56,8 @@
                 });
             }
 
-            // ⑥ 시크릿 특별 콘텐츠 (날짜별)
-            if(data.secretContents){
-                window.SECRET_CONTENTS = data.secretContents;
-            }
+            // ⑥ 시크릿 특별 콘텐츠 — 보안 강화: 입력 시 단어 단위 응답으로 통합됨
+            //    showSecretSuccess가 서버 응답의 content/type 필드를 직접 사용
 
         } catch(e){
             // 카톡/인앱브라우저에서는 CORS로 실패할 수 있음 — 조용히 무시
@@ -1382,7 +1381,7 @@
         fetch(SHEET_API_URL, {
             method:'POST', mode:'no-cors',
             headers:{'Content-Type':'application/json'},
-            body: JSON.stringify(payload)
+            body: JSON.stringify({...payload, token: APP_SECRET})
         }).catch(function(){});
     }
 
@@ -7414,62 +7413,101 @@ https://life2radio.github.io/affirmation/
         }
         el.innerHTML = `<div style="font-size:0.85em;color:rgba(255,255,255,0.6);text-align:center;width:100%;line-height:1.7;">100일 달성 시 이름이 여기 올라가요!<br>이름은 설정에서 입력할 수 있어요.</div>`;
     }
-    // ★ 매주 Shorts 영상 올릴 때 이 목록에 날짜:코드 추가하세요
-    // 형식: 'YYYY-M-D': '코드4자리'
-    const SECRET_CODES = {
-        // 예시 (실제 영상 올린 후 채워넣으세요)
-        // '2026-4-10': '1234',
-        // '2026-4-17': '5678',
-    };
+    // ★ 시크릿 코드 시스템 (단어 기반, 90일 재사용 윈도우)
+    //   서버에 단어를 보내 매칭되는 코드 정보만 받아옴 (전체 코드 목록은 노출되지 않음)
+    const SECRET_CODES = {}; // 호환용 placeholder
 
-    window.checkSecretCode = function(){
-        const input  = document.getElementById('secret-code-input').value.trim();
-        const result = document.getElementById('secret-code-result');
-        if(input.length !== 4){ result.textContent = '4자리 코드를 입력해주세요'; return; }
+    window.checkSecretCode = async function(){
+        const inputEl = document.getElementById('secret-code-input');
+        const result  = document.getElementById('secret-code-result');
+        const input   = (inputEl ? inputEl.value : '').trim();
 
-        const today   = `${todayObj.getFullYear()}-${todayObj.getMonth()+1}-${todayObj.getDate()}`;
-        const correct = SECRET_CODES[today];
-        // ★ 오늘 날짜+코드 조합으로 중복 체크 (날짜별로 다른 코드면 여러 번 가능)
-        const usedKey = `secret_used_${today}_${input}`;
-
-        if(safeGetItem(usedKey, null)){
-            result.textContent = '✅ 이 코드는 이미 입력하셨어요!'; return;
+        if(input.length < 2){
+            result.textContent = '코드를 입력해주세요';
+            return;
         }
-        if(!correct){
-            result.textContent = '오늘의 코드가 아직 없어요. 영상을 확인해보세요!'; return;
+
+        const codeKey = input.toLowerCase();
+
+        // 90일 재사용 윈도우 체크
+        const usedKey  = `secret_used_${codeKey}`;
+        const lastUsed = parseInt(safeGetItem(usedKey, '0')) || 0;
+        if(lastUsed){
+            const daysSince = (Date.now() - lastUsed) / (1000*60*60*24);
+            if(daysSince < 90){
+                const daysLeft = Math.ceil(90 - daysSince);
+                result.textContent = `✅ 이미 사용한 코드예요. ${daysLeft}일 후 재사용 가능해요!`;
+                return;
+            }
         }
-        if(input === correct){
-            safeSetItem(usedKey, '1');
-            // 패자부활: 결석 1일 삭제
-            var ab=parseInt(safeGetItem('revival_absent_days','0'))||0; if(ab>0){ safeSetItem('revival_absent_days',String(ab-1)); showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!'); }
 
-            // 누적 코드 카운트 증가
-            const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
-            safeSetItem('total_secret_codes', String(totalCodes));
+        result.textContent = '확인 중...';
 
-            // 배지 저장
-            let earned = safeGetJSON('earned_badges',[]);
-            const badgeId = `secret_${today}`;
-            if(!earned.includes(badgeId)){ earned.push(badgeId); safeSetJSON('earned_badges', earned); }
+        let data;
+        try {
+            const res = await fetch(
+                SHEET_API_URL +
+                '?token='  + encodeURIComponent(APP_SECRET) +
+                '&action=check_secret_code' +
+                '&code='   + encodeURIComponent(input) +
+                '&t='      + Date.now()
+            );
+            data = await res.json();
+        } catch(err) {
+            result.textContent = '❌ 네트워크 오류. 다시 시도해주세요.';
+            return;
+        }
 
-            result.textContent = '';
-            document.getElementById('secret-code-input').value = '';
-            launchConfetti();
+        if(!data || !data.ok){
+            result.textContent = '❌ 인증 오류가 발생했어요.';
+            return;
+        }
 
-            // ★ 코드 포인트 지급
-            addPoint(10, '시크릿코드', `secret_pt_${today}`);
-            // 누적 보너스
-            if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
-            if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
-            if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
-
-            // 오늘의 특별 콘텐츠 가져오기
-            const todayContent = (window.SECRET_CONTENTS && window.SECRET_CONTENTS[today]) || null;
-            showSecretSuccess(totalCodes, todayContent);
-            checkLevelRecovery(); // 등급 하락 상태면 회복
-        } else {
+        if(!data.found){
             result.textContent = '❌ 코드가 맞지 않아요. 영상 끝을 다시 확인해보세요!';
+            return;
         }
+
+        // 매칭 성공!
+        safeSetItem(usedKey, String(Date.now()));
+
+        // 패자부활: 결석 1일 삭제
+        var ab = parseInt(safeGetItem('revival_absent_days','0'))||0;
+        if(ab>0){
+            safeSetItem('revival_absent_days', String(ab-1));
+            showToast('🎉 코드 입력 완료! 결석 1일이 삭제됐어요!');
+        }
+
+        // 누적 코드 카운트 증가
+        const totalCodes = (parseInt(safeGetItem('total_secret_codes','0'))||0) + 1;
+        safeSetItem('total_secret_codes', String(totalCodes));
+
+        // 배지 저장 (코드별)
+        let earned = safeGetJSON('earned_badges', []);
+        const badgeId = `secret_${codeKey}`;
+        if(!earned.includes(badgeId)){
+            earned.push(badgeId);
+            safeSetJSON('earned_badges', earned);
+        }
+
+        result.textContent = '';
+        if(inputEl) inputEl.value = '';
+        launchConfetti();
+
+        // 코드 포인트 지급
+        addPoint(10, '시크릿코드', `secret_pt_${codeKey}_${Date.now()}`);
+        if(totalCodes === 5)  addPoint(30, '코드5개달성', 'secret_bonus_5');
+        if(totalCodes === 10) addPoint(80, '코드10개달성', 'secret_bonus_10');
+        if(totalCodes === 20) addPoint(200, '코드20개달성', 'secret_bonus_20');
+
+        // 서버에서 받은 콘텐츠를 showSecretSuccess가 기대하는 형식으로 매핑
+        const codeContent = (data.content || data.label) ? {
+            text: data.content || data.label,
+            type: data.type || '메시지'
+        } : null;
+
+        showSecretSuccess(totalCodes, codeContent);
+        checkLevelRecovery();
     }
 
     // PDF 해금 정보 (구글 스프레드시트 앱설정에서 URL 관리)
@@ -9014,7 +9052,7 @@ https://life2radio.github.io/affirmation/
                 method: 'POST',
                 mode: 'no-cors',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(userData)
+                body: JSON.stringify({...userData, token: APP_SECRET})
             }).catch(()=>{});
         } catch(e) {}
     }
@@ -9041,7 +9079,7 @@ https://life2radio.github.io/affirmation/
             fetch(SHEET_API_URL, {
                 method:'POST', mode:'no-cors',
                 headers:{'Content-Type':'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify({...data, token: APP_SECRET})
             }).catch(()=>{});
         } catch(e){}
     }
